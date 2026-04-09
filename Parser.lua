@@ -229,6 +229,10 @@ local function makeParser(src)
       next(); return {'NEXTTIME', parseUnaryexp()}
     elseif t and t.type == 'plustime' then
       next(); return {'PLUSTIME', parseUnaryexp()}
+    elseif t and t.type == 'daily' then
+      next(); return {'DAILY', parseUnaryexp()}
+    elseif t and t.type == 'interv' then
+      next(); return {'INTERV', parseUnaryexp()}
     end
     return parsePrimaryexp()
   end
@@ -269,7 +273,8 @@ local function makeParser(src)
       local t = peek(1)
       if t and (t.type == 'betw' or t.type == 'conc') then
         next()
-        left = {'CONCAT', left, parseAddexp()}
+        left = t.type == 'betw' and {'BETW', left, parseAddexp()}
+                                 or {'CONCAT', left, parseAddexp()}
       else break end
     end
     return left

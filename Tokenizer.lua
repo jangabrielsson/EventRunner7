@@ -85,10 +85,21 @@ local tknsStrs = {
   {"#", "#["..identifierChars.."]+["..identifierChars.."_%d]*", function(s)
     return {type='event', value=s:sub(2)}   -- strip leading '#'
   end},
+  {"@",  "@@?",   kwHandler},   -- @@ interval | @ daily (greedy: @@ matched before @)
   {"$",  "%$+",   kwHandler},   -- $var (gv), $$var (qv), $$$var (pv)
   {"t",  "t/",    kwHandler},   -- t/HH:MM  today-at
   {"n",  "n/",    kwHandler},   -- n/HH:MM  next-occurrence
   {"+",  "%+[+/]",kwHandler},   -- ++  string concat  |  +/HH:MM  plus-from-now
+  -- HH:MM:SS time literal → seconds since midnight (must precede plain number)
+  {"0123456789", "%d%d:%d%d:%d%d", function(s)
+    local h,m,sec = s:match("(%d+):(%d+):(%d+)")
+    return {type='number', value=tonumber(h)*3600+tonumber(m)*60+tonumber(sec)}
+  end},
+  -- HH:MM time literal → seconds since midnight (must precede plain number)
+  {"0123456789", "%d%d:%d%d", function(s)
+    local h,m = s:match("(%d+):(%d+)")
+    return {type='number', value=tonumber(h)*3600+tonumber(m)*60}
+  end},
   {"0123456789","%d+%.?%d*",function(n) 
     return {type='number',value=tonumber(n)} 
   end
@@ -99,6 +110,7 @@ local tknsStrs = {
   return {type=k.type, value=k.value, tk=t}
 end
 },
+{".","%.%.",  kwHandler},   -- .. between operator (must precede single '.')
 {"+-*/(){}&|!:;,.<>=[]",".",function(t) 
   local k = keywords[t]
   if not k then error("Bad token:"..t) end

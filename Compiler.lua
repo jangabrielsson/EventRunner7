@@ -20,11 +20,15 @@ local function compDo(ast)     return compile(ast[2]) end  -- do…end is just i
 
 -- ── Binary operators that map 1-to-1 to CSP ops ───────────────────────────
 
+local function compUnaryWrap(op)
+  return function(ast) return {op, compile(ast[2])} end
+end
+
 local DIRECT_BINOPS = {
   ADD='ADD', SUB='SUB', MUL='MUL', DIV='DIV', MOD='MOD', POW='POW',
   EQ='EQ',  LT='LT',  LTE='LTE', GT='GT',  GTE='GTE',
   AND='AND', OR='OR',
-  CONCAT='CONCAT',
+  CONCAT='CONCAT', BETW='BETW',
 }
 
 local function compBinop(ast)
@@ -179,8 +183,10 @@ comp.DO     = compDo
 
 for op in pairs(DIRECT_BINOPS) do comp[op] = compBinop end
 comp.NEQ  = compNEQ
-comp.NEG  = compNEG
-comp.NOT  = compNOT
+comp.NEG    = compNEG
+comp.NOT    = compNOT
+comp.DAILY  = compUnaryWrap('DAILY')
+comp.INTERV = compUnaryWrap('INTERV')
 
 comp.SCRIPT = function(ast) return compile(ast[2]) end
 comp.BLOCK  = compBlock
@@ -233,14 +239,14 @@ end
 
 -- METHODCALL: obj:method(a1,...)  →  CALL(INDEX(obj, method), obj, a1, ...)
 -- The object is evaluated once; its method is looked up; obj is passed as first arg.
--- GETPROP: obj:key  →  CALL(GET('getProp'), obj, key_string)
+-- GETPROP: obj:key  →  {'GETPROP', obj_csp, key_string}
 comp.GETPROP = function(ast)
-  return {'CALL', {'GET', 'getProp'}, compile(ast[2]), ast[3]}
+  return {'GETPROP', compile(ast[2]), ast[3]}
 end
 
--- SETPROP: obj:key = val  →  CALL(GET('setProp'), obj, key_string, val)
+-- SETPROP: obj:key = val  →  {'SETPROP', obj_csp, key_string, val_csp}
 comp.SETPROP = function(ast)
-  return {'CALL', {'GET', 'setProp'}, compile(ast[2]), ast[3], compile(ast[4])}
+  return {'SETPROP', compile(ast[2]), ast[3], compile(ast[4])}
 end
 
 comp.METHODCALL = function(ast)

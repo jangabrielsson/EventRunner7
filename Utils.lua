@@ -75,6 +75,20 @@ local function midnight() local t = os.date("*t"); t.hour,t.min,t.sec = 0,0,0; r
 local function getWeekNumber(tm) return tonumber(os.date("%V",tm)) end
 local function now() return os.time()-midnight() end
 
+local T2020 = os.time{year=2020, month=1, day=1, hour=0}
+local function betw(arg1,arg2)
+  if arg1 > T2020 then
+    local tn = os.time()
+    return arg1 <= tn and tn <= arg2
+  else
+    local ts = os.date("*t")
+    local t = ts.hour*3600 + ts.min*60 + ts.sec
+    arg2 = arg2 >= arg1 and arg2 or arg2 + 24*3600
+    t = t >= arg1 and t or t + 24*3600
+    return arg1 <= t and t <= arg2
+  end
+end
+
 local function between(start,stop,optTime)
   __assert_type(start,"string" )
   __assert_type(stop,"string" )
@@ -843,6 +857,7 @@ ER.midnight = midnight
 ER.getWeekNumber = getWeekNumber
 ER.now = now
 ER.between = between
+ER.betw = betw
 ER.hm2sec = hm2sec
 ER.toTime = toTime
 ER.sunCalc = sunCalc

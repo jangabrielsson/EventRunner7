@@ -242,6 +242,40 @@ local function CONCAT(a, b)
   end
 end
 
+-- DAILY wraps a time value into a Daily event descriptor {type='Daily', time=v}.
+local function DAILY(a)
+  return function(cont)
+    return a(TR(function(v)
+      trace("DAILY", v)
+      return cont({type='Daily', time=v})
+    end))
+  end
+end
+
+-- INTERV wraps a time value into an Interval event descriptor {type='Interval', interval=v}.
+local function INTERV(a)
+  return function(cont)
+    return a(TR(function(v)
+      trace("INTERV", v)
+      return cont({type='Interval', interval=v})
+    end))
+  end
+end
+
+-- BETW checks whether the current time falls within [start, stop].
+-- Delegates to ER.betw which handles both epoch timestamps (arg > T2020)
+-- and seconds-since-midnight values, including midnight wrap-around.
+local function BETW(start_expr, stop_expr)
+  return function(cont)
+    return start_expr(TR(function(start)
+      return stop_expr(TR(function(stop)
+        trace("BETW", start, "..", stop)
+        return cont(fibaro.EventRunner.betw(start, stop))
+      end))
+    end))
+  end
+end
+
 local function IF(i,t,e)
   return function(cont)
     return i(TR(function(iv)
@@ -265,6 +299,31 @@ local function INDEX(obj_expr, key_expr)
       return key_expr(TR(function(key)
         trace("INDEX", tostring(obj), "[", tostring(key), "]")
         return cont(obj[key])
+      end))
+    end))
+  end
+end
+
+-- GETPROP(obj_expr, key) reads a device property via ER._funs.getProp.
+-- key is a plain string (not an expression).
+local function GETPROP(obj_expr, key)
+  return function(cont)
+    return obj_expr(TR(function(obj)
+      trace("GETPROP", tostring(obj), key)
+      return cont(ER._funs.getProp(obj, key))
+    end))
+  end
+end
+
+-- SETPROP(obj_expr, key, val_expr) writes a device property via ER._funs.setProp.
+-- key is a plain string (not an expression).
+local function SETPROP(obj_expr, key, val_expr)
+  return function(cont)
+    return obj_expr(TR(function(obj)
+      return val_expr(TR(function(v)
+        trace("SETPROP", tostring(obj), key, "=", tostring(v))
+        ER._funs.setProp(obj, key, v)
+        return cont(v)
       end))
     end))
   end
@@ -509,8 +568,10 @@ local expr = {
   CONST = CONST,
   ADD = ADD, SUB = SUB, MUL = MUL, DIV = DIV, MOD = MOD, POW = POW,
   EQ  = EQ,  LT  = LT,  LTE = LTE, GT  = GT,  GTE = GTE,
-  AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT,
+  AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT, BETW = BETW,
   INDEX = INDEX,  MAKETABLE = MAKETABLE,
+  DAILY = DAILY,  INTERV = INTERV,
+  GETPROP = GETPROP,  SETPROP = SETPROP,
   IF    = IF,
   YIELD = YIELD,
   LOOP  = LOOP,  BREAK = BREAK,
@@ -554,6 +615,8 @@ local function compile(t)
   elseif op == "SET"       then return SET(t[2], ca(3))
   elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(3))
   elseif op == "LET"       then return LET(t[2], ca(3), ca(4))
+  elseif op == "GETPROP"   then return GETPROP(ca(2), t[3])   -- t[3] is raw key string
+  elseif op == "SETPROP"   then return SETPROP(ca(2), t[3], ca(4))  -- t[3] is raw key string
   elseif op == "CALL"      then
     -- all args including the function are compiled (scalars auto-wrapped in CONST)
     local cargs = {}

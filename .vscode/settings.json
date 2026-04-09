@@ -29,5 +29,8 @@
   "git.useEditorAsCommitInput": false,
   "git.enableSmartCommit": false,
   "git.verboseCommit": true,
-  "git.confirmSync": false
+  "git.confirmSync": false,
+  "chat.tools.terminal.autoApprove": {
+    "plua": true
+  }
 }

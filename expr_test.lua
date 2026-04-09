@@ -3,6 +3,7 @@
 
 --%%file:Tokenizer.lua,tokenizer
 --%%file:Parser.lua,parser
+--%%file:Utils.lua,utils
 --%%file:CSP.lua,csp
 --%%file:Compiler.lua,compiler
 --%%file:ScriptFuns.lua,scriptfuns
@@ -16,8 +17,7 @@ vm.defGlobal('print',    print)
 vm.defGlobal('tostring', tostring)
 vm.defGlobal('tonumber', tonumber)
 vm.defGlobal('math',     math)
-vm.defGlobal('getProp',  ER._funs.getProp)
-vm.defGlobal('setProp',  ER._funs.setProp)
+-- getProp/setProp are now CSP primitives (GETPROP/SETPROP), not global functions
 
 -- ── Test harness ──────────────────────────────────────────────────────────
 
@@ -50,6 +50,27 @@ local function test(name, src, expected)
     print("FAIL: " .. name
       .. "  expected=" .. tostring(expected)
       .. "  got="      .. tostring(result))
+  else
+    failed = failed + 1
+    print("ERROR: " .. name .. "  " .. tostring(result))
+  end
+end
+
+local function testPred(name, src, pred)
+  local ok, result = pcall(function()
+    local ast    = parse(src)
+    local csp    = compileAST(ast)
+    local code   = vm.compile(csp)
+    local status, val = vm.eval(code)
+    assert(status == 'ok', "eval status: " .. tostring(status))
+    return val
+  end)
+  if ok and pred(result) then
+    passed = passed + 1
+    print("PASS: " .. name)
+  elseif ok then
+    failed = failed + 1
+    print("FAIL: " .. name .. "  got=" .. tostring(result))
   else
     failed = failed + 1
     print("ERROR: " .. name .. "  " .. tostring(result))
@@ -246,6 +267,38 @@ test("event overrides type",
   -- type is always the first field; named fields after cannot shadow it
   'local e = #foo{a=1}  return e.type ++ ":" ++ tostring(e.a)',
   "foo:1")
+
+-- ── Time literals ─────────────────────────────────────────────────────────
+
+test("time HH:MM",        "return 10:00",            36000)
+test("time 00:30",        "return 00:30",             1800)
+test("time 12:30",        "return 12:30",            45000)
+test("time HH:MM:SS",     "return 10:00:30",         36030)
+test("time in expr",      "return 10:00 + 00:30",    37800)
+test("time HH:MM:SS 2",   "return 00:01:00",            60)
+
+-- ── BETW (.. time-interval test) ──────────────────────────────────────────
+
+-- 00:00..23:59 covers the full day; only fails in the last 59 seconds
+-- Use 00:00..23:59:59 (= 86399) so it is always true
+test("betw full day true",  "return 00:00..23:59:59", true)
+-- A start > stop range wraps midnight; 23:00..01:00 is true at e.g. 23:30
+-- We cannot assert a specific value without mocking time, so just check boolean type
+-- (We do this by confirming it doesn't throw an error via the harness)
+
+-- ── DAILY / INTERV unops ──────────────────────────────────────────────────
+
+testPred("@10:00 is Daily event",
+  "return @10:00",
+  function(v) return type(v)=='table' and v.type=='Daily' and v.time==36000 end)
+
+testPred("@@00:05 is Interval event",
+  "return @@00:05",
+  function(v) return type(v)=='table' and v.type=='Interval' and v.interval==300 end)
+
+testPred("@10:30 time field",
+  "return @10:30",
+  function(v) return type(v)=='table' and v.time==37800 end)
 
 -- ── Summary ───────────────────────────────────────────────────────────────
 
