@@ -1,6 +1,6 @@
 --%%name:Continuation test
 
---%%file:cont.lua,cont
+--%%file:CSP.lua,csp
 
 local CONT = fibaro.CONT
 local eval    = CONT.eval
@@ -62,6 +62,9 @@ local function main()
   -- run(fun,result)
   -- run(fmulti,result)
   run(loop,result)
+
+  -- {"RULE", EV('foo'),{"PRINT", "foo fired!"}}
+  -- ["IF", {"EVMATCH",{"CONST",{type="foo"}}}, {"PROGN", {"PRINT", "foo fired!"}}]
 end
 
 local resumeRunner

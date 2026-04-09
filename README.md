@@ -1,4 +1,4 @@
-# cont.lua — Continuation-Passing VM
+# CSP.lua — Continuation-Passing VM
 
 A small trampoline-based expression VM written in Lua. Expressions are built from composable functions and evaluated without growing the Lua call stack. Supports yielding, resuming, loops, variables, and error handling.
 

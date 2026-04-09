@@ -193,6 +193,55 @@ local function EQ(a,b) return BINOP("EQ", a,b) end
 local function LTE(a,b) return BINOP("LTE", a,b) end
 local function GTE(a,b) return BINOP("GTE", a,b) end
 
+-- AND returns the first falsy value, or the last value if all are truthy (Lua semantics).
+local function AND(a, b)
+  return function(cont)
+    return a(TR(function(av)
+      if not av then return cont(av) end
+      return b(TR(cont))
+    end))
+  end
+end
+
+-- OR returns the first truthy value, or the last value if all are falsy (Lua semantics).
+local function OR(a, b)
+  return function(cont)
+    return a(TR(function(av)
+      if av then return cont(av) end
+      return b(TR(cont))
+    end))
+  end
+end
+
+-- NOT returns the boolean negation of its argument.
+local function NOT(a)
+  return function(cont)
+    return a(TR(function(av)
+      return cont(not av)
+    end))
+  end
+end
+
+-- NEG returns the arithmetic negation of its argument.
+local function NEG(a)
+  return function(cont)
+    return a(TR(function(av)
+      return cont(-av)
+    end))
+  end
+end
+
+-- CONCAT concatenates two values as strings (mirrors Lua's .. operator).
+local function CONCAT(a, b)
+  return function(cont)
+    return a(TR(function(av)
+      return b(TR(function(bv)
+        return cont(tostring(av) .. tostring(bv))
+      end))
+    end))
+  end
+end
+
 local function IF(i,t,e)
   return function(cont)
     return i(TR(function(iv)
@@ -204,6 +253,19 @@ local function IF(i,t,e)
       else
         return cont(nil)
       end
+    end))
+  end
+end
+
+-- INDEX evaluates obj_expr and key_expr, then returns obj[key].
+-- Used for both 'obj.field' (key is a CONST string) and 'obj[expr]' indexing.
+local function INDEX(obj_expr, key_expr)
+  return function(cont)
+    return obj_expr(TR(function(obj)
+      return key_expr(TR(function(key)
+        trace("INDEX", tostring(obj), "[", tostring(key), "]")
+        return cont(obj[key])
+      end))
     end))
   end
 end
@@ -423,6 +485,23 @@ local function resume(token, ...)
   return table.unpack(result, 1, result.n)
 end
 
+-- MAKETABLE builds a fresh table from alternating key/value expression pairs.
+-- MAKETABLE(k1,v1, k2,v2, ...) → evaluates all, returns {[k1]=v1, [k2]=v2, ...}
+local function MAKETABLE(...)
+  local field_exprs = {...}
+  assert(#field_exprs % 2 == 0, "MAKETABLE: odd number of args")
+  return function(cont)
+    return evalArgs(field_exprs, 1, {}, 0, TR(function(...)
+      local n = select('#', ...)
+      local tbl = {}
+      for i = 1, n, 2 do
+        tbl[select(i, ...)] = select(i+1, ...)
+      end
+      return cont(tbl)
+    end))
+  end
+end
+
 local expr = {
   TR    = TR,
   PROGN = PROGN,
@@ -430,6 +509,8 @@ local expr = {
   CONST = CONST,
   ADD = ADD, SUB = SUB, MUL = MUL, DIV = DIV, MOD = MOD, POW = POW,
   EQ  = EQ,  LT  = LT,  LTE = LTE, GT  = GT,  GTE = GTE,
+  AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT,
+  INDEX = INDEX,  MAKETABLE = MAKETABLE,
   IF    = IF,
   YIELD = YIELD,
   LOOP  = LOOP,  BREAK = BREAK,

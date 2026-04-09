@@ -1,0 +1,102 @@
+
+Left-recursion eliminated grammar for EventScript
+
+script ::= exp '=>' action |
+           block
+
+action ::= block
+
+block ::= {stat [';']} [laststat [';'] ]
+
+stat ::= varlist '=' explist |
+         functioncall |
+         do block end |
+         while exp do block end |
+         repeat block until exp |
+         if exp then block {elseif exp then block} [else block] end |
+         for Name '=' exp ',' exp [',' exp] do block end |
+         for namelist in explist do block end |
+         local namelist ['=' explist] |
+         setprop
+
+laststat ::= return [explist] | break
+
+varlist ::= var {',' var}
+
+namelist ::= Name {',' Name}
+
+explist ::= exp {',' exp}
+
+-- Expression with eliminated left recursion (handles binary operators)
+exp ::= orexp
+
+orexp ::= andexp {'|' andexp}
+
+andexp ::= relexp {'&' relexp}
+
+relexp ::= concatexp {relop concatexp}
+
+relop ::= '<' | '<=' | '>' | '>=' | '==' | '~='
+
+concatexp ::= addexp {'..' addexp}
+
+addexp ::= mulexp {addop mulexp}
+
+addop ::= '+' | '-'
+
+mulexp ::= unaryexp {mulop unaryexp}
+
+mulop ::= '*' | '/' | '%'
+
+unaryexp ::= unop unaryexp | powexp
+
+unop ::= '-' | '!' | 't/' | 'n/' | '+/'
+
+powexp ::= primaryexp ['^' unaryexp]
+
+primaryexp ::= nil | false | true | Number | String | '...' |
+               function | tableconstructor | prefixexp
+
+-- Prefix expressions with eliminated left recursion.
+-- All suffix forms are handled uniformly by postfix.
+-- Disambiguation of getprop / setprop / functioncall is done at the statement
+-- and expression level by inspecting what follows the postfix chain.
+prefixexp ::= primaryprefix {postfix}
+
+-- '$'Name  = Fibaro global variable
+-- '$$'Name = QuickApp variable
+-- '$$$'Name = internalStorage (persistent) variable
+primaryprefix ::= Name | '$'Name | '$$'Name | '$$$'Name | '(' exp ')'
+
+-- postfix covers all suffix forms; ':' Name is listed before ':' Name args
+-- so a parser must attempt the longer match (':' Name args) first.
+postfix ::= '[' exp ']' | '.' Name | ':' Name args | ':' Name | args
+
+-- Variable: a prefixexp whose last postfix (if any) is not args or ':' Name args
+-- '$'-prefixed forms are valid lvalues (assignment targets)
+var ::= Name {varpostfix} | '$'Name | '$$'Name | '$$$'Name
+
+varpostfix ::= '[' exp ']' | '.' Name
+
+-- Function call: prefixexp whose last postfix is args or ':' Name args
+functioncall ::= primaryprefix {postfix} args
+               | primaryprefix {postfix} ':' Name args
+
+-- getprop: prefixexp ending with ':' Name (no args)
+getprop ::= primaryprefix {postfix} ':' Name
+
+-- setprop: prefixexp ending with ':' Name '=' exp
+setprop ::= primaryprefix {postfix} ':' Name '=' exp
+
+args ::= '(' [explist] ')' | tableconstructor | String
+
+tableconstructor ::= '{' [fieldlist] '}'
+
+fieldlist ::= field {fieldsep field} [fieldsep]
+
+field ::= '[' exp ']' '=' exp | Name '=' exp | exp
+
+fieldsep ::= ',' | ';'
+
+
+fieldsep ::= ',' | ';'
