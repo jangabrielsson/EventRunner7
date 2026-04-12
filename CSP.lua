@@ -1,3 +1,6 @@
+fibaro.ER = fibaro.ER or {}
+local ER = fibaro.ER
+
 local unpack = table.unpack
 
 local YIELD_TAG = {}  -- unique sentinel for yield detection
@@ -270,7 +273,7 @@ local function BETW(start_expr, stop_expr)
     return start_expr(TR(function(start)
       return stop_expr(TR(function(stop)
         trace("BETW", start, "..", stop)
-        return cont(fibaro.EventRunner.betw(start, stop))
+        return cont(ER.betw(start, stop))
       end))
     end))
   end
@@ -310,7 +313,7 @@ local function GETPROP(obj_expr, key)
   return function(cont)
     return obj_expr(TR(function(obj)
       trace("GETPROP", tostring(obj), key)
-      return cont(ER._funs.getProp(obj, key))
+      return cont(ER.getProp(obj, key))
     end))
   end
 end
@@ -322,7 +325,7 @@ local function SETPROP(obj_expr, key, val_expr)
     return obj_expr(TR(function(obj)
       return val_expr(TR(function(v)
         trace("SETPROP", tostring(obj), key, "=", tostring(v))
-        ER._funs.setProp(obj, key, v)
+        ER.setProp(obj, key, v)
         return cont(v)
       end))
     end))
@@ -641,4 +644,4 @@ local vm = {
   setGlobal = function(name, v) return _ctx:setGlobal(name, v) end,
 }
 
-fibaro.CONT = vm
+fibaro.ER.csp = vm

@@ -1,10 +1,10 @@
 --%%name:Parser unit tests
 --%%offline:true
 
---%%file:Tokenizer.lua,tokenizer
---%%file:Parser.lua,parser
+--%%headers:EventRunner.inc
 
-local parse = ER._tools.parse
+local ER = fibaro.ER
+local parse = ER.parse
 
 -- ── helpers ──────────────────────────────────────────────────────────────
 
@@ -91,13 +91,13 @@ section("Arithmetic")
 
 check("add",        "x = a + b",    {'ASSIGN', {{'NAME','x'}}, {{'ADD',{'NAME','a'},{'NAME','b'}}}})
 check("sub",        "x = a - b",    {'ASSIGN', {{'NAME','x'}}, {{'SUB',{'NAME','a'},{'NAME','b'}}}})
-check("mul",        "x = a * b",    {'ASSIGN', {{'NAME','x'}}, {{'MULTIPLY',{'NAME','a'},{'NAME','b'}}}})
-check("div",        "x = a / b",    {'ASSIGN', {{'NAME','x'}}, {{'DIVIDE',{'NAME','a'},{'NAME','b'}}}})
+check("mul",        "x = a * b",    {'ASSIGN', {{'NAME','x'}}, {{'MUL',{'NAME','a'},{'NAME','b'}}}})
+check("div",        "x = a / b",    {'ASSIGN', {{'NAME','x'}}, {{'DIV',{'NAME','a'},{'NAME','b'}}}})
 check("neg",        "x = -a",       {'ASSIGN', {{'NAME','x'}}, {{'NEG',{'NAME','a'}}}})
 check("precedence", "x = a + b * c",
-  {'ASSIGN', {{'NAME','x'}}, {{'ADD',{'NAME','a'},{'MULTIPLY',{'NAME','b'},{'NAME','c'}}}}})
+  {'ASSIGN', {{'NAME','x'}}, {{'ADD',{'NAME','a'},{'MUL',{'NAME','b'},{'NAME','c'}}}}})
 check("parens",     "x = (a + b) * c",
-  {'ASSIGN', {{'NAME','x'}}, {{'MULTIPLY',{'PAREN',{'ADD',{'NAME','a'},{'NAME','b'}}},{'NAME','c'}}}})
+  {'ASSIGN', {{'NAME','x'}}, {{'MUL',{'PAREN',{'ADD',{'NAME','a'},{'NAME','b'}}},{'NAME','c'}}}})
 
 -- ── comparison & logic ───────────────────────────────────────────────────
 section("Comparison & logic")
@@ -186,8 +186,8 @@ check("do block",
 section("Return & break")
 
 check("return void",  "return",       {'RETURN', nil})
-check("return val",   "return x",     {'RETURN', {{'NAME','x'}}})
-check("return multi", "return x, y",  {'RETURN', {{'NAME','x'},{'NAME','y'}}})
+check("return val",   "return x",     {'RETURN', {'NAME','x'}})
+check("return multi", "return x, y",  {'RETURN', {'NAME','x'},{'NAME','y'}})
 check("break",        "while true do break end",
   {'WHILE', {'BOOL',true}, {'BLOCK', {'BREAK'}}})
 
@@ -199,7 +199,7 @@ check("func no params", "f = function() end",
 
 check("func with params", "f = function(a, b) return a end",
   {'ASSIGN', {{'NAME','f'}},
-    {{'FUNCTION', {'a','b'}, {'BLOCK', {'RETURN',{{'NAME','a'}}}}}}})
+    {{'FUNCTION', {'a','b'}, {'BLOCK', {'RETURN',{'NAME','a'}}}}}})
 
 -- ── table constructor ─────────────────────────────────────────────────────
 section("Table constructors")

@@ -1,5 +1,6 @@
 --%%offline:true 
-ER = ER or { _tools = {} }
+fibaro.ER = fibaro.ER or {}
+local ER = fibaro.ER
 
 local keywords = {
   ["&"] = {type='op',value='and'},
@@ -205,7 +206,14 @@ end
 
 local function tokenStream(str)
   local tkns = tokenizer(str)
-  local buffer = {}
+  -- Eagerly collect all tokens so savePos/restorePos can work as a simple index.
+  local allTokens = {}
+  while true do
+    local t = tkns()
+    if t == nil then break end
+    allTokens[#allTokens + 1] = t
+  end
+  local pos = 1
   local ctxStack = {}
 
   local function posToLineCol(pos)
@@ -231,31 +239,25 @@ local function tokenStream(str)
 
   local function peek(n)
     n = n or 1
-    while #buffer < n do
-      local t = tkns()
-      if t == nil then return nil end
-      table.insert(buffer, t)
-    end
-    return buffer[n]
+    return allTokens[pos + n - 1]
   end
   local function next()
-    local t = peek(1)
-    table.remove(buffer,1)
+    local t = allTokens[pos]
+    if t then pos = pos + 1 end
     return t
   end
   local function match(expectedType)
-    local t = peek(1)
+    local t = allTokens[pos]
     if t and t.type == expectedType then
-      next()
+      pos = pos + 1
       return t
-    else
-      return nil
     end
+    return nil
   end
   local function expect(expectedType)
-    local t = peek(1)
+    local t = allTokens[pos]
     if t and t.type == expectedType then
-      next()
+      pos = pos + 1
       return t
     else
       local exp = lookupTkType(expectedType) or expectedType
@@ -268,6 +270,10 @@ local function tokenStream(str)
   local function pushCtx(s) table.insert(ctxStack, s) end
   local function popCtx()  table.remove(ctxStack) end
 
+  -- Save / restore the current position in the token list (for speculative parsing).
+  local function savePos()    return pos end
+  local function restorePos(snap) pos = snap end
+
   return {
     peek = peek,
     next = next,
@@ -278,9 +284,11 @@ local function tokenStream(str)
     sourceAt = sourceAt,
     ctxHint = ctxHint,
     lookupTkType = lookupTkType,
+    savePos = savePos,
+    restorePos = restorePos,
   }
 end
 
-ER._tools.tokenizer = tokenizer
-ER._tools.tokenStream = tokenStream
-ER._tools.sourceMarker = sourceMarker
+ER.tokenizer = tokenizer
+ER.tokenStream = tokenStream
+ER.sourceMarker = sourceMarker

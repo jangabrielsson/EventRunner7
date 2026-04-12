@@ -1,0 +1,7 @@
+--%%file:Tokenizer.lua,tokenizer
+--%%file:Parser.lua,parser
+--%%file:CSP.lua,csp
+--%%file:Utils.lua,utils
+--%%file:Compiler.lua,compiler
+--%%file:ScriptFuns.lua,scriptfuns
+--%%file:Rule.lua,rule

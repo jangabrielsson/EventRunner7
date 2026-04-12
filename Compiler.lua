@@ -4,7 +4,8 @@
 --
 -- Pipeline:  source → Parser → AST → compileAST() → CSP tables → CSP.compile() → expr
 
-ER = ER or { _tools = {} }
+fibaro.ER = fibaro.ER or {}
+local ER = fibaro.ER
 
 local compile  -- forward-declared so handlers can call each other recursively
 
@@ -163,10 +164,36 @@ end
 
 -- ── CALL ──────────────────────────────────────────────────────────────────
 -- {'CALL', f_expr, a1, a2, ...}
+--
+-- Intrinsic functions: when the callee is a plain NAME whose identifier is
+-- registered in `intrinsics`, the handler takes over entirely.  The handler
+-- receives the raw arg AST nodes (ast[3], ast[4], ...) and returns a CSP
+-- table.  Receiving uncompiled ASTs lets each intrinsic decide exactly what
+-- to compile (e.g. inserting a raw string tag, ignoring an arg, etc.).
+--
+-- Only bare-name calls are intercepted.  (wait)(8), obj.wait(8), obj:wait(8)
+-- all fall through to the normal CALL path.
+
+local intrinsics = {}
+
 local function compCall(ast)
+  if ast[2][1] == 'NAME' then
+    local handler = intrinsics[ast[2][2]]
+    if handler then
+      return handler(table.unpack(ast, 3))
+    end
+  end
   local res = {'CALL', compile(ast[2])}
   for i = 3, #ast do res[#res + 1] = compile(ast[i]) end
   return res
+end
+
+-- ── Built-in intrinsics ───────────────────────────────────────────────────
+-- wait(ms)  →  YIELD('sleep', ms)
+-- ms may be a numeric literal or any expression; time literals like 00:05
+-- are already converted to seconds by the tokenizer, so wait(00:05) = wait(300).
+intrinsics.wait = function(ms_ast)
+  return {'YIELD', 'sleep', ms_ast and compile(ms_ast) or 0}
 end
 
 -- ── Dispatch table ────────────────────────────────────────────────────────
@@ -204,6 +231,12 @@ comp.ASSIGN = compAssign
 comp.IF     = compIf
 comp.WHILE  = compWhile
 comp.CALL   = compCall
+
+function comp.RULE(ast)
+  -- {'RULE', trigger, block}
+  local rule = compile({"IF",ast[2],ast[3],{}})
+  return {"CALL",{"GET",'compRule'}, {"CONST",rule}}
+end
 
 -- TABLE: {[k]=v, name=v, v, ...}  →  MAKETABLE(k1,v1, k2,v2, ...)
 -- Positional keys (TFIELD_VAL) are assigned compile-time integer positions.
@@ -273,4 +306,5 @@ compile = function(ast)
   return fn(ast)
 end
 
-ER._tools.compileAST = compile
+ER.compileAST  = compile
+ER.intrinsics  = intrinsics  -- mutable: callers may add entries directly

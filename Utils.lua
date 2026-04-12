@@ -1,6 +1,7 @@
-fibaro.EventRunner = fibaro.EventRunner or { debugFlags = {} }
-local ER = fibaro.EventRunner
-local debugFlags = ER.debugFlags
+fibaro.debugFlags = fibaro.debugFlags or {} 
+fibaro.ER = fibaro.ER or {}
+local ER = fibaro.ER
+local debugFlags = fibaro.debugFlags
 
 local fmt = string.format
 
@@ -87,6 +88,10 @@ local function betw(arg1,arg2)
     t = t >= arg1 and t or t + 24*3600
     return arg1 <= t and t <= arg2
   end
+end
+
+local function timeStr(t) 
+  if t < T2020 then return fmt("%02d:%02d:%02d",t//3600,t%3600//60,t%60) else return os.date("%Y-%m-%d %H:%M:%S",t) end
 end
 
 local function between(start,stop,optTime)
@@ -851,6 +856,17 @@ function clearTimeout2(ref)
   if longRefs[ref] then oldClearTimeout(longRefs[ref]) longRefs[ref]=nil else oldClearTimeout(ref) end
 end
 
+if fibaro.plua then
+  local id = 10000
+  local function createDevice(path)
+    local p = os.getenv("DEVICELIB") or ""
+    local code = fibaro.plua.lib.readFile(p..path..".lua")
+    local d = fibaro.plua.lib.loadQAString(code,{headers={"desktop:false"}})
+    return d.device.id
+  end
+  ER.loadSimDev = createDevice
+end
+
 ER.alarmFuns = alarmFuns
 ER.toSeconds = toSeconds
 ER.midnight = midnight
@@ -858,6 +874,7 @@ ER.getWeekNumber = getWeekNumber
 ER.now = now
 ER.between = between
 ER.betw = betw
+ER.timeStr = timeStr
 ER.hm2sec = hm2sec
 ER.toTime = toTime
 ER.sunCalc = sunCalc

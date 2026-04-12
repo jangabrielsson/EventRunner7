@@ -1,15 +1,17 @@
 --%%offline:true
 -- Parser.lua: Recursive descent parser for EventScript
 -- Outputs {opcode, ...} AST tables (matching CSP.lua compile format)
-ER = ER or { _tools = {} }
+fibaro.ER = fibaro.ER or {}
+local ER = fibaro.ER
 
 local function makeParser(src)
-  local ts      = ER._tools.tokenStream(src)
+  local ts      = ER.tokenStream(src)
   local peek    = ts.peek
   local next    = ts.next
   local match   = ts.match
   local expect  = ts.expect
-  local sourceAt = ts.sourceAt
+  local savePos    = ts.savePos
+  local restorePos = ts.restorePos
 
   local function parseError(msg)
     local t = peek(1)
@@ -492,6 +494,20 @@ local function makeParser(src)
   end
 
   local function parseScript()
+    -- script ::= exp '=>' action   →  {'RULE', cond, action}
+    --          | block             →  {'SCRIPT', block}
+    -- Speculatively parse a leading expression; if '=>' follows it's a rule.
+    -- On failure or no '=>', restore and re-parse as a plain block.
+    local snap = savePos()
+    local ok, cond = pcall(parseExp)
+    if ok and peek(1) and peek(1).type == 'rule' then
+      next()  -- consume '=>'
+      local action = parseBlock()
+      if peek(1) then parseError("Unexpected token after rule action") end
+      return {'RULE', cond, action}
+    end
+    -- Not a rule: restore and parse as a plain block.
+    restorePos(snap)
     local block = parseBlock()
     if peek(1) then
       parseError("Unexpected token at top level")
@@ -506,4 +522,4 @@ local function parse(src)
   return makeParser(src)()
 end
 
-ER._tools.parse = parse
+ER.parse = parse

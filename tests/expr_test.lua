@@ -8,9 +8,10 @@
 --%%file:Compiler.lua,compiler
 --%%file:ScriptFuns.lua,scriptfuns
 
-local parse      = ER._tools.parse
-local compileAST = ER._tools.compileAST
-local vm         = fibaro.CONT
+local ER         = fibaro.ER
+local parse      = ER.parse
+local compileAST = ER.compileAST
+local vm         = ER.csp
 
 -- Seed globals available inside compiled EventScript
 vm.defGlobal('print',    print)
@@ -117,6 +118,9 @@ test("and tt",            'return true & true', true)
 test("and tf",            'return true & false',false)
 test("or ft",             'return false | true',true)
 test("or ff",             'return false | false',false)
+test("or ff",             'return false | false',false)
+test("not nil",             'return !nil',true)
+test("not nil_var",     'local nil_var=nil; return !nil_var',   true) -- not nil == true
 
 -- ── String concatenation ──────────────────────────────────────────────────
 
@@ -180,8 +184,8 @@ test("chained field",           'return math.huge > 1000000',        true)
 test("field result in expr",    'return math.abs(-3) + math.abs(-4)', 7)
 
 -- ── SETPROP / GETPROP  (88:key = val / 88:key) ───────────────────────────
-ER._funs.defineTestDevice(88)  -- make device 88 available for testing
-ER._funs.defineTestDevice(99)  -- make device 99 available for testing
+ER.defineTestDevice(88)  -- make device 88 available for testing
+ER.defineTestDevice(99)  -- make device 99 available for testing
 
 test("setprop returns value",
   '88:value = 42  return 88:value',
@@ -299,6 +303,46 @@ testPred("@@00:05 is Interval event",
 testPred("@10:30 time field",
   "return @10:30",
   function(v) return type(v)=='table' and v.time==37800 end)
+
+-- ── Intrinsics ────────────────────────────────────────────────────────────
+
+-- wait() yields immediately; vm.eval returns 'suspended', token, tag, ms
+local function testWait(name, src, expected_ms)
+  local ok, result = pcall(function()
+    local ast    = parse(src)
+    local csp    = compileAST(ast)
+    local code   = vm.compile(csp)
+    local status, token, tag, ms = vm.eval(code)
+    assert(status == 'suspended', "expected suspended, got: " .. tostring(status))
+    assert(tag == 'sleep',        "expected tag 'sleep', got: " .. tostring(tag))
+    assert(ms == expected_ms,     "expected ms=" .. tostring(expected_ms) .. ", got: " .. tostring(ms))
+    return true
+  end)
+  if ok then
+    passed = passed + 1
+    print("PASS: " .. name)
+  else
+    failed = failed + 1
+    print("ERROR: " .. name .. "  " .. tostring(result))
+  end
+end
+
+testWait("wait numeric",   "wait(3000)",   3000)
+testWait("wait time lit",  "wait(00:05)",  300)
+testWait("wait expr",      "wait(2*1000)", 2000)
+
+-- normal function named 'wait_x' (not in intrinsics) still compiles as CALL
+-- (verify no error; result is suspended because the global is not defined here,
+--  but compileAST must not throw)
+local ok2 = pcall(function()
+  local csp = compileAST(parse("local wait = 1  return wait"))
+  vm.eval(vm.compile(csp))
+end)
+if ok2 then
+  passed = passed + 1; print("PASS: wait as local var (not intrinsic)")
+else
+  failed = failed + 1; print("FAIL: wait as local var")
+end
 
 -- ── Summary ───────────────────────────────────────────────────────────────
 
