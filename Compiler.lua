@@ -53,6 +53,8 @@ end
 local function compileTarget(var, val_csp)
   if var[1] == 'NAME' then
     return {'SET', var[2], val_csp}
+  elseif var[1] == 'GV' or var[1] == 'QV' or var[1] == 'PV' then
+    return {"SETVAR", var[1], var[2], val_csp}
   else
     error("Compiler: unsupported assignment target: " .. tostring(var[1]))
   end
@@ -292,6 +294,10 @@ comp.METHODCALL = function(ast)
   for i = 4, #ast do call[#call + 1] = compile(ast[i]) end
   return {'LET', '__self__', obj_csp, call}
 end
+
+function comp.GV(ast) return {'GETVAR', 'GV', ast[2]} end
+function comp.QV(ast) return {'GETVAR', 'QV', ast[2]} end
+function comp.PV(ast) return {'GETVAR', 'PV', ast[2]} end
 
 -- ── Entry point ───────────────────────────────────────────────────────────
 

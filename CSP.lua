@@ -454,14 +454,39 @@ local function GET(name)
   end
 end
 
--- SET mutates the innermost binding for name.
+-- SET writes to the innermost binding for name.
 local function SET(name, val_expr)
   return function(cont)
     return val_expr(TR(function(v)
-      if not _ctx:setVar(name, v) then
-        error("Undefined variable: " .. tostring(name))
+      local found = _ctx:setVar(name, v)
+      if ER._triggerVars[name] then
+        ER.sourceTrigger:post({type='trigger-variable', name = name, value = v})
+        trace("SET trigger var", name, "=", v)
       end
+      if found then return cont(v) end
+      error("Undefined variable: " .. tostring(name))
+    end))
+  end
+end
+
+-- GETVAR reads special vars.
+local function GETVAR(typ,name)
+  return function(cont)
+    return name(TR(function(n)
+      local v = ER.getVar(typ,n)
       return cont(v)
+    end))
+  end
+end
+
+-- SETVAR mutates special vars.
+local function SETVAR(typ, name, val_expr)
+  return function(cont)
+    return name(TR(function(n)
+      return val_expr(TR(function(v)
+        ER.setVar(typ, n, v)
+        return cont(v)
+      end))
     end))
   end
 end
@@ -582,6 +607,7 @@ local expr = {
   TRACE     = TRACE,
   PRINT     = PRINT,
   LET   = LET,   GET   = GET,   SET = SET,
+  GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
 }
 
@@ -616,6 +642,8 @@ local function compile(t)
   if     op == "CONST"     then return CONST(t[2])
   elseif op == "GET"       then return GET(t[2])
   elseif op == "SET"       then return SET(t[2], ca(3))
+  elseif op == "GETVAR"    then return GETVAR(t[2], ca(3))
+  elseif op == "SETVAR"    then return SETVAR(t[2], ca(3), ca(4))
   elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(3))
   elseif op == "LET"       then return LET(t[2], ca(3), ca(4))
   elseif op == "GETPROP"   then return GETPROP(ca(2), t[3])   -- t[3] is raw key string

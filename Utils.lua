@@ -666,7 +666,9 @@ function SourceTrigger:__init()
   end
   self.refresh:subscribe(filter,handler)
 end
-function SourceTrigger:run() self.refresh:run() end
+function SourceTrigger:run() 
+  self.refresh:run() 
+end
 function SourceTrigger:subscribe(event,handler) --> subscription
   return self.eventEngine.addEventHandler(event,handler)
 end
@@ -865,6 +867,30 @@ if fibaro.plua then
     return d.device.id
   end
   ER.loadSimDev = createDevice
+end
+
+function ER.getVar(typ, name)
+  if typ == 'GV' then
+    return fibaro.getGlobalVariable(name)
+  elseif typ == 'QV' then
+    return quickApp:getVariable(name)
+  elseif typ == 'PV' then
+    return quickApp:internalStorageGet(name)
+  else
+    error("Unknown variable type: " .. tostring(typ))
+  end
+end
+
+function ER.setVar(typ, name, value)
+  if typ == 'GV' then
+    return fibaro.setGlobalVariable(name, value)
+  elseif typ == 'QV' then
+    return quickApp:setVariable(name, value)
+  elseif typ == 'PV' then
+    return quickApp:internalStorageSet(name, value)
+  else
+    error("Unknown variable type: " .. tostring(typ))
+  end
 end
 
 ER.alarmFuns = alarmFuns

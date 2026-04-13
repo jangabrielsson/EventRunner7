@@ -183,6 +183,8 @@ setProps.start={function(id,_,val)
   end
 end,""}
   
+ER.getProps = getProps
+ER.setProps = setProps
 end
 
 local function getProp(obj, key)

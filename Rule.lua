@@ -35,8 +35,12 @@ local function compRule(r)
   scanHead(head,trs)
   for _,tr in pairs(trs.triggers) do 
     setmetatable(tr,ER.EventMT) 
-    sourceTrigger:subscribe(tr,rule.fun)
+    sourceTrigger:subscribe(tr,function(ev) 
+      ruleRunner(rule.fun)
+    end)
   end
+
+  local function comRule0(r) setTimeout(function() return compRule0(r) end, 0) end
 
   function rule:run(trigger)
     print("Running rule:", self.id, "triggered by:", trigger)
@@ -87,12 +91,14 @@ for _,op in ipairs(stdHOPS) do HOPS[op] = stdScan end
 function HOPS.GETPROP(ast,trs)
   local obj = exprFun(ast[2])()
   local key = ast[3]
-  trs.triggers[key..obj] = {type='device', id = obj, property = key}
+  local gf = ER.getProps[key]
+  assert(gf, "GETPROP: no such property '"..tostring(key).."'")
+  trs.triggers[key..obj] = {type='device', id = obj, property = gf[3]}
 end
 
 function HOPS.BETW(ast,trs)
   local a,afun = exprFun(ast[2])()
-  local b,bfun = exprFun(ast[3])()
+  local b,bfun = exprFun({"ADD",ast[3],1})()
   assert(type(a) == "number" and type(b) == "number", "BETW operands must be numbers")
   table.insert(trs.dailys, afun)
   table.insert(trs.dailys, bfun)
@@ -110,16 +116,22 @@ function HOPS.INTERV(ast,trs)
   table.insert(trs.intervals, afun)
 end
 
-function HOPS.GV(ast,trs)
-  trs.triggers["GLOB:"..ast[2]] = {type='global-variable', name = ast[2]}
+function HOPS.GETVAR(ast,trs)
+  local name = ast[3]
+  if ast[2] == "GV" then
+    trs.triggers["GLOB:"..name] = {type='global-variable', name = name}
+  elseif ast[2] == "QV" then
+    trs.triggers["QUICK:"..name] = {type='quickvar', name = name}
+  elseif ast[2] == "TVAR" then
+    trs.triggers["TRIG:"..name] = {type='trigger-variable', name = name}
+  else error("Unknown variable type: " .. tostring(ast[2])) end
 end
 
-function HOPS.QV(ast,trs)
-  trs.triggers["QV:"..ast[2]] = {type='quickVar', name = ast[2]}
-end
-
-function HOPS.TVAR(ast,trs)
-  trs.triggers["TVAR:"..ast[2]] = {type='triggerVar', name = ast[2]}
+function HOPS.GET(ast,trs)
+  local name = ast[2]
+  if ER._triggerVars[name] then
+    trs.triggers["TRIG:"..name] = {type='trigger-variable', name = name}
+  end
 end
 
 function scanHead(ast,trs)
@@ -185,11 +197,22 @@ function fibaro.EventRunner(cb)
   vm.defGlobal('math',     math)
   ER.csp.defGlobal("compRule", compRule) 
 
+  ER._triggerVars = {}
+  er.triggerVars = setmetatable({}, {
+    __index = function(t, k) return vm.getGlobal(k) end,
+    __newindex = function(t, k, v) 
+      ER._triggerVars[k] = true 
+      vm.defGlobal(k, v)
+    end
+  })
+
   ER.setupProps()
-  
+
   sourceTrigger = SourceTrigger()
-  sourceTrigger:run()
   ER.sourceTrigger = sourceTrigger
 
-  cb(er)
+  setTimeout(function() 
+    sourceTrigger:run()
+    cb(er) 
+  end, 500)
 end
