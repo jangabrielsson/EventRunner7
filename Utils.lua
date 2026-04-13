@@ -869,6 +869,31 @@ if fibaro.plua then
   ER.loadSimDev = createDevice
 end
 
+do
+  -- ER.defineTestDevice(id) — registers an in-memory fake device for unit tests.
+  -- First call patches ER.getProp / ER.setProp to serve mock properties before
+  -- falling through to the real implementation for non-mocked device IDs.
+  local testDevProps = {}
+  function ER.defineTestDevice(id)
+    testDevProps[id] = testDevProps[id] or {}
+    if not ER._testHooked then
+      ER._testHooked = true
+      local origGet = ER.getProp
+      local origSet = ER.setProp
+      ER.getProp = function(obj, key)
+        local mock = testDevProps[obj]
+        if mock then return mock[key] end
+        return origGet(obj, key)
+      end
+      ER.setProp = function(obj, key, val)
+        local mock = testDevProps[obj]
+        if mock then mock[key] = val; return val end
+        return origSet(obj, key, val)
+      end
+    end
+  end
+end
+
 function ER.getVar(typ, name)
   if typ == 'GV' then
     return fibaro.getGlobalVariable(name)

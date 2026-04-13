@@ -7,6 +7,7 @@
 --%%file:CSP.lua,csp
 --%%file:Compiler.lua,compiler
 --%%file:ScriptFuns.lua,scriptfuns
+--%%file:Rule.lua,rule
 
 local ER         = fibaro.ER
 local parse      = ER.parse

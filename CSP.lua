@@ -459,7 +459,7 @@ local function SET(name, val_expr)
   return function(cont)
     return val_expr(TR(function(v)
       local found = _ctx:setVar(name, v)
-      if ER._triggerVars[name] then
+      if ER._triggerVars and ER._triggerVars[name] then
         ER.sourceTrigger:post({type='trigger-variable', name = name, value = v})
         trace("SET trigger var", name, "=", v)
       end

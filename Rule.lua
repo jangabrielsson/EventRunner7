@@ -2,68 +2,83 @@ fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local vm = ER.csp
 
-local eval, resume 
 local ruleRunner, resumeRunner, sourceTrigger
 local RULEIDX = 0
 local rules = {}
+ER._triggerVars = {}
 
 local dfltPrefix = {
   warningPrefix = "⚠️",
   ruleDefPrefix = "✅",
   triggerListPrefix = "⚡",
   dailyListPrefix = "🕒",
-  startPrefix = "🎬", 
+  startPrefix = "🎬",
   stopPrefix = "🛑",
-  successPrefix = "👍", -- 😀
-  failPrefix = "👎", -- 🙁
-  resultPrefix = "📋", 
+  successPrefix = "👍",
+  failPrefix = "👎",
+  resultPrefix = "📋",
   errorPrefix = "❌",
-  waitPrefix = "💤", -- 😴
-  waitedPrefix = "⏰", -- 🤗
+  waitPrefix = "💤",
+  waitedPrefix = "⏰",
 }
+
+-- ── Logging helpers ───────────────────────────────────────────────────────
+-- Verbosity levels: silent (0) < normal (1) < verbose (2).
+-- rule = nil  → bare expression context: always logs, no rule prefix.
+-- rule = obj  → rule-triggered context: respects rule.verbosity.
+local VERBOSITY = { silent = 0, normal = 1, verbose = 2 }
+
+local function logRule(rule, minLevel, prefix, ...)
+  if rule ~= nil then
+    local level = VERBOSITY[rule.verbosity or "normal"] or 1
+    local min   = VERBOSITY[minLevel] or 1
+    if level < min then return end
+    print(prefix, tostring(rule), ...)
+  else
+    print(prefix, ...)
+  end
+end
 
 ---------------------- Create rule ---------------------------------
 local function compRule(r)
-  local fun = ER.csp.compile(r) -- compiles the rule into CSP code
-  local head = r[2]  -- the trigger part of the rule
+  local fun  = ER.csp.compile(r)  -- compile rule action into CSP
+  local head = r[2]               -- the condition part (scan for triggers)
 
   RULEIDX = RULEIDX + 1
-  local rule = {fun = fun, id = RULEIDX}
-  rules[RULEIDX] = rule -- store the rule in a global table for later reference
+  local rule = { fun = fun, id = RULEIDX, verbosity = "normal" }
+  rules[RULEIDX] = rule
 
-  local trs = {triggers={},dailys={},intervals=nil}
-  scanHead(head,trs)
-  for _,tr in pairs(trs.triggers) do 
-    setmetatable(tr,ER.EventMT) 
-    sourceTrigger:subscribe(tr,function(ev) 
-      ruleRunner(rule.fun)
+  local trs = { triggers = {}, dailys = {}, intervals = nil }
+  scanHead(head, trs)
+  for _, tr in pairs(trs.triggers) do
+    setmetatable(tr, ER.EventMT)
+    sourceTrigger:subscribe(tr, function(ev)
+      logRule(rule, "verbose", dfltPrefix.startPrefix)
+      ruleRunner(rule.fun, rule)
     end)
   end
 
-  local function comRule0(r) setTimeout(function() return compRule0(r) end, 0) end
-
-  function rule:run(trigger)
-    print("Running rule:", self.id, "triggered by:", trigger)
-    return ruleRunner(self.fun)
+  -- rule:run() lets the user fire the rule manually from code.
+  function rule:run()
+    logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
+    ruleRunner(self.fun, self)
   end
 
   function rule:dumpTriggers()
-    print("Rule", self.id, "triggers:")
-    for _,tr in pairs(trs.triggers) do
-      print(" ", dfltPrefix.triggerListPrefix, tr)
+    print(dfltPrefix.ruleDefPrefix, tostring(self), "registered:")
+    for _, tr in pairs(trs.triggers) do
+      print("  ", dfltPrefix.triggerListPrefix, tr)
     end
-    for _,t in ipairs(trs.dailys) do
-      print(" ", dfltPrefix.dailyListPrefix, ER.timeStr(t()))
+    for _, t in ipairs(trs.dailys) do
+      print("  ", dfltPrefix.dailyListPrefix, ER.timeStr(t()))
     end
   end
-  
-  setmetatable(rule,{
-    __tostring = function(self)
-      return "RULE"..tostring(self.id)
-    end
+
+  setmetatable(rule, {
+    __tostring = function(self) return "RULE" .. tostring(self.id) end
   })
 
-  rule:dumpTriggers() -- dump triggers for debugging
+  rule:dumpTriggers()
   return rule
 end
 
@@ -122,9 +137,7 @@ function HOPS.GETVAR(ast,trs)
     trs.triggers["GLOB:"..name] = {type='global-variable', name = name}
   elseif ast[2] == "QV" then
     trs.triggers["QUICK:"..name] = {type='quickvar', name = name}
-  elseif ast[2] == "TVAR" then
-    trs.triggers["TRIG:"..name] = {type='trigger-variable', name = name}
-  else error("Unknown variable type: " .. tostring(ast[2])) end
+  end
 end
 
 function HOPS.GET(ast,trs)
@@ -142,51 +155,111 @@ function scanHead(ast,trs)
 end
 
 -------------------- Run rule ---------------------------------
+-- yield handlers receive (continuationFn, rule, cb, ...yieldArgs)
+-- rule = nil for bare expressions, rule object for triggered rules.
 local yieldHandlers = {
-  sleep = function(cf,cb,ms)
+  sleep = function(cf, rule, cb, ms)
+    logRule(rule, "verbose", dfltPrefix.waitPrefix, string.format("sleeping %dms", ms))
     setTimeout(function()
-      resumeRunner({resume(cf,ms)}, cb)
+      logRule(rule, "verbose", dfltPrefix.waitedPrefix, string.format("woke after %dms", ms))
+      local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ms)), rule, cb)
+      if not ok then
+        if rule then logRule(rule, "normal", dfltPrefix.errorPrefix, err)
+        else print(dfltPrefix.errorPrefix, err) end
+      end
     end, ms)
   end,
 }
 
-function resumeRunner(res, cb)
+function resumeRunner(res, rule, cb)
   if res[1] == 'suspended' then
-    local cf,tag = res[2],res[3]
-    if yieldHandlers[tag] then
-      return yieldHandlers[tag](cf,cb,table.unpack(res, 4, res.n))
+    local cf, tag = res[2], res[3]
+    local h = yieldHandlers[tag]
+    if h then
+      return h(cf, rule, cb, table.unpack(res, 4))
     else
       error("no yield handler for tag: " .. tostring(tag))
     end
   end
-  cb(table.unpack(res, 2, res.n))
+  cb(table.unpack(res, 2))
 end
 
-function ruleRunner(f) 
-  eval,resume = ER.csp.eval, ER.csp.resume
-  local res = nil
-  resumeRunner({eval(f)}, function(...)
-    if res == true then
-      print("RESULT:", ...)
-    else res = {...} end
+-- ruleRunner(f)       → bare eval: always logs, returns value(s) or nil
+-- ruleRunner(f, rule) → triggered action: logs per rule.verbosity
+function ruleRunner(f, rule)
+  local synced   = false
+  local syncVals = nil
+
+  local function onDone(...)
+    if synced then
+      -- completed asynchronously (after caller already returned nil)
+      if rule then
+        logRule(rule, "verbose", dfltPrefix.successPrefix, ...)
+        if rule.onDone then rule.onDone(...) end
+      else
+        local n = select('#', ...)
+        if n > 0 then print(dfltPrefix.resultPrefix, ...) end
+      end
+    else
+      syncVals = table.pack(...)
+      -- sync completion: call hook immediately (before ruleRunner returns)
+      if rule and rule.onDone then rule.onDone(...) end
+    end
+  end
+
+  local ok, err = pcall(function()
+    resumeRunner(table.pack(ER.csp.eval(f)), rule, onDone)
   end)
-  if res ~= nil then 
-    return table.unpack(res)
-  else res = true end
-  return "<suspended>"
+  synced = true
+
+  if not ok then
+    if rule then
+      logRule(rule, "normal", dfltPrefix.errorPrefix, err)
+      return nil
+    else
+      error(err, 0)  -- re-throw: outer eval's pcall catches it
+    end
+  end
+
+  if syncVals then
+    return table.unpack(syncVals, 1, syncVals.n)
+  else
+    -- expression suspended: nil is returned to caller
+    logRule(rule, "verbose", dfltPrefix.waitPrefix, "<suspended>")
+    return nil
+  end
 end
 
+-- eval(src) compiles and runs EventScript source.
+--   Rule form  ("cond => action"): registers the rule, returns the rule object.
+--   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
+--   Async expr ("wait(n); ..."):   returns nil, logs 💤; logs 📋 when done.
 local function eval(src)
-  local res = {pcall(function()
-    local ast    = ER.parse(src)
-    local tree    = ER.compileAST(ast)
-    local code   = ER.csp.compile(tree)
+  local ast    = ER.parse(src)           -- parse error propagates immediately
+  local isRule = (ast[1] == 'RULE')
+  local result
+
+  local ok, err = pcall(function()
+    local tree = ER.compileAST(ast)
+    local code = ER.csp.compile(tree)
     ER._ruleSrc = src
     ER._ruleCmp = tree
-    return ruleRunner(code)
-  end)}
-  if not res[1] then error("eval error: " .. tostring(res[2])) end
-  return table.unpack(res, 2, res.n)
+    result = table.pack(ruleRunner(code))  -- rule=nil → bare eval
+  end)
+
+  if not ok then
+    print(dfltPrefix.errorPrefix, err)
+    error(err)
+  end
+
+  -- For bare expressions: log the sync result if we got one.
+  -- Async (nil return) was already logged 💤 by ruleRunner.
+  -- Rule form: compRule already logged ✅ with trigger list.
+  if not isRule and result and result[1] ~= nil then
+    print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
+  end
+
+  return result and table.unpack(result, 1, result.n)
 end
 
 function fibaro.EventRunner(cb)
@@ -197,7 +270,6 @@ function fibaro.EventRunner(cb)
   vm.defGlobal('math',     math)
   ER.csp.defGlobal("compRule", compRule) 
 
-  ER._triggerVars = {}
   er.triggerVars = setmetatable({}, {
     __index = function(t, k) return vm.getGlobal(k) end,
     __newindex = function(t, k, v) 
