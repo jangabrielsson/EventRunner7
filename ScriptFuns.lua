@@ -313,6 +313,70 @@ local function setupFuns()
   function builtin.enable(rule) end
   function builtin.disable(rule) end
   
+  local async = ER.async
+  function async.trueFor(cb,time,expr)
+    local trueFor = cb.env.rule.trueFor or {}
+    cb.env.rule.trueFor = trueFor
+    if expr then -- test is true
+      if not trueFor.ref then -- new, start timer
+        trueFor.trigger = cb.env.trigger
+        trueFor.ref = cb.env:setTimeout(function() trueFor.ref = nil; cb(true) end, time*1000)
+        return math.huge
+      else -- already true and we have timer waiting
+        cb(false) -- do nothing
+      end
+    elseif trueFor.ref then -- test is false, and we have timer
+      cb.env:clearTimeout(trueFor.ref)
+      trueFor.ref = nil
+      cb(false)
+    else
+      cb(false) -- do nothing
+    end
+    return -1 -- not async...
+  end
+
+  function async.again(cb,n)
+    local trueFor = cb.env.rule.trueFor
+    if trueFor then
+      if trueFor.again and trueFor.again == 0 then trueFor.again = nil return cb(0) end 
+      if trueFor.again == nil then trueFor.again,trueFor.againN = n,n end-- reset
+      trueFor.again = trueFor.again - 1
+      if trueFor.trigger and  trueFor.again > 0 then 
+        cb.env:setTimeout(function() cb.env.rule:start(trueFor.trigger) end, 0)
+        cb(trueFor.againN - trueFor.again)
+      else trueFor.again = nil cb(trueFor.againN) end
+    else cb(0) end
+    return -1 -- not async...
+  end
+
+  local function makeDateFun(str,cache)
+    if cache[str] then return cache[str] end
+    local f = ER.dateTest(str)
+    cache[str] = f
+    return f
+  end
+  
+  local cache = { date={}, day = {}, month={}, wday={} }
+  builtin.date = function(s) return (cache.date[s] or makeDateFun(s,cache.date))() end               -- min,hour,days,month,wday
+  builtin.day = function(s) return (cache.day[s] or makeDateFun("* * "..s,cache.day))() end          -- day('1-31'), day('1,3,5')
+  builtin.month = function(s) return (cache.month[s] or makeDateFun("* * * "..s,cache.month))() end  -- month('jan-feb'), month('jan,mar,jun')
+  builtin.wday = function(s) return (cache.wday[s] or makeDateFun("* * * * "..s,cache.wday))() end   -- wday('fri-sat'), wday('mon,tue,wed')
+  
+  builtin.S1 = {click = "16", double = "14", tripple = "15", hold = "12", release = "13"}
+  builtin.S2 = {click = "26", double = "24", tripple = "25", hold = "22", release = "23"}
+
+    function builtin.nextDST()
+    local d0 = os.date("*t")
+    local t0 = os.time({year=d0.year, month=d0.month, day=1, hour=0})
+    local h = d0.hour
+    repeat  t0 = t0 + 3600*24*30; d0 = os.date("*t",t0) until d0.hour ~= h
+    t0 = t0 - 3600*24*30; d0 = os.date("*t",t0)
+    repeat h = d0.hour; t0 = t0 + 3600*24; d0 = os.date("*t",t0) until d0.hour ~= h
+    t0 = t0 - 3600*24; d0 = os.date("*t",t0)
+    repeat h = d0.hour; t0 = t0 + 3600; d0 = os.date("*t",t0) until d0.hour ~= (h+1) % 24
+    if d0.month > 7 then t0 = t0 + 3600 end
+    return t0
+  end
 end
 
 ER.setupProps = setupProps

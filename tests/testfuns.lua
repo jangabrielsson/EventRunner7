@@ -5,6 +5,16 @@ local er
 
 local numberOfTests = 0
 local failures = 0
+
+local function checkDone() 
+  if numberOfTests == 0 then
+    print("All tests done")
+    if failures > 0 then
+      print("❌ "..failures.." tests failed")
+    end
+  end
+end
+
 local function testRule(str,tr,val,ntest) 
   ntest = ntest or 1
   numberOfTests = numberOfTests + ntest
@@ -18,12 +28,7 @@ local function testRule(str,tr,val,ntest)
       failures = failures + 1
     end
     numberOfTests = numberOfTests - 1
-    if numberOfTests == 0 then
-      print("All tests done")
-      if failures > 0 then
-        print("❌ "..failures.." tests failed")
-      end
-    end
+    checkDone()
   end
   if tr then er.eval(tr,{verbosity="silent"}) end
 end
@@ -39,7 +44,7 @@ local function testExpr(str,val)
         print("❌ ",str," expected ",table.unpack(val)," got ",table.unpack(v))
         failures = failures + 1
       end
-      setTimeout(function() numberOfTests = numberOfTests - 1 end,0)
+      setTimeout(function() numberOfTests = numberOfTests - 1 checkDone() end,0)
   end
   local opts = {verbosity="silent", onDone = done}
   setmetatable(opts, { __tostring = function() return str end })

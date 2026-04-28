@@ -345,8 +345,11 @@ local yieldHandlers = {
       end
     }) 
     local res = {pcall(fun, fcb, ...)}
+    local timeout = tonumber(res[2]) or (3*1000)
     if res[1] then
-      setTimeout(function() timedOut = true end, tonumber(res[2]) or (3*1000))
+      if timeout >= 0 then -- Async, wait for callback or timeout
+        setTimeout(function() timedOut = true end, timeout)
+      end -- -1 means sync, func called cb directlyso no timeout needed
     else
       local err = res[2]
       logRule(rule, "normal", dfltPrefix.errorPrefix, string.format("Async function error: %s", tostring(err)))
@@ -479,7 +482,8 @@ function fibaro.EventRunner(cb)
       vm.defGlobal(k,v)
     end
   })
-  
+  ER.async = er.async
+
   ER.setupProps()
   ER.setupFuns()
   setupGlobalVariables()
