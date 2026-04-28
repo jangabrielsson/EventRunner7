@@ -30,16 +30,22 @@ local dfltPrefix = {
 -- rule = obj  → rule-triggered context: respects rule.verbosity.
 local VERBOSITY = { silent = 0, normal = 1, verbose = 2 }
 
+local function shouldLog(rule, minLevel)
+  if rule == nil then return true end
+  local level = VERBOSITY[rule.verbosity or "normal"] or 1
+  local min   = VERBOSITY[minLevel] or 1
+  return level >= min
+end
+
 local function logRule(rule, minLevel, prefix, ...)
   if rule ~= nil then
-    local level = VERBOSITY[rule.verbosity or "normal"] or 1
-    local min   = VERBOSITY[minLevel] or 1
-    if level < min then return end
+    if not shouldLog(rule, minLevel) then return end
     print(prefix, tostring(rule), ...)
   else
     print(prefix, ...)
   end
 end
+
 
 ER.D2024 = os.time({year=2024, month=1, day=1})
 
@@ -68,9 +74,11 @@ end
 ---------------------- Create rule ---------------------------------
 local function compRule(r)
   local head = r[2]               -- the condition part (scan for triggers)
-  
+  local _,opts = ER._ctx:getVar('_opts')
+  opts = opts or {}
+
   RULEIDX = RULEIDX + 1
-  local rule = { id = RULEIDX, verbosity = "normal" }
+  local rule = { id = RULEIDX, verbosity = opts.verbosity or "normal" }
   rules[RULEIDX] = rule
   
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
@@ -191,7 +199,6 @@ local function compRule(r)
   end
   
   function rule:dumpTriggers(pref)
-    print(dfltPrefix.ruleDefPrefix, tostring(self), "registered:")
     for _, tr in pairs(trs.triggers) do
       local a = getmetatable(tr)
       print(pref or "  ", dfltPrefix.triggerListPrefix, tr)
@@ -205,7 +212,8 @@ local function compRule(r)
     __tostring = function(self) return "RULE" .. tostring(self.id) end
   })
   
-  rule:dumpTriggers("- ")
+  logRule(rule,"normal",dfltPrefix.ruleDefPrefix, "registered:")
+  if shouldLog(rule, "normal") then rule:dumpTriggers("- ") end
   return rule
 end
 
@@ -347,6 +355,7 @@ end
 function ruleRunner(f, rule, opts)
   local synced   = false
   local syncVals = nil
+  opts = opts or {}
   
   local function onDone(...)
     if synced then
@@ -366,6 +375,8 @@ function ruleRunner(f, rule, opts)
   end
   
   local ok, err = pcall(function()
+    opts.vars = opts.vars or {}
+    opts.vars._opts = opts
     resumeRunner(table.pack(ER.csp.eval(f,opts)), rule, onDone)
   end)
   synced = true
@@ -392,7 +403,8 @@ end
 --   Rule form  ("cond => action"): registers the rule, returns the rule object.
 --   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
 --   Async expr ("wait(n); ..."):   returns nil, logs 💤; logs 📋 when done.
-local function eval(src)
+local function eval(src,opts)
+  opts = opts or {}
   local ast    = ER.parse(src)           -- parse error propagates immediately
   local isRule = (ast[1] == 'RULE')
   local result
@@ -402,7 +414,7 @@ local function eval(src)
     local code = ER.csp.compile(tree)
     ER._ruleSrc = src
     ER._ruleCmp = tree
-    result = table.pack(ruleRunner(code))  -- rule=nil → bare eval
+    result = table.pack(ruleRunner(code,nil,opts))  -- rule=nil → bare eval
   end)
   
   if not ok then
@@ -414,7 +426,9 @@ local function eval(src)
   -- Async (nil return) was already logged 💤 by ruleRunner.
   -- Rule form: compRule already logged ✅ with trigger list.
   if not isRule and result and result[1] ~= nil then
-    print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
+    if not (opts.verbosity == "silent") then 
+      print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
+    end
   end
   
   return result and table.unpack(result, 1, result.n)

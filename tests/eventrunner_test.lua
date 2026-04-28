@@ -10,13 +10,15 @@
 local function main(er) ER = er
   local rule, test = er.eval, er.test
 
-  test("#foo => return 66","post(#foo)",66)
+  test("#foo => return 66,77","post(#foo)",{66,77})
+  test("@{15:00,16:00} => return 88",nil,{88})
 end
 
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-  fibaro.speedTime(4*24,function()
+  local t = os.time()
+  fibaro.speedTime(1*24,function()
     fibaro.EventRunner(main)
-  end)
+  end,function() print("End of speedTime",(os.time()-t)/3600) end)
 end

@@ -4,15 +4,16 @@ ER.onInitHooks = ER.onInitHooks or {}
 local er
 
 local function test(str,tr,val) 
-  local r = er.eval(str)
-  r.onDone = function(v) 
-    if v == val then
-      print("Test passed: ",str)
+  local r = er.eval(str,{verbosity="silent"})
+  r.onDone = function(...) 
+    local v = {...}
+    if table.equal(v,val) then
+      print("✅ ",str)
     else
-      print("Test failed: ",str," expected ",val," got ",v)
+      print("❌ ",str," expected ",val," got ",v)
     end
   end
-  er.eval(tr)
+  if tr then er.eval(tr,{verbosity="silent"}) end
 end
 
 
