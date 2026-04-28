@@ -325,15 +325,34 @@ end
 -- rule = nil for bare expressions, rule object for triggered rules.
 local yieldHandlers = {
   sleep = function(cf, rule, cb, ms)
-    logRule(rule, "verbose", dfltPrefix.waitPrefix, string.format("sleeping %dms", ms))
+    logRule(rule or cf.ctx.opts, "verbose", dfltPrefix.waitPrefix, string.format("sleeping %dms", ms))
     setTimeout(function()
-      logRule(rule, "verbose", dfltPrefix.waitedPrefix, string.format("woke after %dms", ms))
+      logRule(rule or cf.ctx.opts, "verbose", dfltPrefix.waitedPrefix, string.format("woke after %dms", ms))
       local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ms)), rule, cb)
       if not ok then
         if rule then logRule(rule, "normal", dfltPrefix.errorPrefix, err)
         else print(dfltPrefix.errorPrefix, err) end
       end
     end, ms)
+  end,
+  asyncFun = function(cf, rule, cb, fun, ...)
+    local timedOut = false
+    local opts = cf.ctx.opts or {}
+    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, string.format("calling async function %s", tostring(fun)))
+    local fcb = setmetatable({cf=cf,rule=rule}, {
+      __call = function(self,...) 
+        if timedOut then cb(false) else return cb(...) end
+      end
+    }) 
+    local res = {pcall(fun, fcb, ...)}
+    if res[1] then
+      setTimeout(function() timedOut = true end, tonumber(res[2]) or (3*1000))
+    else
+      local err = res[2]
+      logRule(rule, "normal", dfltPrefix.errorPrefix, string.format("Async function error: %s", tostring(err)))
+      timedOut = true
+      return cb() -- resume with no result on error
+    end
   end,
 }
 
@@ -363,6 +382,8 @@ function ruleRunner(f, rule, opts)
       if rule then
         logRule(rule, "verbose", dfltPrefix.successPrefix, ...)
         if rule.onDone then rule.onDone(...) end
+      elseif opts.onDone then
+        opts.onDone(...)
       else
         local n = select('#', ...)
         if n > 0 then print(dfltPrefix.resultPrefix, ...) end
@@ -394,7 +415,7 @@ function ruleRunner(f, rule, opts)
     return table.unpack(syncVals, 1, syncVals.n)
   else
     -- expression suspended: nil is returned to caller
-    logRule(rule, "verbose", dfltPrefix.waitPrefix, "<suspended>")
+    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, "<suspended>")
     return nil
   end
 end
@@ -435,7 +456,7 @@ local function eval(src,opts)
 end
 
 function fibaro.EventRunner(cb)
-  local er = {eval = eval}
+  local er = {eval = eval, now = ER.now}
   vm.defGlobal('print',    print)
   vm.defGlobal('tostring', tostring)
   vm.defGlobal('tonumber', tonumber)
@@ -447,6 +468,15 @@ function fibaro.EventRunner(cb)
     __newindex = function(t, k, v) 
       ER._triggerVars[k] = true 
       vm.defGlobal(k, v)
+    end
+  })
+
+  ER.ASYNCFUNS = ER.ASYNCFUNS or {}
+  er.async = setmetatable({}, {
+    __newindex = function(t, k, v) 
+      assert(type(v) == 'function', "Only functions can be assigned to async")
+      ER.ASYNCFUNS[v] = true
+      vm.defGlobal(k,v)
     end
   })
   

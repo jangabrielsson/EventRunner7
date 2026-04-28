@@ -31,14 +31,20 @@ end
 local function testExpr(str,val) 
   ntest = ntest or 1
   numberOfTests = numberOfTests + ntest
-  local v = {er.eval(str,{verbosity="silent"})}
-  if table.equal(v,val) then
-    print("✅ ",str)
-  else
-    print("❌ ",str," expected ",table.unpack(val)," got ",table.unpack(v))
-    failures = failures + 1
+  local function done(...) 
+      local v = {...}
+      if table.equal(v,val) then
+        print("✅ ",str)
+      else
+        print("❌ ",str," expected ",table.unpack(val)," got ",table.unpack(v))
+        failures = failures + 1
+      end
+      setTimeout(function() numberOfTests = numberOfTests - 1 end,0)
   end
-  setTimeout(function() numberOfTests = numberOfTests - 1 end,0)
+  local opts = {verbosity="silent", onDone = done}
+  setmetatable(opts, { __tostring = function() return str end })
+  local v = {er.eval(str,opts)}
+  if #v > 0 then done(table.unpack(v)) end
 end
 
 local function test(str,...)

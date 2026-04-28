@@ -24,6 +24,7 @@ do
   local _var_env       = {}
   local _global_env = {}   -- { [name] = {v} }  (boxed, same as locals)
   local _trace = false
+  local _opts = nil
 
   function _ctx:getTrace()   return _trace end
   function _ctx:setTrace(on) _trace = on end
@@ -117,6 +118,7 @@ do
       exit_cont     = _exit_cont,
       var_env       = chain_to_list(_var_env),
       trace         = _trace,
+      opts          = _opts,
     }
   end
 
@@ -126,6 +128,7 @@ do
     _exit_cont     = snap.exit_cont
     _var_env       = list_to_chain(snap.var_env)
     _trace         = snap.trace or false
+    _opts          = snap.opts or nil
   end
 end
 
@@ -342,6 +345,13 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
   return function(cont)
     return f_expr(TR(function(f)
       return evalArgs(fargs, 1, {}, 0, TR(function(...)
+        if ER.ASYNCFUNS[f] then
+          local yvals = table.pack(...)
+          return YIELD_TAG, function(...)
+            trace("ASYNC", "resuming with", ...)
+            return cont(...)
+          end, "asyncFun",f,table.unpack(yvals, 1, yvals.n)
+        end
         trace("CALL", tostring(f), ...)
         ER._ctx = _ctx  -- make current context available to the called function
         local rets = {f(...)}
@@ -573,7 +583,7 @@ end
 local function eval(expr, opts)
   local outer = _ctx:snapshot()
   local top_cont = function(...) return nil, ... end
-  _ctx:restore({ break_stack = {}, error_handler = nil, exit_cont = TR(top_cont), var_env = {}, trace = opts and opts.trace or false })
+  _ctx:restore({ break_stack = {}, error_handler = nil, exit_cont = TR(top_cont), var_env = {}, trace = opts and opts.trace or false, opts = opts })
   if opts and opts.vars then
     _ctx:pushVarsFrame(opts.vars)
   end
