@@ -628,6 +628,7 @@ local expr = {
   GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
   CFUN  = CFUN,
+  NOW  = function() return CONST(ER.now()) end,
 }
 
 -- ── SIMPLE COMPILER ──────────────────────────────────────────────────────────────

@@ -76,7 +76,7 @@ local function compRule(r)
   local head = r[2]               -- the condition part (scan for triggers)
   local _,opts = ER._ctx:getVar('_opts')
   opts = opts or {}
-
+  
   RULEIDX = RULEIDX + 1
   local rule = { id = RULEIDX, verbosity = opts.verbosity or "normal" }
   rules[RULEIDX] = rule
@@ -128,7 +128,7 @@ local function compRule(r)
       end
     )
   end
-
+  
   
   local skipDailys = false
   local intervalTimer
@@ -142,7 +142,7 @@ local function compRule(r)
     )
     skipDailys = true
   end
-
+  
   function rule:setupInterval()
     if intervalTimer then cancelR(intervalTimer); intervalTimer = nil end
     if trs.interval then
@@ -160,12 +160,12 @@ local function compRule(r)
     end
   end
   rule:setupInterval()
-
+  
   rule.dailys = {}
   if not skipDailys then
     local dailys = trs.dailys -- @daily inhibits between
     if next(trs.dailys) == nil then dailys = trs.between end
-
+    
     for _, t in ipairs(dailys) do
       local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
       DAILYID = DAILYID + 1
@@ -178,7 +178,7 @@ local function compRule(r)
       rule.dailys[t] = subev
     end
   end
-
+  
   function rule:setupDaily()
     if next(rule.dailys) == nil then return end
     local now,midnight= os.time(), ER.midnight()
@@ -191,7 +191,7 @@ local function compRule(r)
     end
   end
   rule:setupDaily()
-
+  
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run()
     logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
@@ -260,7 +260,7 @@ function HOPS.DAILY(ast,trs)
     times = {}
     for i=3,#ast[2],2 do times[#times+1] = ast[2][i] end
   else times = {times} end
-
+  
   for _,e in ipairs(times) do
     local v,afun = exprFun(e)()
     assert(type(v) == "number", "DAILY operand must be a number")
@@ -460,9 +460,13 @@ function fibaro.EventRunner(cb)
   er.defglobals = ER.defglobals
   
   midnightLoop()
+  
+  if fibaro.plua then
+    er.loadDevice = ER.loadDevice
+  end
 
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
-
+  
   setTimeout(function() 
     sourceTrigger:run()
     cb(er) 

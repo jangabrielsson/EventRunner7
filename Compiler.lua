@@ -156,14 +156,62 @@ local function compIf(ast)
   end
 end
 
--- ── WHILE ─────────────────────────────────────────────────────────────────
--- while cond do body end  →  LOOP(IF(cond, body, BREAK()))
-local function compWhile(ast)
-  local cond = compile(ast[2])
-  local body = compile(ast[3])
-  return {'LOOP', {'IF', cond, body, {'BREAK'}}}
-end
+  -- ── WHILE ─────────────────────────────────────────────────────────────────
+  -- while cond do body end  →  LOOP(IF(cond, body, BREAK()))
+  local function compWhile(ast)
+    local cond = compile(ast[2])
+    local body = compile(ast[3])
+    return {'LOOP', {'IF', cond, body, {'BREAK'}}}
+  end
 
+  -- ── REPEAT-UNTIL ──────────────────────────────────────────────────────────────────
+  -- repeat body until cond  →  LOOP(body, IF(cond, BREAK()))
+  local function compRepeat(ast)
+    local body = compile(ast[2])
+    local cond = compile(ast[3])
+    return {'LOOP', body, {'IF', cond, {'BREAK'}}}    
+  end
+
+  -- -- FOR-NUM
+  -- for var = start, end, step do body end  →  (equivalent to Lua desugaring)
+  local function compFor(ast)
+    local var = ast[2]
+    local start = compile(ast[3])
+    local end_ = compile(ast[4])
+    local step = ast[5] and compile(ast[5]) or {'CONST', 1}
+    local body = compile(ast[6])
+    local loop_var = var  
+    return {
+      'LET', loop_var, start,
+      {'LOOP',
+        {'IF', {'GT', {'GET', loop_var}, end_}, {'BREAK'}},
+        body, 
+        {'SET', loop_var, {'ADD', {'GET', loop_var}, step}}
+    }
+  }
+  end  
+
+  -- FOR-IN
+  -- for var in iter do body end  →  (desugars to Lua'simple
+  -- local iter, state, var = iter_exp; while true do var = iter(state, var); if var == nil then break end; body end)
+  local function compForIn(ast)
+    local var = ast[2]
+    local iter_exp = compile(ast[3])
+    local body = compile(ast[4])
+    local iter_var = var .. "_iter"
+    local state_var = var .. "_state"
+    local loop_var = var .. "_var"
+    return {
+      'LET', iter_var, iter_exp,
+      'LET', state_var, {'CONST', nil},
+      'LET', loop_var, {'CONST', nil},
+      {'LOOP',
+        {'SET', loop_var, {'CALL', {'GET', iter_var}, {'GET', state_var}, {'GET', loop_var}}},
+        {'IF', {'EQ', {'GET', loop_var}, {'CONST', nil}}, {'BREAK'}},
+        body
+    }  }
+  end
+  
 -- ── CALL ──────────────────────────────────────────────────────────────────
 -- {'CALL', f_expr, a1, a2, ...}
 --
@@ -228,10 +276,14 @@ comp.RETURN = function(ast)
   return res
 end
 
+comp.NOW = function() return {'NOW'} end
 comp.BREAK  = function() return {'BREAK'} end
 comp.ASSIGN = compAssign
 comp.IF     = compIf
 comp.WHILE  = compWhile
+comp.REPEAT  = compRepeat
+comp.FOR_NUM = compFor
+comp.FOR_IN = compForIn
 comp.CALL   = compCall
 
 function comp.RULE(ast)

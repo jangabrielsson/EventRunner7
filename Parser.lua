@@ -110,7 +110,8 @@ local function makeParser(src)
     local t = peek(1)
     if t and t.type == 'identifier' then
       next()
-      return {'NAME', t.value}
+      if t.value == 'now' then return {'NOW'}
+      else return {'NAME', t.value} end
     elseif t and t.type == 'number' then
       next(); return {'NUMBER', t.value}    -- e.g. 88:value
     elseif t and t.type == 'gv' then

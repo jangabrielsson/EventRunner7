@@ -921,6 +921,65 @@ function ER.setVar(typ, name, value)
   end
 end
 
+class "SimQuickApp"
+function SimQuickApp:__init(id)
+  self.id = id
+  self.props = {}
+end
+function SimQuickApp:updateProperty(prop, value)
+  local old = self.props[prop]
+  self.props[prop] = value
+  if old ~= value then
+    ER.sourceTrigger:post({type='device', id=self.id, property=prop, value=value})
+  end
+end
+function SimQuickApp:setValue(value) self:updateProperty('value', value) end
+function SimQuickApp:debug(...)
+  fibaro.debug(self.tag,...)
+end
+
+local loadedDeviceClasses = {}
+local loadedDevices = {}
+local idCounter = 10000
+
+local oldCall,oldGet = fibaro.call,fibaro.get
+fibaro.get = function(id, prop)
+  if loadedDevices[id] then
+    return loadedDevices[id].props[prop]
+  else
+    return oldGet(id, prop)
+  end
+end
+fibaro.call = function(id, action, ...)
+  if loadedDevices[id] then
+    local device = loadedDevices[id]
+    if type(device[action]) == 'function' then
+      return device[action](device, ...)
+    else
+      error("Device "..id.." does not have action "..action)
+    end
+  else
+    return oldCall(id, action, ...)
+  end
+end
+
+local function loadDevice(name,id)
+  if not id then id = idCounter idCounter = idCounter + 1 end
+  if not loadedDeviceClasses[name] then
+    loadedDeviceClasses[name] = true
+    local f = io.open("tests/stdQAs/"..name..".lua", "r")
+     if f then
+      local code = f:read("*a")
+      load(code, "@"..name..".lua", "t", _G)()
+      f:close()
+     end
+  end
+  local device = _G["Sim_"..name](id)
+  loadedDevices[id] = device
+  return device.id
+end
+
+ER.loadDevice = loadDevice
 ER.alarmFuns = alarmFuns
 ER.toSeconds = toSeconds
 ER.midnight = midnight

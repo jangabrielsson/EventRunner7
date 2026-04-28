@@ -263,17 +263,20 @@ local function setupFuns()
   function builtin.cancel(ref) return ER.sourceTrigger:cancel(ref) end
   function builtin.fmt(...) return string.format(...) end
   function builtin.HM(t) return os.date("%H:%M",t < os.time()-8760*3600 and t+ER.midnight() or t) end
-  function builtin.HMS(t) return os.date("%H:%M",t < os.time()-8760*3600 and t+ER.midnight() or t) end
+  function builtin.HMS(t) return os.date("%H:%M:%S",t < os.time()-8760*3600 and t+ER.midnight() or t) end
   function builtin.sign(t) return t < 0 and -1 or 1 end
   function builtin.rnd(min,max) return math.random(min,max)end
   function builtin.round(num) return math.floor(num+0.5) end
-  function builtin.sum(...) 
+  local function sum(...) 
     local args = {...}
     if #args == 1 and type(args[1]) == "table" then args = args[1] end
     local s = 0 for i=1,#args do s = s + args[i] end
     return s
   end
-  function builtin.average(...) local s = builtin.sum(...) return s / select("#", ...) end
+  builtin.sum = sum
+  function builtin.average(f,...) 
+    local s = sum(f,...) return s / (type(f)=='table' and #f or select("#", ...)+1)
+  end
   function builtin.size(t) return #t end
   function builtin.min(...) 
     local args = {...}

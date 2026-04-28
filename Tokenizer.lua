@@ -101,7 +101,11 @@ local tknsStrs = {
     local h,m = s:match("(%d+):(%d+)")
     return {type='number', value=tonumber(h)*3600+tonumber(m)*60}
   end},
-  {"0123456789","%d+%.?%d*",function(n) 
+  {"0123456789","%d+%.%d+",function(n) 
+    return {type='number',value=tonumber(n)} 
+  end
+},
+{"0123456789","%d+",function(n) 
     return {type='number',value=tonumber(n)} 
   end
 },
