@@ -1,9 +1,11 @@
 fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local vm = ER.csp
+fibaro.EventRunnerVersion = "0.1.0"
 
 local ruleRunner, resumeRunner, sourceTrigger
 local RULEIDX = 0
+local DAILYID = 1
 local rules = {}
 ER._triggerVars = {}
 
@@ -39,46 +41,171 @@ local function logRule(rule, minLevel, prefix, ...)
   end
 end
 
+ER.D2024 = os.time({year=2024, month=1, day=1})
+
+local function setupGlobalVariables()
+  local var = ER.defglobals
+  var.sunrise, var.sunset,var.dawn,var.dusk = ER.sunCalc()
+  var.midnight, var.vnum = ER.midnight(), tonumber(os.date("%V"))
+end
+
+local function midnightLoop(er)
+  local dt = os.date("*t") 
+  local midnight = os.time{year=dt.year, month=dt.month, day=dt.day+1, hour=0, min=0, sec=0}
+  local function loop()
+    setupGlobalVariables()
+    for _,r in pairs(rules) do
+      r:setupDaily()
+      r.once = nil -- clear once flag every midnight
+    end
+    local dt = os.date("*t")
+    midnight = os.time{year=dt.year, month=dt.month, day=dt.day+1, hour=0, min=0, sec=0}
+    setTimeout(loop, (midnight-os.time())*1000)
+  end
+  setTimeout(loop, (midnight-os.time())*1000)
+end
+
 ---------------------- Create rule ---------------------------------
 local function compRule(r)
-  local fun  = ER.csp.compile(r)  -- compile rule action into CSP
   local head = r[2]               -- the condition part (scan for triggers)
-
+  
   RULEIDX = RULEIDX + 1
-  local rule = { fun = fun, id = RULEIDX, verbosity = "normal" }
+  local rule = { id = RULEIDX, verbosity = "normal" }
   rules[RULEIDX] = rule
-
-  local trs = { triggers = {}, dailys = {}, intervals = nil }
-  scanHead(head, trs)
-  for _, tr in pairs(trs.triggers) do
-    setmetatable(tr, ER.EventMT)
-    sourceTrigger:subscribe(tr, function(ev)
-      logRule(rule, "verbose", dfltPrefix.startPrefix)
-      ruleRunner(rule.fun, rule)
+  
+  local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
+  scanHead(head, trs)             -- scanHead may modify ast...
+  local fun  = ER.csp.compile(r)  -- compile rule action into CSP
+  rule.fun = fun
+  rule.timers = {}
+  
+  function postR(ev,time)
+    local ref,t
+    ref,t = sourceTrigger:post(ev,time,nil,function(ref)
+      rule.timers[ref] = nil
     end)
+    if ref then rule.timers[ref] = t end
+    return ref
   end
+  function setTimeoutR(fun,time)
+    local ref
+    ref = setTimeout(function() 
+      rule.timers[ref] = nil
+      fun()
+    end, time)
+    rule.timers[ref] = time
+    return ref
+  end
+  function cancelR(ref)
+    rule.timers[ref]=nil
+    return sourceTrigger:cancel(ref)
+  end
+  
+  local function mkEvOpts(key,event)
+    return {
+      event = event and setmetatable(event, ER.EventMT) or nil, 
+      _evKey=key, 
+      post = postR, 
+      cancel = cancelR,
+    }
+  end
+  
+  -- All triggers are subscribed to
+  for key, event in pairs(trs.triggers) do
+    setmetatable(event, ER.EventMT)
+    sourceTrigger:subscribe(event, function(ev)
+      logRule(rule, "verbose", dfltPrefix.startPrefix)
+      ruleRunner(rule.fun, rule, {
+        vars = mkEvOpts(key,event)})
+      end
+    )
+  end
+
+  
+  local skipDailys = false
+  local intervalTimer
+  local intervalEvent = {type='INTERVAL', id=rule.id}
+  if trs.interval then
+    sourceTrigger:subscribe(intervalEvent, function(ev)
+      logRule(rule, "verbose", dfltPrefix.startPrefix, "(interval)")
+      ruleRunner(rule.fun, rule, {
+        vars = mkEvOpts('INTERVAL',intervalEvent)})
+      end
+    )
+    skipDailys = true
+  end
+
+  function rule:setupInterval()
+    if intervalTimer then cancelR(intervalTimer); intervalTimer = nil end
+    if trs.interval then
+      local value = trs.interval()
+      if type(value) ~= 'number' then error("Invalid interval time: "..tostring(value)) end
+      local delay = 0
+      if value < 0 then value=-value delay = (os.time() // value + 1)*value - os.time() end
+      local nextTime = os.time() + delay
+      local function loop()
+        postR(intervalEvent)
+        nextTime = nextTime + value
+        intervalTimer = setTimeoutR(loop, (nextTime-os.time())*1000)
+      end
+      intervalTimer = setTimeoutR(loop, (nextTime-os.time())*1000)
+    end
+  end
+  rule:setupInterval()
+
+  rule.dailys = {}
+  if not skipDailys then
+    local dailys = trs.dailys -- @daily inhibits between
+    if next(trs.dailys) == nil then dailys = trs.between end
+
+    for _, t in ipairs(dailys) do
+      local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
+      DAILYID = DAILYID + 1
+      sourceTrigger:subscribe(subev, function(ev)
+        logRule(rule, "verbose", dfltPrefix.startPrefix,tostring(ev))
+        ruleRunner(rule.fun, rule, {
+          vars = mkEvOpts('DAILY',ev.event)})
+        end
+      )
+      rule.dailys[t] = subev
+    end
+  end
+
+  function rule:setupDaily()
+    if next(rule.dailys) == nil then return end
+    local now,midnight= os.time(), ER.midnight()
+    local ts = {}
+    for tr,subev in pairs(rule.dailys) do ts[tr()] = subev end
+    for t,subev in pairs(ts) do
+      if t < ER.D2024 then t = t + midnight end
+      logRule(rule, "verbose", dfltPrefix.dailyListPrefix,"Daily trigger scheduled for "..ER.timeStr(t))
+      postR(subev,t-now)
+    end
+  end
+  rule:setupDaily()
 
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run()
     logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
-    ruleRunner(self.fun, self)
+    ruleRunner(self.fun, self, {vars=mkEvOpts("MANUAL")})
   end
-
-  function rule:dumpTriggers()
+  
+  function rule:dumpTriggers(pref)
     print(dfltPrefix.ruleDefPrefix, tostring(self), "registered:")
     for _, tr in pairs(trs.triggers) do
-      print("  ", dfltPrefix.triggerListPrefix, tr)
+      local a = getmetatable(tr)
+      print(pref or "  ", dfltPrefix.triggerListPrefix, tr)
     end
-    for _, t in ipairs(trs.dailys) do
-      print("  ", dfltPrefix.dailyListPrefix, ER.timeStr(t()))
+    for t,_ in pairs(rule.dailys) do
+      print(pref or "  ", dfltPrefix.dailyListPrefix, ER.timeStr(t()))
     end
   end
-
+  
   setmetatable(rule, {
     __tostring = function(self) return "RULE" .. tostring(self.id) end
   })
-
-  rule:dumpTriggers()
+  
+  rule:dumpTriggers("- ")
   return rule
 end
 
@@ -115,28 +242,39 @@ function HOPS.BETW(ast,trs)
   local a,afun = exprFun(ast[2])()
   local b,bfun = exprFun({"ADD",ast[3],1})()
   assert(type(a) == "number" and type(b) == "number", "BETW operands must be numbers")
-  table.insert(trs.dailys, afun)
-  table.insert(trs.dailys, bfun)
+  table.insert(trs.between, afun)
+  table.insert(trs.between, bfun)
 end
 
 function HOPS.DAILY(ast,trs)
-  local a,afun = exprFun(ast[2])()
-  assert(type(a) == "number", "DAILY operand must be a number")
-  table.insert(trs.dailys, afun)
+  local times = ast[2]
+  if type(times) == 'table' and times[1] == 'MAKETABLE' then 
+    times = {}
+    for i=3,#ast[2],2 do times[#times+1] = ast[2][i] end
+  else times = {times} end
+
+  for _,e in ipairs(times) do
+    local v,afun = exprFun(e)()
+    assert(type(v) == "number", "DAILY operand must be a number")
+    table.insert(trs.dailys, afun)
+  end
 end
 
 function HOPS.INTERV(ast,trs)
   local a,afun = exprFun(ast[2])()
   assert(type(a) == "number", "INTERV operands must be number")
-  table.insert(trs.intervals, afun)
+  assert(trs.interval == nil, "only one INTERVAL condition allowed per rule")
+  trs.interval = afun
 end
 
 function HOPS.GETVAR(ast,trs)
   local name = ast[3]
   if ast[2] == "GV" then
     trs.triggers["GLOB:"..name] = {type='global-variable', name = name}
+    trs.haveVar = true
   elseif ast[2] == "QV" then
     trs.triggers["QUICK:"..name] = {type='quickvar', name = name}
+    trs.haveVar = true
   end
 end
 
@@ -144,6 +282,26 @@ function HOPS.GET(ast,trs)
   local name = ast[2]
   if ER._triggerVars[name] then
     trs.triggers["TRIG:"..name] = {type='trigger-variable', name = name}
+    trs.haveVar = true
+  end
+end
+
+local EVID = 1
+function HOPS.MAKETABLE(ast,trs)
+  local tab = exprFun(ast)()
+  if type(tab)=='table' and type(tab.type)=='string' then
+    local id = "EV:"..EVID
+    EVID = EVID + 1
+    local c_ast = {}
+    for i,v in ipairs(ast) do c_ast[i] = v; ast[i] = nil end
+    ast[1] = "CFUN"
+    ast[2] = function(cont,ctx,id,tab)
+      local exist,evKey = ctx:getVar('_evKey')
+      return cont(exist and evKey == id and tab or false)
+    end
+    ast[3] = id
+    ast[4] = c_ast
+    trs.triggers[id] = tab
   end
 end
 
@@ -186,10 +344,10 @@ end
 
 -- ruleRunner(f)       → bare eval: always logs, returns value(s) or nil
 -- ruleRunner(f, rule) → triggered action: logs per rule.verbosity
-function ruleRunner(f, rule)
+function ruleRunner(f, rule, opts)
   local synced   = false
   local syncVals = nil
-
+  
   local function onDone(...)
     if synced then
       -- completed asynchronously (after caller already returned nil)
@@ -206,12 +364,12 @@ function ruleRunner(f, rule)
       if rule and rule.onDone then rule.onDone(...) end
     end
   end
-
+  
   local ok, err = pcall(function()
-    resumeRunner(table.pack(ER.csp.eval(f)), rule, onDone)
+    resumeRunner(table.pack(ER.csp.eval(f,opts)), rule, onDone)
   end)
   synced = true
-
+  
   if not ok then
     if rule then
       logRule(rule, "normal", dfltPrefix.errorPrefix, err)
@@ -220,7 +378,7 @@ function ruleRunner(f, rule)
       error(err, 0)  -- re-throw: outer eval's pcall catches it
     end
   end
-
+  
   if syncVals then
     return table.unpack(syncVals, 1, syncVals.n)
   else
@@ -238,7 +396,7 @@ local function eval(src)
   local ast    = ER.parse(src)           -- parse error propagates immediately
   local isRule = (ast[1] == 'RULE')
   local result
-
+  
   local ok, err = pcall(function()
     local tree = ER.compileAST(ast)
     local code = ER.csp.compile(tree)
@@ -246,19 +404,19 @@ local function eval(src)
     ER._ruleCmp = tree
     result = table.pack(ruleRunner(code))  -- rule=nil → bare eval
   end)
-
+  
   if not ok then
     print(dfltPrefix.errorPrefix, err)
     error(err)
   end
-
+  
   -- For bare expressions: log the sync result if we got one.
   -- Async (nil return) was already logged 💤 by ruleRunner.
   -- Rule form: compRule already logged ✅ with trigger list.
   if not isRule and result and result[1] ~= nil then
     print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
   end
-
+  
   return result and table.unpack(result, 1, result.n)
 end
 
@@ -269,7 +427,7 @@ function fibaro.EventRunner(cb)
   vm.defGlobal('tonumber', tonumber)
   vm.defGlobal('math',     math)
   ER.csp.defGlobal("compRule", compRule) 
-
+  
   er.triggerVars = setmetatable({}, {
     __index = function(t, k) return vm.getGlobal(k) end,
     __newindex = function(t, k, v) 
@@ -277,11 +435,19 @@ function fibaro.EventRunner(cb)
       vm.defGlobal(k, v)
     end
   })
-
+  
   ER.setupProps()
-
+  ER.setupFuns()
+  setupGlobalVariables()
+  
   sourceTrigger = SourceTrigger()
   ER.sourceTrigger = sourceTrigger
+  er.globals = ER.globals
+  er.defglobals = ER.defglobals
+  
+  midnightLoop()
+
+  for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
 
   setTimeout(function() 
     sourceTrigger:run()

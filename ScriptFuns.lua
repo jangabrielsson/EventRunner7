@@ -1,5 +1,6 @@
 fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
+local fmt = string.format
 
 local getProps,setProps = {},{}
 local function setupProps()
@@ -122,69 +123,69 @@ local function setupProps()
   getProps.levelStop={'device',call,'stopLevelChange',mapF,nil}
   getProps.type={'device',function(id) return ER.getDeviceInfo(id).type end,'type',mapF,nil}
   
-
--- setProps helpers
-local function set(id,cmd,val) fibaro.call(id,cmd,val); return val end
-local function set2(id,cmd,val)
-  assert(type(val)=='table' and #val>=3,"setColor expects a table with 3 values")
-  fibaro.call(id,cmd,table.unpack(val)); 
-  return val 
-end
-local function setProfile(id,_,val) if val then fibaro.profile("activateProfile",id) end return val end
-local function setState(id,_,val) fibaro.call(id,"updateProperty","state",val); return val end
-local function setProp(id,cmd,val) fibaro.call(id,"updateProperty",cmd,val); return val end
-local function dim2(id,_,val) ER.utilities.dimLight(id,table.unpack(val)) end
-local function pushMsg(id,cmd,val) fibaro.alert(fibaro._pushMethod,{id},val); return val end
-local function setAlarm(id,cmd,val) arm(id,val and 'arm' or 'disarm') return val end
---helpers.set, helpers.set2, helpers.setProfile, helpers.setState, helpers.setProps, helpers.dim2, helpers.pushMsg = set, set2, setProfile, setState, setProps, dim2, pushMsg
-
-setProps = {}
-setProps.R={set,'setR'} -- Don't think the RGBs are valid anymore...
-setProps.G={set,'setG'}
-setProps.B={set,'setB'}
-setProps.W={set,'setW'}
-setProps.value={set,'setValue'}
-setProps.state={setState,'setState'}
-setProps.prop={function(id,_,val) fibaro.call(id,"updateProperty",table.unpack(val)) end,'upDateProp'}
-
-setProps.armed={setAlarm,'setAlarm'}
-
-setProps.profile={setProfile,'setProfile'}
-setProps.time={set,'setTime'}
-setProps.power={set,'setPower'}
-setProps.targetLevel={set,'setTargetLevel'}
-setProps.interval={set,'setInterval'}
-setProps.mode={set,'setMode'}
-setProps.setpointMode={set,'setSetpointMode'}
-setProps.defaultPartyTime={set,'setDefaultPartyTime'}
-setProps.scheduleState={set,'setScheduleState'}
-setProps.color={set2,'setColor'}
-setProps.volume={set,'setVolume'}
-setProps.position={set,'setPosition'}
-setProps.positions={setProp,'availablePositions'}
-setProps.mute={set,'setMute'}
-setProps.thermostatSetpoint={set2,'setThermostatSetpoint'}
-setProps.thermostatMode={set,'setThermostatMode'}
-setProps.heatingThermostatSetpoint={set,'setHeatingThermostatSetpoint'}
-setProps.coolingThermostatSetpoint={set,'setCoolingThermostatSetpoint'}
-setProps.thermostatFanMode={set,'setThermostatFanMode'}
-setProps.schedule={set2,'setSchedule'}
-setProps.dim={dim2,'dim'}
-fibaro._pushMethod = 'push'
-setProps.msg={pushMsg,"push"}
-setProps.defemail={set,'sendDefinedEmailNotification'}
-setProps.btn={set,'pressButton'} -- ToDo: click button on QA?
-setProps.email={function(id,_,val) local _,_ = val:match("(.-):(.*)"); fibaro.alert('email',{id},val) return val end,""}
-setProps.start={function(id,_,val) 
-  if type(val)=='table' and val.type then 
-    ER.sourceTrigger:postRemote(id,val) return true
-  else 
-    fibaro.scene("execute",{id}) return true
-  end
-end,""}
   
-ER.getProps = getProps
-ER.setProps = setProps
+  -- setProps helpers
+  local function set(id,cmd,val) fibaro.call(id,cmd,val); return val end
+  local function set2(id,cmd,val)
+    assert(type(val)=='table' and #val>=3,"setColor expects a table with 3 values")
+    fibaro.call(id,cmd,table.unpack(val)); 
+    return val 
+  end
+  local function setProfile(id,_,val) if val then fibaro.profile("activateProfile",id) end return val end
+  local function setState(id,_,val) fibaro.call(id,"updateProperty","state",val); return val end
+  local function setProp(id,cmd,val) fibaro.call(id,"updateProperty",cmd,val); return val end
+  local function dim2(id,_,val) ER.utilities.dimLight(id,table.unpack(val)) end
+  local function pushMsg(id,cmd,val) fibaro.alert(fibaro._pushMethod,{id},val); return val end
+  local function setAlarm(id,cmd,val) arm(id,val and 'arm' or 'disarm') return val end
+  --helpers.set, helpers.set2, helpers.setProfile, helpers.setState, helpers.setProps, helpers.dim2, helpers.pushMsg = set, set2, setProfile, setState, setProps, dim2, pushMsg
+  
+  setProps = {}
+  setProps.R={set,'setR'} -- Don't think the RGBs are valid anymore...
+  setProps.G={set,'setG'}
+  setProps.B={set,'setB'}
+  setProps.W={set,'setW'}
+  setProps.value={set,'setValue'}
+  setProps.state={setState,'setState'}
+  setProps.prop={function(id,_,val) fibaro.call(id,"updateProperty",table.unpack(val)) end,'upDateProp'}
+  
+  setProps.armed={setAlarm,'setAlarm'}
+  
+  setProps.profile={setProfile,'setProfile'}
+  setProps.time={set,'setTime'}
+  setProps.power={set,'setPower'}
+  setProps.targetLevel={set,'setTargetLevel'}
+  setProps.interval={set,'setInterval'}
+  setProps.mode={set,'setMode'}
+  setProps.setpointMode={set,'setSetpointMode'}
+  setProps.defaultPartyTime={set,'setDefaultPartyTime'}
+  setProps.scheduleState={set,'setScheduleState'}
+  setProps.color={set2,'setColor'}
+  setProps.volume={set,'setVolume'}
+  setProps.position={set,'setPosition'}
+  setProps.positions={setProp,'availablePositions'}
+  setProps.mute={set,'setMute'}
+  setProps.thermostatSetpoint={set2,'setThermostatSetpoint'}
+  setProps.thermostatMode={set,'setThermostatMode'}
+  setProps.heatingThermostatSetpoint={set,'setHeatingThermostatSetpoint'}
+  setProps.coolingThermostatSetpoint={set,'setCoolingThermostatSetpoint'}
+  setProps.thermostatFanMode={set,'setThermostatFanMode'}
+  setProps.schedule={set2,'setSchedule'}
+  setProps.dim={dim2,'dim'}
+  fibaro._pushMethod = 'push'
+  setProps.msg={pushMsg,"push"}
+  setProps.defemail={set,'sendDefinedEmailNotification'}
+  setProps.btn={set,'pressButton'} -- ToDo: click button on QA?
+  setProps.email={function(id,_,val) local _,_ = val:match("(.-):(.*)"); fibaro.alert('email',{id},val) return val end,""}
+  setProps.start={function(id,_,val) 
+    if type(val)=='table' and val.type then 
+      ER.sourceTrigger:postRemote(id,val) return true
+    else 
+      fibaro.scene("execute",{id}) return true
+    end
+  end,""}
+  
+  ER.getProps = getProps
+  ER.setProps = setProps
 end
 
 local function getProp(obj, key)
@@ -211,6 +212,107 @@ local function setProp(obj, key, value)
   return true
 end
 
+local function setupFuns()
+  local vm = ER.csp
+  local sourceTrigger = ER.sourceTrigger
+
+  ER.globals = setmetatable({},{
+    __index    = function(t,k)   return vm.getGlobal(k) end,
+    __newindex = function(t,k,v) vm.setGlobal(k,v) end
+  })
+  ER.defglobals = setmetatable({},{
+    __index    = function(t,k)   return vm.getGlobal(k) end,
+    __newindex = function(t,k,v) vm.defGlobal(k,v) end
+  })
+  local builtin = ER.defglobals
+  
+  builtin.math = math
+  builtin.table = table
+  builtin.string = string
+  builtin.json = json
+  builtin.fibaro = fibaro
+  builtin.api = api
+  builtin.quickApp = quickApp
+  
+  local function detag(str) 
+    str = str:gsub("(#C:)(.-)(#)",function(_,c) color=c return "" end)
+    if color then str=string.format("<font color='%s'>%s</font>",color,str) end
+    return str
+  end
+  
+  function builtin.log(...) -- printable tables and #C:color# tag
+    local args,n = {...},0
+    for i=1,#args do 
+      local a = args[i]
+      local typ = type(a)
+      n = n+1
+      if typ == 'string' then args[i] = detag(a)
+      elseif typ == 'table' or typ == 'userdata' then 
+        local mt = getmetatable(a)
+        if mt and mt.__tostring then args[i] = tostring(a)
+        else args[i] = json.encodeFast(a) end
+      end
+    end
+    local msg = ""
+    if n == 1 then msg = args[1] elseif n > 1 then msg = string.format(table.unpack(args)) end
+    print(msg)
+    return msg
+  end
+
+  function builtin.post(ev,time) return (ER.sourceTrigger:post(ev,time)) end
+  function builtin.cancel(ref) return ER.sourceTrigger:cancel(ref) end
+  function builtin.fmt(...) return string.format(...) end
+  function builtin.HM(t) return os.date("%H:%M",t < os.time()-8760*3600 and t+ER.midnight() or t) end
+  function builtin.HMS(t) return os.date("%H:%M",t < os.time()-8760*3600 and t+ER.midnight() or t) end
+  function builtin.sign(t) return t < 0 and -1 or 1 end
+  function builtin.rnd(min,max) return math.random(min,max)end
+  function builtin.round(num) return math.floor(num+0.5) end
+  function builtin.sum(...) 
+    local args = {...}
+    if #args == 1 and type(args[1]) == "table" then args = args[1] end
+    local s = 0 for i=1,#args do s = s + args[i] end
+    return s
+  end
+  function builtin.average(...) local s = builtin.sum(...) return s / select("#", ...) end
+  function builtin.size(t) return #t end
+  function builtin.min(...) 
+    local args = {...}
+    if #args == 1 and type(args[1]) == "table" then args = args[1] end
+    return math.min(table.unpack(args))
+  end
+  function builtin.max(...) 
+    local args = {...}
+    if #args == 1 and type(args[1]) == "table" then args = args[1] end
+    return math.max(table.unpack(args))
+  end
+  function builtin.sort(t) table.sort(t) return t end
+  function builtin.osdate(a,b) return os.date(a,b) end
+  function builtin.ostime(t) return os.time(t) end
+  
+  function builtin.global(name)
+    local s = fibaro.getGlobalVariable(name)     
+    local a,b = api.post("/globalVariables/",{name=name,value = ""})
+    return s == nil,(s == nil and fmt("'%s' created",name) or fmt("'%s' exists",name))
+  end
+  
+  function builtin.listglobals() return api.get("/globalVariables") end
+  function builtin.deleteglobal(name) api.delete("/globalVariables/"..name) end
+  
+  function builtin.subscribe(event) end
+  function builtin.publish(event) end
+  function builtin.remote(deviceId,event) end
+  function builtin.adde(t,v) table.insert(t,v) return t end
+  function builtin.remove(t,v) 
+    for i=#t,1,-1 do if t[i]==v then table.remove(t,i) end end 
+    return t
+  end
+  
+  function builtin.enable(rule) end
+  function builtin.disable(rule) end
+  
+end
+
 ER.setupProps = setupProps
+ER.setupFuns = setupFuns
 ER.getProp = getProp
 ER.setProp = setProp

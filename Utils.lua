@@ -413,7 +413,10 @@ local function createEventEngine()
       return setTimeout(function() ev(ev) end,1000*(t-now)),t
     elseif isEv then
       if not getmetatable(ev) then setmetatable(ev,EventMT) end
-      local ref; ref = setTimeout(function() if hook then hook(ref) end self.handleEvent(ev) end,1000*(t-now))
+      local ref; ref = setTimeout(function() 
+        if hook then hook(ref) end 
+        self.handleEvent(ev) 
+        end,1000*(t-now))
       return ref,t
     else
       error("post(...) not event or fun;"..tostring(ev))

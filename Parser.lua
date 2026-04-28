@@ -432,6 +432,11 @@ local function makeParser(src)
         return {'SETPROP', base[2], base[3], parseExp()}
       end
 
+      -- getprop as statement: expr:tag  (no '=' follows; acts as a function call)
+      if base[1] == 'GETPROP' then
+        return base
+      end
+
       if isCall then
         -- function call as statement — return call node directly
         return base

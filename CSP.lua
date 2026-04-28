@@ -70,6 +70,11 @@ do
   function _ctx:pushVarFrame(name, v)
     _var_env = setmetatable({ [name] = {v} }, { __index = _var_env })
   end
+  function _ctx:pushVarsFrame(vars)
+    local frame = {}
+    for name, v in pairs(vars) do frame[name] = {v} end
+    _var_env = setmetatable(frame, { __index = _var_env })
+  end
   function _ctx:popVarFrame()  
     _var_env = getmetatable(_var_env).__index
   end
@@ -250,7 +255,7 @@ local function DAILY(a)
   return function(cont)
     return a(TR(function(v)
       trace("DAILY", v)
-      return cont({type='Daily', time=v})
+      return cont(true)
     end))
   end
 end
@@ -338,7 +343,9 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
     return f_expr(TR(function(f)
       return evalArgs(fargs, 1, {}, 0, TR(function(...)
         trace("CALL", tostring(f), ...)
+        ER._ctx = _ctx  -- make current context available to the called function
         local rets = {f(...)}
+        ER._ctx = nil
         trace("CALL->", table.unpack(rets))
         return cont(table.unpack(rets))
       end))
@@ -426,6 +433,19 @@ local _PRINT_CONST  -- cached CONST(print) so PRINT doesn't allocate on every ca
 local function PRINT(...)
   _PRINT_CONST = _PRINT_CONST or CONST(print)
   return CALL(_PRINT_CONST, ...)
+end
+
+-- CFUN calls a raw Lua function with (cont, ctx_snapshot, ...evaluated_args).
+-- The Lua function is responsible for calling cont(value) to produce a result.
+local function CFUN(lua_fn, ...)
+  local fargs = {...}
+  return function(cont)
+    return evalArgs(fargs, 1, {}, 0, TR(function(...)
+      local snap = _ctx --:snapshot()
+      trace("CFUN", tostring(lua_fn), ...)
+      return lua_fn(cont, snap, ...)
+    end))
+  end
 end
 
 -- ── VARIABLE ENVIRONMENT ──────────────────────────────────────────────────
@@ -555,9 +575,7 @@ local function eval(expr, opts)
   local top_cont = function(...) return nil, ... end
   _ctx:restore({ break_stack = {}, error_handler = nil, exit_cont = TR(top_cont), var_env = {}, trace = opts and opts.trace or false })
   if opts and opts.vars then
-    for name, v in pairs(opts.vars) do
-      _ctx:pushVarFrame(name, v)
-    end
+    _ctx:pushVarsFrame(opts.vars)
   end
   local result = table.pack(trampoline(expr(top_cont)))
   _ctx:restore(outer)
@@ -609,6 +627,7 @@ local expr = {
   LET   = LET,   GET   = GET,   SET = SET,
   GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
+  CFUN  = CFUN,
 }
 
 -- ── SIMPLE COMPILER ──────────────────────────────────────────────────────────────
@@ -655,6 +674,11 @@ local function compile(t)
     return CALL(table.unpack(cargs))
   elseif op == "TRY"       then
     return TRY(ca(2), t[3])   -- t[3] is raw Lua handler_fn
+  elseif op == "CFUN"      then
+    -- t[2] is a raw Lua function; t[3..n] are compiled as expressions
+    local cargs = {}
+    for i = 3, #t do cargs[#cargs+1] = ca(i) end
+    return CFUN(t[2], table.unpack(cargs))
   else
     local cargs = {}
     for i = 2, #t do cargs[#cargs+1] = ca(i) end

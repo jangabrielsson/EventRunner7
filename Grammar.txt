@@ -10,6 +10,7 @@ block ::= {stat [';']} [laststat [';'] ]
 
 stat ::= varlist '=' explist |
          functioncall |
+         getprop |
          do block end |
          while exp do block end |
          repeat block until exp |
