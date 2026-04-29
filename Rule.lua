@@ -199,9 +199,9 @@ local function compRule(r)
   rule:setupDaily()
   
   -- rule:run() lets the user fire the rule manually from code.
-  function rule:run()
+  function rule:run(event)
     logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
-    ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event={}})})
+    ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event=event})})
   end
   
   function rule:dumpTriggers(pref)

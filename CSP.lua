@@ -315,6 +315,32 @@ local function INDEX(obj_expr, key_expr)
   end
 end
 
+local function SETINDEX(obj_expr, key_expr, val_expr)
+  return function(cont)
+    return obj_expr(TR(function(obj)
+      return key_expr(TR(function(key)
+        return val_expr(TR(function(val)
+          trace("SETINDEX", tostring(obj), "[", tostring(key), "] =", tostring(val))
+          obj[key] = val
+          return cont(val)
+        end))
+      end))
+    end))
+  end
+end
+
+local function SETFIELD(obj_expr, field, val_expr)
+  return function(cont)
+    return obj_expr(TR(function(obj)
+      return val_expr(TR(function(val)
+        trace("SETFIELD", tostring(obj), ".", field, "=", tostring(val))
+        obj[field] = val
+        return cont(val)
+      end))
+    end))
+  end
+end
+
 -- GETPROP(obj_expr, key) reads a device property via ER._funs.getProp.
 -- key is a plain string (not an expression).
 local function GETPROP(obj_expr, key)
@@ -625,7 +651,8 @@ local expr = {
   ADD = ADD, SUB = SUB, MUL = MUL, DIV = DIV, MOD = MOD, POW = POW,
   EQ  = EQ,  LT  = LT,  LTE = LTE, GT  = GT,  GTE = GTE,
   AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT, BETW = BETW,
-  INDEX = INDEX,  MAKETABLE = MAKETABLE,
+  INDEX = INDEX, SETINDEX = SETINDEX, SETFIELD = SETFIELD,
+  MAKETABLE = MAKETABLE,
   DAILY = DAILY,  INTERV = INTERV,
   GETPROP = GETPROP,  SETPROP = SETPROP,
   IF    = IF,
@@ -674,6 +701,7 @@ local function compile(t)
   elseif op == "SET"       then return SET(t[2], ca(3))
   elseif op == "GETVAR"    then return GETVAR(t[2], ca(3))
   elseif op == "SETVAR"    then return SETVAR(t[2], ca(3), ca(4))
+  elseif op == "SETFIELD"   then return SETFIELD(ca(2), t[3], ca(4))
   elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(3))
   elseif op == "LET"       then return LET(t[2], ca(3), ca(4))
   elseif op == "GETPROP"   then return GETPROP(ca(2), t[3])   -- t[3] is raw key string

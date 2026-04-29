@@ -55,6 +55,10 @@ local function compileTarget(var, val_csp)
     return {'SET', var[2], val_csp}
   elseif var[1] == 'GV' or var[1] == 'QV' or var[1] == 'PV' then
     return {"SETVAR", var[1], var[2], val_csp}
+  elseif var[1] == 'INDEX' then
+    return {"SETINDEX", compile(var[2]), compile(var[3]), val_csp}
+  elseif var[1] == 'FIELD' then
+    return {"SETFIELD", compile(var[2]), var[3], val_csp}  -- var[3] is raw string; ca() wraps it in CONST
   else
     error("Compiler: unsupported assignment target: " .. tostring(var[1]))
   end

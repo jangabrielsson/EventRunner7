@@ -14,6 +14,7 @@ local function main(er) ER = er
   api.post("/globalVariables",{name = "G_foo",value = "66"})
   er.defglobals.light1 = loadDevice("binarySwitch")
   er.defglobals.light2 = loadDevice("binarySwitch")
+  er.defglobals.light3 = loadDevice("binarySwitch")
   er.defglobals.motion1 = loadDevice("motionSensor")
   er.defglobals.door1 = loadDevice("doorSensor")
   er.defglobals.window1 = loadDevice("windowSensor")
@@ -70,7 +71,8 @@ local function main(er) ER = er
   -- Tables
   test("local a={6}; return a",{{6}})
   test("local a={b=6}; return a.b",{6})
-  -- --test("local a={b=6}; a.b=7; return a",{{7}})
+  test("local a={b=6}; a.b=7; return a.b",{7})
+  test("local a={6}; a[1]=7; return a",{{7}})
 
   -- Between operator
   test("return now..now+1",{true})
@@ -109,7 +111,7 @@ local function main(er) ER = er
   test("return now",{ER.now()})
 
   -- wait
-  test("local a = ostime(); wait(4000); return ostime()-a",{4})
+  test("local a = ostime(); wait(4000); return ostime()-a",{4}) -- wait should be approximately 4 seconds
 
   -- Device property triggers
   test("light1:isOn => return 99","light1:on",{99})
@@ -128,8 +130,8 @@ local function main(er) ER = er
 
   -- trueFor
   test("trueFor(00:05,light2:isOn) => return 55","light2:on",{55})
+  test("trueFor(00:05,light3:isOn) => log('again %s',again(5)); return 88","light3:on",{88},5)
 end
-
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)

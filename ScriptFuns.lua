@@ -340,13 +340,15 @@ local function setupFuns()
   end
 
   function async.again(cb,n)
-    local trueFor = cb.env.rule.trueFor
+    local opts = cb.cf.ctx.opts
+    local env = cb.cf.ctx.var_env[1]
+    local trueFor = opts.rule.trueFor or {}
     if trueFor then
       if trueFor.again and trueFor.again == 0 then trueFor.again = nil return cb(0) end 
       if trueFor.again == nil then trueFor.again,trueFor.againN = n,n end-- reset
       trueFor.again = trueFor.again - 1
       if trueFor.trigger and  trueFor.again > 0 then 
-        cb.env:setTimeout(function() cb.env.rule:start(trueFor.trigger) end, 0)
+        env.setTimeout[1](function() cb.rule:run(trueFor.trigger) end, 0)
         cb(trueFor.againN - trueFor.again)
       else trueFor.again = nil cb(trueFor.againN) end
     else cb(0) end

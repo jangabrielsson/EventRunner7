@@ -20,10 +20,11 @@ local function main(er) ER = er
   er.defglobals.window2 = loadDevice("windowSensor")
   er.defglobals.fire1 = loadDevice("fireDetector")
 
-  fibaro.debugFlags.post = true
-  test("#bar1{a=5,b='$x>79'} => return x","post(#bar1{a=5,b=88})",{88})
-  test([[#bar1{a=5,b='$x==abc'} => return x]],"post(#bar1{a=5,b='abc'})",{'abc'})
-  test([[#bar1{a=5,b='$x<>Atfrb'} => return x]],"post(#bar1{a=5,b='tfr'})",{'tfr'})
+
+  er.defglobals.a = {'a'}
+  er.defglobals.b = {c='a'}
+  --rule("a[1] = 'b'; return a[1]")
+  rule("b.c = 'x'; return b.c")
 end
 
 
