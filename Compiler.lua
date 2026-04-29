@@ -197,8 +197,32 @@ end
   end  
 
   -- FOR-IN
-  -- for var in iter do body end  →  (desugars to Lua'simple
-  -- local iter, state, var = iter_exp; while true do var = iter(state, var); if var == nil then break end; body end)
+  -- for var in iter do body end ->
+  -- local fun = function() return pairs(b) end
+  -- local f,t,k,v = fun()
+  -- while true do
+  --   k,v = f(t,k)
+  --   if not k then break end
+  --   print(k,v)
+  -- end
+
+  -- ["LET","f",["CALL",["GET","fun"]],
+  --   ["LET","t",["CONST"],
+  --     ["LET","k",["CONST"],
+  --       ["LET","v",["CONST"],
+  --         ["LOOP",
+  --           ["PROGN",
+  --             ["SET","k",["CALL",["GET","f"],["GET","t"],["GET","k"]]],
+  --             ["SET","v",["CONST"]],
+  --             ["IF",["NOT",["GET","k"]],["BREAK"]],
+  --             ["CALL",["GET","print"],["GET","k"],["GET","v"]]
+  --           ]
+  --         ]
+  --       ]
+  --     ]
+  --   ]
+  -- ]
+
   local function compForIn(ast)
     local var = ast[2]
     local iter_exp = compile(ast[3])

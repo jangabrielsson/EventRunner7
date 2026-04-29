@@ -20,11 +20,10 @@ local function main(er) ER = er
   er.defglobals.window2 = loadDevice("windowSensor")
   er.defglobals.fire1 = loadDevice("fireDetector")
 
+  function er.defglobals.mret(x) return x+1,x+2 end
 
-  er.defglobals.a = {'a'}
-  er.defglobals.b = {c='a'}
-  --rule("a[1] = 'b'; return a[1]")
-  rule("b.c = 'x'; return b.c")
+  --rule([[local a,b = mret(5); return a+b]])
+  rule([[local a,b = mret(8),6; return a+b]])
 end
 
 

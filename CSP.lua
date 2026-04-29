@@ -371,7 +371,7 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
   return function(cont)
     return f_expr(TR(function(f)
       return evalArgs(fargs, 1, {}, 0, TR(function(...)
-        if ER.ASYNCFUNS[f] then
+        if ER.ASYNCFUNS and ER.ASYNCFUNS[f] then
           local yvals = table.pack(...)
           return YIELD_TAG, function(...)
             trace("ASYNC", "resuming with", ...)

@@ -456,6 +456,7 @@ local function eval(src,opts)
   local ok, err = pcall(function()
     local tree = ER.compileAST(ast)
     local code = ER.csp.compile(tree)
+    --print(json.encode(tree))
     ER._ruleSrc = src
     ER._ruleCmp = tree
     result = table.pack(ruleRunner(code,nil,opts))  -- rule=nil → bare eval

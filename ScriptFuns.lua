@@ -314,6 +314,7 @@ local function setupFuns()
   function builtin.disable(rule) end
   
   local async = ER.async
+
   function async.trueFor(cb,time,expr)
     local opts = cb.cf.ctx.opts
     local env = cb.cf.ctx.var_env[1]
@@ -337,6 +338,18 @@ local function setupFuns()
       cb(false) -- do nothing
     end
     return -1 -- not async...
+  end
+
+  function async.once(cb,expr)
+    local once = cb.rule.once
+    if expr then
+      if not once then 
+        cb.rule.once = true
+        cb(true)
+      else cb(false) 
+      end
+    else  cb.rule.once = nil; cb(false) end
+    return -1 -- not async
   end
 
   function async.again(cb,n)
