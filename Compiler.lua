@@ -79,12 +79,20 @@ local function compileStatList(stats, i)
     local vals  = s[3] or {}
     local body  = compileStatList(stats, i + 1)
     -- Wrap from last to first name so name[1] is the outermost LET.
-    local result = body
-    for j = #names, 1, -1 do
-      local val_csp = vals[j] and compile(vals[j]) or {'CONST', nil}
-      result = {'LET', names[j], val_csp, result}
+    -- local result = body
+    -- for j = #names, 1, -1 do
+    --   local val_csp = vals[j] and compile(vals[j]) or {'CONST', nil}
+    --   result = {'LET', names[j], val_csp, result}
+    -- end
+    -- return result
+    if #names == 1 then 
+      return {'LET', names[1], vals[1] and compile(vals[1]) or {'CONST', nil}, body}
+    else
+      local exprs = {}
+      for j = 1, #vals do exprs[j] = vals[j] and compile(vals[j]) or {'CONST', nil}
+      end
+      return {'LETS', names, exprs, body} 
     end
-    return result
   end
 
   local compiled = compile(s)
@@ -123,12 +131,22 @@ local function compAssign(ast)
   if #vars == 1 then
     return compileTarget(vars[1], compile(vals[1]))
   end
-  local stmts = {'PROGN'}
-  for i, v in ipairs(vars) do
----@diagnostic disable-next-line: assign-type-mismatch
-    stmts[#stmts + 1] = compileTarget(v, compile(vals[i] or {'NIL'}))
+--   local stmts = {'PROGN'}
+--   for i, v in ipairs(vars) do
+-- ---@diagnostic disable-next-line: assign-type-mismatch
+--     stmts[#stmts + 1] = compileTarget(v, compile(vals[i] or {'NIL'}))
+--   end
+  local tableArgs = {}
+  for i,v in ipairs(vals) do 
+    tableArgs[#tableArgs + 1] = i
+    tableArgs[#tableArgs + 1] = compile(v) 
   end
-  return stmts
+  local body = {'PROGN'}
+  for i,v in ipairs(vars) do
+---@diagnostic disable-next-line: assign-type-mismatch
+    body[#body + 1] = compileTarget({'NAME',v}, {'INDEX', {'GET', '_tmp'}, i})
+  end
+  return {'LET','_tmp',{'MAKETABLE',table.unpack(tableArgs)}, body}
 end
 
 -- ── IF ────────────────────────────────────────────────────────────────────
@@ -166,7 +184,9 @@ end
   local function compWhile(ast)
     local cond = compile(ast[2])
     local body = compile(ast[3])
-    return {'LOOP', {'IF', cond, body, {'BREAK'}}}
+    if cond == true then
+      return {'LOOP', body}  -- optimize constant true condition
+    else return {'LOOP', {'IF', cond, body, {'BREAK'}}} end
   end
 
   -- ── REPEAT-UNTIL ──────────────────────────────────────────────────────────────────
@@ -206,39 +226,37 @@ end
   --   print(k,v)
   -- end
 
-  -- ["LET","f",["CALL",["GET","fun"]],
-  --   ["LET","t",["CONST"],
-  --     ["LET","k",["CONST"],
-  --       ["LET","v",["CONST"],
-  --         ["LOOP",
-  --           ["PROGN",
-  --             ["SET","k",["CALL",["GET","f"],["GET","t"],["GET","k"]]],
-  --             ["SET","v",["CONST"]],
-  --             ["IF",["NOT",["GET","k"]],["BREAK"]],
-  --             ["CALL",["GET","print"],["GET","k"],["GET","v"]]
-  --           ]
-  --         ]
-  --       ]
-  --     ]
-  --   ]
-  -- ]
+-- ["LETS",["f","t","k","v"],[["CALL",["GET","fun"]],
+--   ["LOOP",
+--     ["PROGN",
+--       ["LET","_tmp",["MAKETABLE",1,["CALL",["GET","f"],["GET","t"],["GET","k"]]],
+--         ["PROGN",
+--           ["SET","k",["INDEX",["GET","_tmp"],1]],
+--           ["SET","v",["INDEX",["GET","_tmp"],2]]
+--         ]
+--       ],
+--       ["IF",["NOT",["GET","k"]],["BREAK"]],
+--       ["CALL",["GET","print"],["GET","k"],["GET","v"]]
+--     ]
+--   ]
+-- ]
+
 
   local function compForIn(ast)
     local var = ast[2]
-    local iter_exp = compile(ast[3])
+    if #var == 1 then var[#var+1] = 'v_val' end
+    local fun_exp = compile(ast[3][1])
     local body = compile(ast[4])
-    local iter_var = var .. "_iter"
-    local state_var = var .. "_state"
-    local loop_var = var .. "_var"
-    return {
-      'LET', iter_var, iter_exp,
-      'LET', state_var, {'CONST', nil},
-      'LET', loop_var, {'CONST', nil},
+    local k,v,f,t = var[1], var[2], 'f_var', 't_var'
+    return {'LETS', {f,t,k,v}, {fun_exp},
       {'LOOP',
-        {'SET', loop_var, {'CALL', {'GET', iter_var}, {'GET', state_var}, {'GET', loop_var}}},
-        {'IF', {'EQ', {'GET', loop_var}, {'CONST', nil}}, {'BREAK'}},
-        body
-    }  }
+        {'PROGN',
+          compile({'ASSIGN',{k,v},{{'CALL',{'NAME',f},{'NAME',t},{'NAME',k}}}}),
+          {'IF',{'NOT',{'GET',k}},{'BREAK'}},
+          body
+        }
+      }
+    }
   end
 
 -- ── CALL ──────────────────────────────────────────────────────────────────

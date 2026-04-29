@@ -73,7 +73,7 @@ do
   end
   function _ctx:pushVarsFrame(vars)
     local frame = {}
-    for name, v in pairs(vars) do frame[name] = {v} end
+    for name, v in pairs(vars) do frame[name] = v end -- v is boxed
     _var_env = setmetatable(frame, { __index = _var_env })
   end
   function _ctx:popVarFrame()  
@@ -501,6 +501,19 @@ local function LET(name, val_expr, body)
   end
 end
 
+-- LETS introduces list of names=exprs in a new frame scoped to body.
+local function LETS(names, val_exprs, body)
+  return function(cont)
+    return evalArgs(val_exprs, 1, {}, 0, TR(function(...)
+      local vals = table.pack(...)
+      local vars = {}
+      for i, name in ipairs(names) do vars[name] = {vals[i]} end
+      _ctx:pushVarsFrame(vars)
+      return body(TR(function(...) _ctx:popVarFrame() return cont(...) end))
+    end))
+  end
+end
+
 -- GET reads the innermost binding for name.
 local function GET(name)
   return function(cont)
@@ -631,12 +644,19 @@ end
 local function MAKETABLE(...)
   local field_exprs = {...}
   assert(#field_exprs % 2 == 0, "MAKETABLE: odd number of args")
+  local nf = #field_exprs
   return function(cont)
     return evalArgs(field_exprs, 1, {}, 0, TR(function(...)
+      local args = table.pack(...)
       local n = select('#', ...)
       local tbl = {}
-      for i = 1, n, 2 do
+      for i = 1, nf, 2 do
         tbl[select(i, ...)] = select(i+1, ...)
+      end
+      if n > nf then
+        for i = nf+1, n do
+          table.insert(tbl, select(i, ...))
+        end
       end
       return cont(tbl)
     end))
@@ -661,7 +681,7 @@ local expr = {
   DEFGLOBAL = DEFGLOBAL,
   TRACE     = TRACE,
   PRINT     = PRINT,
-  LET   = LET,   GET   = GET,   SET = SET,
+  LET   = LET,   LETS = LETS, GET   = GET,   SET = SET,
   GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
   CFUN  = CFUN,
@@ -686,41 +706,44 @@ local function compile(t)
   assert(expr[op], "compile: unknown opcode: " .. tostring(op))
 
   -- helper: compile or auto-wrap a positional arg
-  local function ca(i)
-    local v = t[i]
+  local function ca(v)
     local vt = type(v)
     if vt == "number" or vt == "string" or vt == "boolean" or vt == "function" then
       return CONST(v)
     end
     return compile(v)
   end
+  local function cal(list,offset) -- compile a list of exprs - see LETS
+    local cargs = {}
+    offset = offset or 1
+    for i = offset,#list do cargs[#cargs+1] = ca(list[i]) end
+    return cargs
+  end
 
   -- ops where the first arg is a raw name string
   if     op == "CONST"     then return CONST(t[2])
   elseif op == "GET"       then return GET(t[2])
-  elseif op == "SET"       then return SET(t[2], ca(3))
-  elseif op == "GETVAR"    then return GETVAR(t[2], ca(3))
-  elseif op == "SETVAR"    then return SETVAR(t[2], ca(3), ca(4))
-  elseif op == "SETFIELD"   then return SETFIELD(ca(2), t[3], ca(4))
-  elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(3))
-  elseif op == "LET"       then return LET(t[2], ca(3), ca(4))
-  elseif op == "GETPROP"   then return GETPROP(ca(2), t[3])   -- t[3] is raw key string
-  elseif op == "SETPROP"   then return SETPROP(ca(2), t[3], ca(4))  -- t[3] is raw key string
+  elseif op == "SET"       then return SET(t[2], ca(t[3]))
+  elseif op == "GETVAR"    then return GETVAR(t[2], ca(t[3]))
+  elseif op == "SETVAR"    then return SETVAR(t[2], ca(t[3]), ca(t[4]))
+  elseif op == "SETFIELD"  then return SETFIELD(ca(t[2]), t[3], ca(t[4]))
+  elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(t[3]))
+  elseif op == "LET"       then return LET(t[2], ca(t[3]), ca(t[4]))
+  elseif op == "LETS"      then return LETS(t[2], cal(t[3]), ca(t[4]))
+  elseif op == "GETPROP"   then return GETPROP(ca(t[2]), t[3])   -- t[3] is raw key string
+  elseif op == "SETPROP"   then return SETPROP(ca(t[2]), t[3], ca(t[4]))  -- t[3] is raw key string
   elseif op == "CALL"      then
     -- all args including the function are compiled (scalars auto-wrapped in CONST)
-    local cargs = {}
-    for i = 2, #t do cargs[#cargs+1] = ca(i) end
+    local cargs = cal(t, 2)
     return CALL(table.unpack(cargs))
   elseif op == "TRY"       then
-    return TRY(ca(2), t[3])   -- t[3] is raw Lua handler_fn
+    return TRY(ca(t[2]), t[3])   -- t[3] is raw Lua handler_fn
   elseif op == "CFUN"      then
     -- t[2] is a raw Lua function; t[3..n] are compiled as expressions
-    local cargs = {}
-    for i = 3, #t do cargs[#cargs+1] = ca(i) end
+    local cargs = cal(t, 3)
     return CFUN(t[2], table.unpack(cargs))
   else
-    local cargs = {}
-    for i = 2, #t do cargs[#cargs+1] = ca(i) end
+    local cargs = cal(t, 2)
     return expr[op](table.unpack(cargs))
   end
 end

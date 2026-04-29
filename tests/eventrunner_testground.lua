@@ -21,9 +21,17 @@ local function main(er) ER = er
   er.defglobals.fire1 = loadDevice("fireDetector")
 
   function er.defglobals.mret(x) return x+1,x+2 end
+   er.defglobals.pairs = pairs
+   er.defglobals.ipairs = ipairs
 
-  --rule([[local a,b = mret(5); return a+b]])
-  rule([[local a,b = mret(8),6; return a+b]])
+  -- rule([[local f,t,k,v = fun()
+  --     while true do
+  --       k,v = f(t,k)
+  --       if not k then break end
+  --       print(k,v)
+  --     end]])
+   rule("for i,j in pairs({a=1,b=2,c=3}) do print(i,j) end; print(99)")
+   rule("for i,j in ipairs({'a','b','c'}) do print(i,j) end; print(99)")
 end
 
 

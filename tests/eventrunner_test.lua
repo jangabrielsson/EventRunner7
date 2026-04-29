@@ -37,8 +37,8 @@ local function main(er) ER = er
   test("local a,i=0,0; repeat  a=a+i; i=i+1 until i >= 5; return a",{10})
   test("local a=0; for i=1,5 do a=a+i end; return a",{15})
   test("local a=0; for i=1,5,2 do a=a+i end; return a",{9})
-  -- test("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a",{6})
-  -- test("local a=0; for x,v in pairs({a=1,b=2,c=3}) do a=a+v end; return a",{6})
+  test("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a",{6})
+  test("local a=0; for x,v in pairs({a=1,b=2,c=3}) do a=a+v end; return a",{6})
 
   -- Builtin functions
   test("return HM(now)",{os.date("%H:%M")})

@@ -114,13 +114,13 @@ local function compRule(r)
   
   local function mkEvVars(key,ev)
     local vars = {
-      event = ev.event and setmetatable(ev.event, ER.EventMT) or nil, 
-      _evKey = key, 
-      post = postR, 
-      cancel = cancelR,
-      setTimeout = setTimeoutR,
+      event = {ev.event and setmetatable(ev.event, ER.EventMT) or nil}, 
+      _evKey = {key}, 
+      post = {postR}, 
+      cancel = {cancelR},
+      setTimeout = {setTimeoutR},
     }
-    for k,v in pairs(ev.p or {}) do vars[k] = v end
+    for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
   end
   
@@ -420,7 +420,7 @@ function ruleRunner(f, rule, opts)
   
   local ok, err = pcall(function()
     opts.vars = opts.vars or {}
-    opts.vars._opts = opts
+    opts.vars._opts = {opts}
     resumeRunner(table.pack(ER.csp.eval(f,opts)), rule, onDone)
   end)
   synced = true
@@ -485,6 +485,8 @@ function fibaro.EventRunner(cb)
   vm.defGlobal('tostring', tostring)
   vm.defGlobal('tonumber', tonumber)
   vm.defGlobal('math',     math)
+  vm.defGlobal('pairs',    pairs)
+  vm.defGlobal('ipairs',   ipairs) 
   ER.csp.defGlobal("compRule", compRule) 
   
   er.triggerVars = setmetatable({}, {
