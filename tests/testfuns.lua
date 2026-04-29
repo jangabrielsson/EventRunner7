@@ -21,6 +21,9 @@ local function testRule(str,tr,val,ntest)
   local r = er.eval(str,{verbosity="silent"})
   r.onDone = function(...) 
     local v = {...}
+    if v[1] == ER.ruleFail then 
+      return -- Ignore failed condition, not a test failure
+    end 
     if table.equal(v,val) then
       print("✅ ",str)
     else

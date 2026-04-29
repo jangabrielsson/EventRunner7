@@ -13,7 +13,7 @@ class "Sim_deviceController"(SimQuickApp)
 local QuickApp = Sim_deviceController
 function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_deviceController:"..id end
 
----@class MyBinarySwitch : QuickAppChild
+
 MyBinarySwitch = {}
 class 'MyBinarySwitch'(QuickAppChild)
 

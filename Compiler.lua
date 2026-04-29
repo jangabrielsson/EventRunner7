@@ -121,6 +121,7 @@ local function compAssign(ast)
   end
   local stmts = {'PROGN'}
   for i, v in ipairs(vars) do
+---@diagnostic disable-next-line: assign-type-mismatch
     stmts[#stmts + 1] = compileTarget(v, compile(vals[i] or {'NIL'}))
   end
   return stmts
@@ -211,7 +212,7 @@ end
         body
     }  }
   end
-  
+
 -- ── CALL ──────────────────────────────────────────────────────────────────
 -- {'CALL', f_expr, a1, a2, ...}
 --
@@ -287,8 +288,8 @@ comp.FOR_IN = compForIn
 comp.CALL   = compCall
 
 function comp.RULE(ast)
-  -- {'RULE', trigger, block}
-  local rule = compile({"IF",ast[2],ast[3],{}})
+  -- {'RULE', condition, block}
+  local rule = compile({'IF',ast[2],ast[3],{},{'RETURN',{'STRING',ER.ruleFail}}}) -- if condition matches, run block; else return failure string
   return {"CALL",{"GET",'compRule'}, {"CONST",rule}}
 end
 
@@ -306,6 +307,7 @@ comp.TABLE = function(ast)
       args[#args+1] = compile(f[2])  -- compiled key expression
       args[#args+1] = compile(f[3])  -- compiled value
     elseif f[1] == 'TFIELD_VAL' then
+---@diagnostic disable-next-line: assign-type-mismatch
       args[#args+1] = pos            -- integer position (ca() wraps in CONST)
       args[#args+1] = compile(f[2])  -- compiled value
       pos = pos + 1

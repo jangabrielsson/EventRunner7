@@ -3,6 +3,9 @@ local ER = fibaro.ER
 local vm = ER.csp
 fibaro.EventRunnerVersion = "0.1.0"
 
+local fmt = string.format
+
+ER.ruleFail = 'fibaro.ER.conditionFail' -- special value returned by rules when condition is not met; not an error
 local ruleRunner, resumeRunner, sourceTrigger
 local RULEIDX = 0
 local DAILYID = 1
@@ -112,9 +115,10 @@ local function compRule(r)
   local function mkEvOpts(key,event)
     return {
       event = event and setmetatable(event, ER.EventMT) or nil, 
-      _evKey=key, 
+      _evKey = key, 
       post = postR, 
       cancel = cancelR,
+      setTimeout = setTimeoutR,
     }
   end
   
@@ -325,34 +329,47 @@ end
 -- rule = nil for bare expressions, rule object for triggered rules.
 local yieldHandlers = {
   sleep = function(cf, rule, cb, ms)
-    logRule(rule or cf.ctx.opts, "verbose", dfltPrefix.waitPrefix, string.format("sleeping %dms", ms))
+    local opts = cf.ctx.opts or {}
+    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("sleeping %dms", ms))
     setTimeout(function()
-      logRule(rule or cf.ctx.opts, "verbose", dfltPrefix.waitedPrefix, string.format("woke after %dms", ms))
+      logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("woke after %dms", ms))
       local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ms)), rule, cb)
       if not ok then
-        if rule then logRule(rule, "normal", dfltPrefix.errorPrefix, err)
-        else print(dfltPrefix.errorPrefix, err) end
+        logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
       end
     end, ms)
   end,
   asyncFun = function(cf, rule, cb, fun, ...)
-    local timedOut = false
+    local timedOut,timeref = false,nil
     local opts = cf.ctx.opts or {}
-    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, string.format("calling async function %s", tostring(fun)))
+    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("calling async function %s", tostring(fun)))
     local fcb = setmetatable({cf=cf,rule=rule}, {
       __call = function(self,...) 
-        if timedOut then cb(false) else return cb(...) end
+        if timeref then timeref = clearTimeout(timeref) end
+        if timedOut then return end
+        logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("back from async func %s", tostring(fun)))
+        local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ...)), rule, cb)
+        if not ok then
+          logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
+        end
       end
     }) 
     local res = {pcall(fun, fcb, ...)}
-    local timeout = tonumber(res[2]) or (3*1000)
+    local timeout = tonumber(res[2]) or 3000
     if res[1] then
       if timeout >= 0 then -- Async, wait for callback or timeout
-        setTimeout(function() timedOut = true end, timeout)
+        timeref = setTimeout(function() 
+          timeref = nil
+          timedOut = true
+          logRule(rule or opts, "verbose", dfltPrefix.errorPrefix, fmt("Async function %s timed out after %dms", tostring(fun), timeout))
+          local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, false)), rule, cb)
+          if not ok then
+            logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
+          end
+        end, timeout)
       end -- -1 means sync, func called cb directlyso no timeout needed
     else
-      local err = res[2]
-      logRule(rule, "normal", dfltPrefix.errorPrefix, string.format("Async function error: %s", tostring(err)))
+      logRule(rule, "normal", dfltPrefix.errorPrefix, fmt("Async function error: %s", tostring(res[2])))
       timedOut = true
       return cb() -- resume with no result on error
     end
@@ -378,13 +395,14 @@ function ruleRunner(f, rule, opts)
   local synced   = false
   local syncVals = nil
   opts = opts or {}
+  opts.rule = rule
   
   local function onDone(...)
     if synced then
       -- completed asynchronously (after caller already returned nil)
-      if rule then
-        logRule(rule, "verbose", dfltPrefix.successPrefix, ...)
-        if rule.onDone then rule.onDone(...) end
+      if rule or opts then
+        logRule(rule or opts, "verbose", dfltPrefix.successPrefix, ...)
+        if (rule or opts) and (rule or opts).onDone then (rule or opts).onDone(...) end
       elseif opts.onDone then
         opts.onDone(...)
       else

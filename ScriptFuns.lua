@@ -315,18 +315,22 @@ local function setupFuns()
   
   local async = ER.async
   function async.trueFor(cb,time,expr)
-    local trueFor = cb.env.rule.trueFor or {}
-    cb.env.rule.trueFor = trueFor
+    local opts = cb.cf.ctx.opts
+    local env = cb.cf.ctx.var_env[1]
+    local trueFor = opts.rule.trueFor or {}
+    opts.rule.trueFor = trueFor
     if expr then -- test is true
       if not trueFor.ref then -- new, start timer
-        trueFor.trigger = cb.env.trigger
-        trueFor.ref = cb.env:setTimeout(function() trueFor.ref = nil; cb(true) end, time*1000)
-        return math.huge
+        trueFor.trigger = env.event
+        trueFor.ref = env.setTimeout[1](function() 
+          trueFor.ref = nil; cb(true) 
+        end, time*1000)
+        return 3600*24*30--math.huge
       else -- already true and we have timer waiting
         cb(false) -- do nothing
       end
     elseif trueFor.ref then -- test is false, and we have timer
-      cb.env:clearTimeout(trueFor.ref)
+      env.clearTimeout[1](trueFor.ref)
       trueFor.ref = nil
       cb(false)
     else
@@ -365,7 +369,7 @@ local function setupFuns()
   builtin.S1 = {click = "16", double = "14", tripple = "15", hold = "12", release = "13"}
   builtin.S2 = {click = "26", double = "24", tripple = "25", hold = "22", release = "23"}
 
-    function builtin.nextDST()
+  function builtin.nextDST()
     local d0 = os.date("*t")
     local t0 = os.time({year=d0.year, month=d0.month, day=1, hour=0})
     local h = d0.hour
@@ -377,6 +381,7 @@ local function setupFuns()
     if d0.month > 7 then t0 = t0 + 3600 end
     return t0
   end
+
 end
 
 ER.setupProps = setupProps

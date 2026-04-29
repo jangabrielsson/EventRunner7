@@ -15,7 +15,16 @@
     "__fibaro_get_global_variable", "__fibaro_get_device", "__fibaro_get_devices",
     "__fibaro_get_room", "__fibaro_get_scene", "__fibaro_get_device_property",
     "__fibaro_get_breached_partitions", "__fibaro_get_partition",
-    "__fibaro_add_debug_message", "__assert_type"
+    "__fibaro_add_debug_message", "__assert_type",
+    "SimQuickApp",
+    "Sim_deviceController", "Sim_binarySwitch", "Sim_multilevelSwitch", "Sim_thermostat","Sim_rainSensor","Sim_smokeSensor","Sim_weather",
+    "Sim_remoteController","Sim_windowSensor","Sim_rainDetector",
+    "Sim_heatDetector","Sim_motionSensor","Sim_humiditySensor",
+    "Sim_binarySensor", "Sim_multilevelSensor", "Sim_sceneController",
+    "Sim_windSensor","Sim_waterLeakSensor",
+    "Sim_floodSensor", "Sim_genericDevice", "Sim_alarmPartition",
+    "Sim_lightSensor", "Sim_colorController", "Sim_coDetector", "Sim_player",
+    "Sim_powerMeter", "Sim_fireDetector", "Sim_temperatureSensor", "Sim_doorSensor", "Sim_windowCovering", "Sim_energyMeter"
   ],
   "git.inputValidation": true,
   "git.inputValidationLength": 72,

@@ -13,6 +13,7 @@ local function main(er) ER = er
 
   api.post("/globalVariables",{name = "G_foo",value = "66"})
   er.defglobals.light1 = loadDevice("binarySwitch")
+  er.defglobals.light2 = loadDevice("binarySwitch")
   er.defglobals.motion1 = loadDevice("motionSensor")
   er.defglobals.door1 = loadDevice("doorSensor")
   er.defglobals.window1 = loadDevice("windowSensor")
@@ -33,8 +34,8 @@ local function main(er) ER = er
   test("local a,i=0,0; repeat  a=a+i; i=i+1 until i >= 5; return a",{10})
   test("local a=0; for i=1,5 do a=a+i end; return a",{15})
   test("local a=0; for i=1,5,2 do a=a+i end; return a",{9})
-  --test("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a",{6})
-  --test("local a=0; for x,v in pairs({a=1,b=2,c=3}) do a=a+v end; return a",{6})
+  -- test("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a",{6})
+  -- test("local a=0; for x,v in pairs({a=1,b=2,c=3}) do a=a+v end; return a",{6})
 
   test("return HM(now)",{os.date("%H:%M")})
   test("return HMS(now)",{os.date("%H:%M:%S")})
@@ -63,7 +64,7 @@ local function main(er) ER = er
 
   test("local a={6}; return a",{{6}})
   test("local a={b=6}; return a.b",{6})
-  --test("local a={b=6}; a.b=7; return a",{{7}})
+  -- --test("local a={b=6}; a.b=7; return a",{{7}})
 
   test("return now..now+1",{true})
   test("return sunrise..sunset",{true})
@@ -83,10 +84,17 @@ local function main(er) ER = er
 
   test("return osdate('%c',nextDST())",{"Sun Oct 25 03:00:00 2026"})
 
-  -- Defined async function gets callback, cb, as first argument.
-  -- Default timeout is 3000ms, but can be overridden by returning a positive number from the async function. Return -1 to return sync.
-  function er.async.testa(cb,x,y) setTimeout(function() cb(x+y) end,2000) end
-  test("return testa(5,7)",{12})
+  -- -- Defined async function gets callback, cb, as first argument.
+  -- -- Default timeout is 3000ms, but can be overridden by returning a positive number from the async function. Return -1 to return sync.
+  function er.async.testa(cb,x,y) 
+    local cf = cb.cf
+    setTimeout(function() cb(x+y) end,1000) 
+  end
+  test("@20:00 => local a = testa(5,7); return a+1",nil,{13})
+
+  er.triggerVars.a1 = 0
+  test("a1 == 1 => return 42","a1=1",{42})
+  test("a1 == 2 => return 43","wait(0); a1=2",{43}) -- should trigger both rules. Need a short wait before setting a1 to ensure first rule's callback is run and will read a1 as 1, not 2
 
   test("return now",{ER.now()})
   test("local a = ostime(); wait(4000); return ostime()-a",{4})
@@ -95,6 +103,8 @@ local function main(er) ER = er
   test("motion1:breached => return 42","motion1:value=true",{42})
   test("#foo => return 66,77","post(#foo)",{66,77})
   test("@{15:00,16:00} => return 88",nil,{88},2)
+  test("trueFor(00:05,light2:isOn) => log('OK'); return 55","light2:on",{55})
+  test("@(now+1) => wait(4000); log('Timer triggered'); return 44",nil,{44})
 end
 
 
