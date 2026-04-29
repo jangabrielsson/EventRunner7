@@ -112,14 +112,16 @@ local function compRule(r)
     return sourceTrigger:cancel(ref)
   end
   
-  local function mkEvOpts(key,event)
-    return {
-      event = event and setmetatable(event, ER.EventMT) or nil, 
+  local function mkEvVars(key,ev)
+    local vars = {
+      event = ev.event and setmetatable(ev.event, ER.EventMT) or nil, 
       _evKey = key, 
       post = postR, 
       cancel = cancelR,
       setTimeout = setTimeoutR,
     }
+    for k,v in pairs(ev.p or {}) do vars[k] = v end
+    return vars
   end
   
   -- All triggers are subscribed to
@@ -128,7 +130,7 @@ local function compRule(r)
     sourceTrigger:subscribe(event, function(ev)
       logRule(rule, "verbose", dfltPrefix.startPrefix)
       ruleRunner(rule.fun, rule, {
-        vars = mkEvOpts(key,event)})
+        vars = mkEvVars(key,ev)})
       end
     )
   end
@@ -141,7 +143,7 @@ local function compRule(r)
     sourceTrigger:subscribe(intervalEvent, function(ev)
       logRule(rule, "verbose", dfltPrefix.startPrefix, "(interval)")
       ruleRunner(rule.fun, rule, {
-        vars = mkEvOpts('INTERVAL',intervalEvent)})
+        vars = mkEvVars('INTERVAL',{event=intervalEvent})})
       end
     )
     skipDailys = true
@@ -176,7 +178,7 @@ local function compRule(r)
       sourceTrigger:subscribe(subev, function(ev)
         logRule(rule, "verbose", dfltPrefix.startPrefix,tostring(ev))
         ruleRunner(rule.fun, rule, {
-          vars = mkEvOpts('DAILY',ev.event)})
+          vars = mkEvVars('DAILY',ev)})
         end
       )
       rule.dailys[t] = subev
@@ -199,7 +201,7 @@ local function compRule(r)
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run()
     logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
-    ruleRunner(self.fun, self, {vars=mkEvOpts("MANUAL")})
+    ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event={}})})
   end
   
   function rule:dumpTriggers(pref)

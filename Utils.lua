@@ -330,15 +330,17 @@ local function createEventEngine()
   local handlers = {}
   local function isEvent(e) return type(e) == 'table' and type(e.type)=='string' end
   
-  local function coerce(x,y) local x1 = tonumber(x) if x1 then return x1,tonumber(y) else return x,y end end
+  local function sameType(a,b) if type(a) == type(b) then return a,b end end
+  local function coerce(x,y) local x1 = tonumber(x) if x1 then return x1,tonumber(y) else return sameType(x,y) end end
   local constraints = {}
-  constraints['=='] = function(val) return function(x) x,val=coerce(x,val) return x == val end end
+  constraints['=='] = function(val) return function(x) 
+    local a,b=coerce(x,val) return b~=nil and a == b end end
   constraints['<>'] = function(val) return function(x) return tostring(x):match(val) end end
-  constraints['>='] = function(val) return function(x) x,val=coerce(x,val) return x >= val end end
-  constraints['<='] = function(val) return function(x) x,val=coerce(x,val) return x <= val end end
-  constraints['>'] = function(val) return function(x) x,val=coerce(x,val) return x > val end end
-  constraints['<'] = function(val) return function(x) x,val=coerce(x,val) return x < val end end
-  constraints['~='] = function(val) return function(x) x,val=coerce(x,val) return x ~= val end end
+  constraints['>='] = function(val) return function(x) local a,b=coerce(x,val) return b~=nil and a >= b end end
+  constraints['<='] = function(val) return function(x) local a,b=coerce(x,val) return b~=nil and a <= b end end
+  constraints['>'] = function(val) return function(x) local a,b=coerce(x,val) return b~=nil and a > b end end
+  constraints['<'] = function(val) return function(x) local a,b=coerce(x,val) return b~=nil and a < b end end
+  constraints['~='] = function(val) return function(x) local a,b=coerce(x,val) return b~=nil and a ~= b end end
   constraints[''] = function(_) return function(x) return x ~= nil end end
   
   local function compilePattern2(pattern)
@@ -376,7 +378,10 @@ local function createEventEngine()
           local var, constr = pattern._var_, pattern._constr
           if var == '_' then return constr(expr)
           elseif matches[var] then return constr(expr) and unify(matches[var],expr) -- Hmm, equal?
-          else matches[var] = expr return constr(expr) end
+          else 
+            local res = constr(expr)
+            matches[var] = expr return res
+          end
         end
         if type(expr) ~= "table" then return false end
         for k,v in pairs(pattern) do if not unify(v,expr[k]) then return false end end
