@@ -124,6 +124,14 @@ local function main(er) ER = er
   test([[#bar1{a=5,b='$x==abc'} => return x]],"post(#bar1{a=5,b='abc'})",{'abc'})
   test([[#bar1{a=5,b='$x<>.*tfr$'} => return x]],"post(#bar1{a=5,b='AAtfr'})",{'AAtfr'}) -- lua match
 
+  -- Multiple values
+  function er.variables.mret(start,stop) 
+    local r={}; for i=start,stop do r[#r+1]=i end; return table.unpack(r)
+  end
+  test("return {mret(3,5)}",{{3,4,5}})
+  test("return {2,mret(3,5)}",{{2,3,4,5}})
+  test("local a,b,c = mret(3,5); return a+b+c",{12})
+
   -- @Daily triggers
   test("@{15:00,16:00} => return 88",nil,{88},2)
   test("@(now+1) => wait(4000); return 44",nil,{44})
@@ -135,7 +143,6 @@ end
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-  local t = os.time()
   fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
     fibaro.EventRunner(main)
   end)

@@ -515,6 +515,7 @@ function fibaro.EventRunner(cb)
   ER.sourceTrigger = sourceTrigger
   er.globals = ER.globals
   er.defglobals = ER.defglobals
+  er.variables = er.defglobals
   
   midnightLoop()
   

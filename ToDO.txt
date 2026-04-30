@@ -1,4 +1,4 @@
 - @daily catchup
 - @daily expr recalc trigger
-- pair/ipair for loop
+- OK, pair/ipair for loop
 - OK, table assigment

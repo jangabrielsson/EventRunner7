@@ -144,7 +144,7 @@ local function compAssign(ast)
   local body = {'PROGN'}
   for i,v in ipairs(vars) do
 ---@diagnostic disable-next-line: assign-type-mismatch
-    body[#body + 1] = compileTarget({'NAME',v}, {'INDEX', {'GET', '_tmp'}, i})
+    body[#body + 1] = compileTarget(v, {'INDEX', {'GET', '_tmp'}, i})
   end
   return {'LET','_tmp',{'MAKETABLE',table.unpack(tableArgs)}, body}
 end
@@ -251,7 +251,7 @@ end
     return {'LETS', {f,t,k,v}, {fun_exp},
       {'LOOP',
         {'PROGN',
-          compile({'ASSIGN',{k,v},{{'CALL',{'NAME',f},{'NAME',t},{'NAME',k}}}}),
+          compile({'ASSIGN',{{'NAME',k},{'NAME',v}},{{'CALL',{'NAME',f},{'NAME',t},{'NAME',k}}}}),
           {'IF',{'NOT',{'GET',k}},{'BREAK'}},
           body
         }

@@ -647,15 +647,18 @@ local function MAKETABLE(...)
   local nf = #field_exprs
   return function(cont)
     return evalArgs(field_exprs, 1, {}, 0, TR(function(...)
-      local args = table.pack(...)
+      local args,nf0 = table.pack(...),nf
       local n = select('#', ...)
+      if n > nf0 then
+        nf0 = nf0-2
+      end
       local tbl = {}
-      for i = 1, nf, 2 do
+      for i = 1, nf0, 2 do
         tbl[select(i, ...)] = select(i+1, ...)
       end
-      if n > nf then
-        for i = nf+1, n do
-          table.insert(tbl, select(i, ...))
+      if n > nf0 then
+        for i = nf0+2, n do
+          tbl[#tbl+1] = select(i, ...)
         end
       end
       return cont(tbl)
@@ -687,6 +690,14 @@ local expr = {
   CFUN  = CFUN,
   NOW  = function() return CONST(ER.now()) end,
 }
+
+local function checkProgn(t)
+  if #t == 2 then print("PROGN SINGLE ARG") end
+  for i=2,#t do
+    local op = t[i][1]
+    if op == 'PROGN' then print("DOUBLE PROGN") end
+  end
+end
 
 -- ── SIMPLE COMPILER ──────────────────────────────────────────────────────────────
 -- Turns {"OPCODE", args...} tables into expression trees.
@@ -742,6 +753,10 @@ local function compile(t)
     -- t[2] is a raw Lua function; t[3..n] are compiled as expressions
     local cargs = cal(t, 3)
     return CFUN(t[2], table.unpack(cargs))
+  elseif op == "PROGN"      then
+    checkProgn(t)
+    local cargs = cal(t, 2)
+    return PROGN(table.unpack(cargs))
   else
     local cargs = cal(t, 2)
     return expr[op](table.unpack(cargs))

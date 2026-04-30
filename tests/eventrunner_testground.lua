@@ -30,8 +30,12 @@ local function main(er) ER = er
   --       if not k then break end
   --       print(k,v)
   --     end]])
-   rule("for i,j in pairs({a=1,b=2,c=3}) do print(i,j) end; print(99)")
-   rule("for i,j in ipairs({'a','b','c'}) do print(i,j) end; print(99)")
+  --  rule("local a,b,c,d; a,b=9,10; c,d=11,12")
+  function er.variables.mret(start,stop) 
+    local r={}; for i=start,stop do r[#r+1]=i end; return table.unpack(r)
+  end
+  rule("for x,v in ipairs({1,2,3}) do log(x) end")
+  --rule("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a")
 end
 
 

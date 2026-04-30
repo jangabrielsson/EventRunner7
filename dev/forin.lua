@@ -28,6 +28,3 @@ while true do
   if not k then break end
   print(k,v)
 end
- local v = {1,2,3}
- a = v[1]
- b = v[2]
