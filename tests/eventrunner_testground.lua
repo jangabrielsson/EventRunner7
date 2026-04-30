@@ -38,7 +38,8 @@ local function main(er) ER = er
   end
   --rule("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a")
 
-  test("@$TimeGV => log(HM(now)); return HM(now)","$TimeGV=17:00",{"17:00"}) -- TimeGV start as 13:00. The setting of TimeGV to 17:00 will reschedule the daily trigger.
+  rule("@{catch,10:00,15:00} => log('ping')",{verbosity='verbose'})
+
 end
 
 

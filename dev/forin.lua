@@ -28,3 +28,9 @@ while true do
   if not k then break end
   print(k,v)
 end
+
+local a = { 3,4,5,6 }
+for i,v in ipairs(a) do
+  if v == 5 then table.remove(a,i) 
+  else print(i,v) end
+end

@@ -1,4 +1,4 @@
-- @daily catchup
+- OK, @daily catchup
 - OK, @daily expr recalc trigger
 - OK, pair/ipair for loop
 - OK, table assignment
