@@ -11,7 +11,7 @@ local function main(er) ER = er
   local rule, test = er.eval, er.test
   local function loadDevice(name) return er.loadDevice(name) end
 
-  api.post("/globalVariables",{name = "G_foo",value = "66"})
+  er.createSimGlobal("G_foo","66")
   er.defglobals.light1 = loadDevice("binarySwitch")
   er.defglobals.light2 = loadDevice("binarySwitch")
   er.defglobals.light3 = loadDevice("binarySwitch")
@@ -65,7 +65,15 @@ local function main(er) ER = er
   test("return ostime()",{os.time()})
 
   -- Global variables
-  test("return $G_foo",{"66"})
+  test("return $G_foo",{66})
+  rule("$G_foo = 42")
+  test("return $G_foo",{42})
+  rule("$G_foo = {b=33}")
+  test("return $G_foo.b",{33})
+  rule("$G_foo = true")
+  test("return $G_foo",{true})
+  -- Need a short wait before setting $G_foo to ensure the 3 first GV events generated when triggering the rule, $G_foo.b will not be 77. The rule will ignore those triggers instead of counting them as test failures, since the rule condition is not met. 
+  test("$G_foo.b == 77 => return 99","wait(1); $G_foo={b=77}",{99})
 
 
   -- Tables

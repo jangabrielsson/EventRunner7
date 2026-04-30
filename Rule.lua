@@ -292,6 +292,11 @@ function HOPS.GETVAR(ast,trs)
   end
 end
 
+function HOPS.INDEX(ast,trs)
+  scanHead(ast[2],trs) -- scan index operands for triggers (e.g. $G_foo[1])
+  scanHead(ast[3],trs) -- scan index operands for triggers (e.g. $G_foo['bar'])
+end
+
 function HOPS.GET(ast,trs)
   local name = ast[2]
   if ER._triggerVars[name] then
@@ -521,6 +526,7 @@ function fibaro.EventRunner(cb)
   
   if fibaro.plua then
     er.loadDevice = ER.loadDevice
+    er.createSimGlobal = ER.defineSimGlobalVariable
   end
 
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end

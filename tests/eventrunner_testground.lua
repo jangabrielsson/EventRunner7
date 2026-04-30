@@ -11,7 +11,7 @@ local function main(er) ER = er
   local rule, test = er.eval, er.test
   local function loadDevice(name) return er.loadDevice(name) end
 
-  --api.post("/globalVariables",{name = "G_foo",value = "66"})
+  er.createSimGlobal("G_foo","66")
   er.defglobals.light1 = loadDevice("binarySwitch")
   er.defglobals.light2 = loadDevice("binarySwitch")
   er.defglobals.motion1 = loadDevice("motionSensor")
@@ -34,15 +34,22 @@ local function main(er) ER = er
   function er.variables.mret(start,stop) 
     local r={}; for i=start,stop do r[#r+1]=i end; return table.unpack(r)
   end
-  rule("for x,v in ipairs({1,2,3}) do log(x) end")
   --rule("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a")
+
+  test("return $G_foo",{66})
+  rule("$G_foo = 42")
+  test("return $G_foo",{42})
+  rule("$G_foo = {b=33}")
+  test("return $G_foo.b",{33})
+  rule("$G_foo = true")
+  test("return $G_foo",{true})
+  test("$G_foo.b == 77 => return 99","wait(100); $G_foo={b=77}",{99})
 end
 
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-  local t = os.time()
-  fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
+  --fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
     fibaro.EventRunner(main)
-  end)
+  --end)
 end

@@ -904,7 +904,7 @@ end
 
 function ER.getVar(typ, name)
   if typ == 'GV' then
-    return fibaro.getGlobalVariable(name)
+    return marshallFrom(fibaro.getGlobalVariable(name))
   elseif typ == 'QV' then
     return quickApp:getVariable(name)
   elseif typ == 'PV' then
@@ -916,6 +916,7 @@ end
 
 function ER.setVar(typ, name, value)
   if typ == 'GV' then
+    value = type(value) == 'string' and value or json.encodeFast(value)
     return fibaro.setGlobalVariable(name, value)
   elseif typ == 'QV' then
     return quickApp:setVariable(name, value)
@@ -948,6 +949,7 @@ local loadedDevices = {}
 local idCounter = 10000
 
 local oldCall,oldGet = fibaro.call,fibaro.get
+local oldGetGV, oldSetGV = fibaro.getGlobalVariable, fibaro.setGlobalVariable
 fibaro.get = function(id, prop)
   if loadedDevices[id] then
     return loadedDevices[id].props[prop]
@@ -966,6 +968,27 @@ fibaro.call = function(id, action, ...)
   else
     return oldCall(id, action, ...)
   end
+end
+
+local simGVs = {}
+function ER.defineSimGlobalVariable(name, initialValue)
+  simGVs[name] = {value = initialValue, modified = os.time()}
+end
+function fibaro.getGlobalVariable(name)
+  if simGVs[name] ~= nil then return simGVs[name].value, simGVs[name].modified end
+  return oldGetGV(name)
+end
+function fibaro.setGlobalVariable(name, value)
+  assert(type(name) == 'string', "Global variable name must be a string")
+  if simGVs[name] ~= nil then 
+    if simGVs[name].value ~= value then
+      simGVs[name].value = value
+      simGVs[name].modified = os.time()
+      ER.sourceTrigger:post({type='global-variable', name=name, value=value})
+    end
+    return value
+  end
+  return oldSetGV(name, value)
 end
 
 local function loadDevice(name,id)
