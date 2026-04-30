@@ -119,6 +119,8 @@ local function compRule(r)
       post = {postR}, 
       cancel = {cancelR},
       setTimeout = {setTimeoutR},
+      enable = {function() rule:enable() end},
+      disable = {function() rule:disable() end},
     }
     for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
@@ -127,7 +129,15 @@ local function compRule(r)
   -- All triggers are subscribed to
   for key, event in pairs(trs.triggers) do
     setmetatable(event, ER.EventMT)
+    local recalcDaily = event._recalc
+    event._recalc = nil
     sourceTrigger:subscribe(event, function(ev)
+      if rule._disabled then return end
+      if recalcDaily then 
+        logRule(rule, "silent", dfltPrefix.dailyListPrefix, "Recalculating Daily timers")
+        for _,r in pairs(rules) do r:setupDaily() end
+        return
+      end
       logRule(rule, "verbose", dfltPrefix.startPrefix)
       ruleRunner(rule.fun, rule, {
         vars = mkEvVars(key,ev)})
@@ -158,7 +168,7 @@ local function compRule(r)
       if value < 0 then value=-value delay = (os.time() // value + 1)*value - os.time() end
       local nextTime = os.time() + delay
       local function loop()
-        postR(intervalEvent)
+        if not rule._disabled then postR(intervalEvent) end
         nextTime = nextTime + value
         intervalTimer = setTimeoutR(loop, (nextTime-os.time())*1000)
       end
@@ -176,6 +186,7 @@ local function compRule(r)
       local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
       DAILYID = DAILYID + 1
       sourceTrigger:subscribe(subev, function(ev)
+        if rule._disabled then return end
         logRule(rule, "verbose", dfltPrefix.startPrefix,tostring(ev))
         ruleRunner(rule.fun, rule, {
           vars = mkEvVars('DAILY',ev)})
@@ -185,18 +196,21 @@ local function compRule(r)
     end
   end
   
-  function rule:setupDaily()
+  local dtimers = {}
+  function rule:setupDaily(start)
     if next(rule.dailys) == nil then return end
+    for _, t in pairs(dtimers) do cancelR(t) end
+    dtimers = {}
     local now,midnight= os.time(), ER.midnight()
     local ts = {}
     for tr,subev in pairs(rule.dailys) do ts[tr()] = subev end
     for t,subev in pairs(ts) do
       if t < ER.D2024 then t = t + midnight end
       logRule(rule, "verbose", dfltPrefix.dailyListPrefix,"Daily trigger scheduled for "..ER.timeStr(t))
-      postR(subev,t-now)
+      dtimers[#dtimers+1] = postR(subev,t-now)
     end
   end
-  rule:setupDaily()
+  rule:setupDaily(true)
   
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run(event)
@@ -204,6 +218,9 @@ local function compRule(r)
     ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event=event})})
   end
   
+  function rule:disable() rule._disabled = true end
+  function rule:enable() rule._disabled = nil end
+
   function rule:dumpTriggers(pref)
     for _, tr in pairs(trs.triggers) do
       local a = getmetatable(tr)
@@ -240,7 +257,7 @@ local function stdScan(ast,trs)
 end
 
 -- Std Head Ops: just scan their children
-local stdHOPS = {"RETURN", "NOT", "AND", "OR", "CALL","ADD", "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE"}
+local stdHOPS = {"RETURN", "NOT", "AND", "OR", "CALL","ADD", "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW"}
 local HOPS = {}
 for _,op in ipairs(stdHOPS) do HOPS[op] = stdScan end
 
@@ -258,19 +275,25 @@ function HOPS.BETW(ast,trs)
   assert(type(a) == "number" and type(b) == "number", "BETW operands must be numbers")
   table.insert(trs.between, afun)
   table.insert(trs.between, bfun)
+  trs._recalc = true
+  scanHead(ast[2], trs)
+  scanHead(ast[3], trs)
+  trs._recalc = nil
 end
 
 function HOPS.DAILY(ast,trs)
   local times = ast[2]
+  trs._recalc = true
   if type(times) == 'table' and times[1] == 'MAKETABLE' then 
     times = {}
-    for i=3,#ast[2],2 do times[#times+1] = ast[2][i] end
-  else times = {times} end
-  
+    for i=3,#ast[2],2 do times[#times+1] = ast[2][i] scanHead(ast[2][i], trs) end
+  else scanHead(times, trs) times = {times} end
+  trs._recalc = nil
   for _,e in ipairs(times) do
     local v,afun = exprFun(e)()
     assert(type(v) == "number", "DAILY operand must be a number")
     table.insert(trs.dailys, afun)
+    scanHead(v, trs)
   end
 end
 
@@ -284,11 +307,13 @@ end
 function HOPS.GETVAR(ast,trs)
   local name = ast[3]
   if ast[2] == "GV" then
-    trs.triggers["GLOB:"..name] = {type='global-variable', name = name}
-    trs.haveVar = true
+    trs.triggers["GLOB:"..name] = {
+      type='global-variable', name = name, _recalc = trs._recalc
+    }
   elseif ast[2] == "QV" then
-    trs.triggers["QUICK:"..name] = {type='quickvar', name = name}
-    trs.haveVar = true
+    trs.triggers["QUICK:"..name] = {
+      type='quickvar', name = name, _recalc = trs._recalc
+    }
   end
 end
 
@@ -432,7 +457,7 @@ function ruleRunner(f, rule, opts)
   
   if not ok then
     if rule then
-      logRule(rule, "normal", dfltPrefix.errorPrefix, err)
+      logRule(rule, "silent", dfltPrefix.errorPrefix, err)
       return nil
     else
       error(err, 0)  -- re-throw: outer eval's pcall catches it

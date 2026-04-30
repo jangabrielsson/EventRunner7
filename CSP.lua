@@ -688,7 +688,7 @@ local expr = {
   GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
   CFUN  = CFUN,
-  NOW  = function() return CONST(ER.now()) end,
+  NOW  = function() return CFUN(function(cb) return cb(ER.now()) end) end,
 }
 
 local function checkProgn(t)

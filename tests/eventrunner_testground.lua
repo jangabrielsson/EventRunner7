@@ -11,7 +11,9 @@ local function main(er) ER = er
   local rule, test = er.eval, er.test
   local function loadDevice(name) return er.loadDevice(name) end
 
-  er.createSimGlobal("G_foo","66")
+  er.createSimGlobal("G_foo","15:00")
+  er.createSimGlobal("G_bar","66")
+  er.createSimGlobal("TimeGV","13:00")
   er.defglobals.light1 = loadDevice("binarySwitch")
   er.defglobals.light2 = loadDevice("binarySwitch")
   er.defglobals.motion1 = loadDevice("motionSensor")
@@ -36,20 +38,13 @@ local function main(er) ER = er
   end
   --rule("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a")
 
-  test("return $G_foo",{66})
-  rule("$G_foo = 42")
-  test("return $G_foo",{42})
-  rule("$G_foo = {b=33}")
-  test("return $G_foo.b",{33})
-  rule("$G_foo = true")
-  test("return $G_foo",{true})
-  test("$G_foo.b == 77 => return 99","wait(100); $G_foo={b=77}",{99})
+  test("@$TimeGV => log(HM(now)); return HM(now)","$TimeGV=17:00",{"17:00"}) -- TimeGV start as 13:00. The setting of TimeGV to 17:00 will reschedule the daily trigger.
 end
 
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-  --fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
+  fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
     fibaro.EventRunner(main)
-  --end)
+  end)
 end

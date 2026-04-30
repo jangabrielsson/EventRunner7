@@ -12,6 +12,8 @@ local function main(er) ER = er
   local function loadDevice(name) return er.loadDevice(name) end
 
   er.createSimGlobal("G_foo","66")
+  er.createSimGlobal("G_bar","66")
+  er.createSimGlobal("TimeGV","13:00")
   er.defglobals.light1 = loadDevice("binarySwitch")
   er.defglobals.light2 = loadDevice("binarySwitch")
   er.defglobals.light3 = loadDevice("binarySwitch")
@@ -25,6 +27,10 @@ local function main(er) ER = er
   test("return 5+5",{10})
   test("return 5+5*2",{15})
   test("return 5+5*-2",{-5})
+  test("return -2+5*5",{-2+5*5})
+  test("return 1+(5+5)*2",{1+(5+5)*2})
+  test("return 10/2",{5})
+  test("return $G_foo+1",{67})
 
   -- Control structures
   test("if true then return 5 end",{5})
@@ -74,6 +80,7 @@ local function main(er) ER = er
   test("return $G_foo",{true})
   -- Need a short wait before setting $G_foo to ensure the 3 first GV events generated when triggering the rule, $G_foo.b will not be 77. The rule will ignore those triggers instead of counting them as test failures, since the rule condition is not met. 
   test("$G_foo.b == 77 => return 99","wait(1); $G_foo={b=77}",{99})
+  test("$G_bar[1].b == 77 => return 99","wait(1); $G_bar={{b=77}}",{99})
 
 
   -- Tables
@@ -142,11 +149,19 @@ local function main(er) ER = er
 
   -- @Daily triggers
   test("@{15:00,16:00} => return 88",nil,{88},2)
-  test("@(now+1) => wait(4000); return 44",nil,{44})
+  test("@(now+1) & now > 12:00 => return 44",nil,{44}) -- Donät want re-schedule at midnight
+  test("@$TimeGV => return HM(now)","$TimeGV=17:00",{"17:00"}) -- TimeGV start as 13:00. The setting of TimeGV to 17:00 will reschedule the daily trigger.
+
+  er.variables.icount = 0
+  rule([[@@00:05 => 
+     icount = icount+1; 
+     if icount > 5 then disable() end;
+     return 77
+    ]],{77},6) -- Will succeed 6 times, then disable itself, so the 7th trigger will not cause a test failure since the rule is disabled
 
   -- trueFor
   test("trueFor(00:05,light2:isOn) => return 55","light2:on",{55})
-  test("trueFor(00:05,light3:isOn) => log('again %s',again(5)); return 88","light3:on",{88},5)
+  test("trueFor(00:05,light3:isOn) => log('again %s',again(5)); return 88","light3:on",{88},5) -- Will re-trigger 5 times.
 end
 
 function QuickApp:onInit()

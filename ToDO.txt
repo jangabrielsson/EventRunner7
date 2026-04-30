@@ -1,4 +1,5 @@
 - @daily catchup
-- @daily expr recalc trigger
+- OK, @daily expr recalc trigger
 - OK, pair/ipair for loop
-- OK, table assigment
+- OK, table assignment
+- OK, Disable/enable rule
