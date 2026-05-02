@@ -201,7 +201,7 @@ end
 
 local function setProp(obj, key, value)
   if type(obj) == "table" then
-    for _,obj in ipairs(key) do
+    for _,obj in ipairs(obj) do
       setProp(obj, key, value)
     end
     return true

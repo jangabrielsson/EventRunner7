@@ -35,14 +35,13 @@ local function main(er) ER = er
   }
   -- populate variables with the HomeTable so we can access devices as kitchen.lamp1 etc in rules, and also kitchenLamps later on.
   for k,v in pairs(HT) do variables[k] = v end
-  variables.kitchenLamps = {}
 
 
   rule("kitchenLamps = {kitchen.lamp1,kitchen.lamp2}")
   --fibaro.debugFlags.sourceTrigger = true
 
-  rule("once(kitchenLamps:isOn) => log('On')")
-  rule("once(kitchenLamps:isOff) => log('Off')")
+  rule("once({kitchen.lamp1,kitchen.lamp2}:isOn) => log('On')")
+  rule("once({kitchen.lamp1,kitchen.lamp2}:isOff) => log('Off')")
   rule("wait(0); kitchen.lamp1:on")
   rule("wait(10); kitchen.lamp1:off")
   rule("wait(20); kitchenLamps:on")

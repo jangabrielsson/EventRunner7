@@ -525,12 +525,12 @@ end
 
 function fibaro.EventRunner(cb)
   local er = {eval = eval, now = ER.now}
-  vm.defGlobal('print',    print)
-  vm.defGlobal('tostring', tostring)
-  vm.defGlobal('tonumber', tonumber)
-  vm.defGlobal('math',     math)
-  vm.defGlobal('pairs',    pairs)
-  vm.defGlobal('ipairs',   ipairs) 
+  -- vm.defGlobal('print',    print)
+  -- vm.defGlobal('tostring', tostring)
+  -- vm.defGlobal('tonumber', tonumber)
+  -- vm.defGlobal('math',     math)
+  -- vm.defGlobal('pairs',    pairs)
+  -- vm.defGlobal('ipairs',   ipairs) 
   vm.defGlobal("compRule", compRule)
   vm.defGlobal('catch', catchValue)
   

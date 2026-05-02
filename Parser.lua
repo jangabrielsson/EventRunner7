@@ -125,6 +125,8 @@ local function makeParser(src)
       local e = parseExp()
       expect('rpar')
       return {'PAREN', e}
+    elseif t and t.type == 'lbra' then
+      return parseTableConstructor()
     else
       parseError("Expected identifier or '('")
     end
@@ -195,8 +197,6 @@ local function makeParser(src)
       next(); return {'STRING', t.value}
     elseif ty == 'function' then
       next(); return parseFuncbody()
-    elseif ty == 'lbra' then
-      return parseTableConstructor()
     elseif ty == 'event' then
       -- #EventName  or  #EventName{field,...}
       next()
@@ -427,15 +427,19 @@ local function makeParser(src)
       -- varlist '=' explist  |  functioncall  |  setprop
       local base, isCall = parsePrefixexpFull()
 
+      -- Unwrap a single PAREN layer for getprop/setprop statement detection
+      -- so ({table}:prop) and ({table}:prop = expr) work like the unparenthesised form
+      local inner = (base[1] == 'PAREN') and base[2] or base
+
       -- setprop: GETPROP followed by '='
-      if base[1] == 'GETPROP' and peek(1) and peek(1).type == 'assign' then
+      if inner[1] == 'GETPROP' and peek(1) and peek(1).type == 'assign' then
         next()  -- consume '='
-        return {'SETPROP', base[2], base[3], parseExp()}
+        return {'SETPROP', inner[2], inner[3], parseExp()}
       end
 
       -- getprop as statement: expr:tag  (no '=' follows; acts as a function call)
-      if base[1] == 'GETPROP' then
-        return base
+      if inner[1] == 'GETPROP' then
+        return inner
       end
 
       if isCall then

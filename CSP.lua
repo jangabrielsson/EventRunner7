@@ -63,9 +63,10 @@ do
     if box ~= nil then return true, box[1] end
     return false
   end
-  function _ctx:setGlobal(name, v)
+  function _ctx:setGlobal(name, v, force)
     local box = _global_env[name]
     if box ~= nil then box[1] = v; return true end
+    if force then _global_env[name] = {v}; return true end
     return false
   end
   
@@ -84,13 +85,16 @@ do
   function _ctx:getVar(name)
     local box = _var_env[name]          -- search local chain first
     if box ~= nil then return true, box[1] end
-    return self:getGlobal(name)         -- fall through to globals
+    local found, box2 = self:getGlobal(name)         -- fall through to globals
+    if found then return true, box2 end
+    if _G[name] ~= nil then return true, _G[name] end  -- fall back to raw global (for builtins)
+    return false
   end
   
   function _ctx:setVar(name, newval)
     local box = _var_env[name]          -- search local chain first
     if box ~= nil then box[1] = newval; return true end
-    return self:setGlobal(name, newval) -- fall through to globals
+    return self:setGlobal(name, newval, true) -- fall through to globals
   end
   
   -- snapshot / restore for parallel eval (called by trampoline / eval / resume)
