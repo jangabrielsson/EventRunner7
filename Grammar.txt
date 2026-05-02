@@ -85,9 +85,11 @@ functioncall ::= primaryprefix {postfix} args
 
 -- getprop: prefixexp ending with ':' Name (no args)
 getprop ::= primaryprefix {postfix} ':' Name
+          | '{' [fieldlist] '}' ':' Name
 
 -- setprop: prefixexp ending with ':' Name '=' exp
 setprop ::= primaryprefix {postfix} ':' Name '=' exp
+          | '{' [fieldlist] '}' ':' Name '=' exp
 
 args ::= '(' [explist] ')' | tableconstructor | String
 

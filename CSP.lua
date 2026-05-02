@@ -28,6 +28,7 @@ do
 
   function _ctx:getTrace()   return _trace end
   function _ctx:setTrace(on) _trace = on end
+  function _ctx:getOpts()    return _opts end
 
   function _ctx:setExitCont(c) _exit_cont = c end
   function _ctx:getExitCont()  return _exit_cont end
@@ -133,6 +134,16 @@ do
 end
 
 -- ─────────────────────────────────────────────────────────────────────────
+
+-- rterror: routes a runtime error through the active error handler so that
+-- TRY blocks can intercept it.  Falls back to plain Lua error() when no
+-- handler is installed.  Primitives use this instead of error() so that all
+-- runtime failures flow through the same enrichment path.
+local function rterror(msg)
+  local h = _ctx:getErrorHandler()
+  if h then return h(msg) end
+  error(msg, 2)
+end
 
 local function TR(trf)
   return function(...)
@@ -519,7 +530,7 @@ local function GET(name)
   return function(cont)
     local found, v = _ctx:getVar(name)
     if found then return cont(v) end
-    error("Undefined variable: " .. tostring(name))
+    return rterror("Undefined variable: '" .. tostring(name) .. "'")
   end
 end
 
@@ -533,7 +544,7 @@ local function SET(name, val_expr)
         trace("SET trigger var", name, "=", v)
       end
       if found then return cont(v) end
-      error("Undefined variable: " .. tostring(name))
+      return rterror("Undefined variable: '" .. tostring(name) .. "'")
     end))
   end
 end
@@ -623,6 +634,20 @@ local function eval(expr, opts)
   local outer = _ctx:snapshot()
   local top_cont = function(...) return nil, ... end
   _ctx:restore({ break_stack = {}, error_handler = nil, exit_cont = TR(top_cont), var_env = {}, trace = opts and opts.trace or false, opts = opts })
+  -- Install a bottom-level error handler that enriches messages with rule
+  -- identity and source text before re-raising as a plain Lua error.
+  -- This is the default handler; TRY blocks push on top and intercept first.
+  -- rterror() and THROW() route through this, giving all runtime errors
+  -- consistent context in logs.
+  _ctx:pushErrorHandler(TR(function(msg)
+    local enriched = tostring(msg)
+    -- Append source text only; rule identity is added by the caller (logRule).
+    local src = opts and (opts.src or (opts.rule and opts.rule.src))
+    if src then
+      enriched = enriched .. "\n  source: " .. src
+    end
+    error(enriched, 0)
+  end))
   if opts and opts.vars then
     _ctx:pushVarsFrame(opts.vars)
   end

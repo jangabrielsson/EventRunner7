@@ -7,6 +7,9 @@
 --%%file:tests/testfuns.lua,test
 --%%time:2026/04/28 12:00:00
 
+-- Scratch pad for testing new feature. Actual test suite to go into
+-- eventrunner_test.lua once we have a stable set of features to test.
+
 local function main(er) ER = er
   local rule, test = er.eval, er.test
   local function loadDevice(name) return er.loadDevice(name) end
@@ -38,7 +41,7 @@ local function main(er) ER = er
   end
   --rule("local a=0; for x,v in ipairs({1,2,3}) do a=a+v end; return a")
 
-  rule("@{catch,10:00,15:00} => log('ping')",{verbosity='verbose'})
+  rule("@{catch,10:00,15:00} => log($POWW); log('ping')")
 
 end
 

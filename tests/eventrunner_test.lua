@@ -4,12 +4,18 @@
 --%%offline:true
 -- %%save:dist/EventRunner7.fqa
 --%%file:$fibaro.lib.speed,speed
+--%%file:Sim.lua,sim
 --%%file:tests/testfuns.lua,test
 --%%time:2026/04/28 12:00:00
 
+-- testsuit for EventScript 
+-- Runs in simulated time (speedTime) to allow testing of time based features without having to wait for real time to pass.
+-- We alway start at 2026/04/28 12:00:00
+-- Loads a set of simulated predefined devices (tests/stdQAs) and global variables to test against. This resources fires change event immediately when a property is changed and works with speedTime. If we used plua simulated devices/resources it would not work with speedTime as they use the plua internal time, and would arrrive after speedTime finish...
+
 local function main(er) ER = er
   local rule, test = er.eval, er.test
-  local function loadDevice(name) return er.loadDevice(name) end
+  local function loadDevice(name) return er.loadSimDevice(name) end
 
   er.createSimGlobal("G_foo","66")
   er.createSimGlobal("G_bar","66")

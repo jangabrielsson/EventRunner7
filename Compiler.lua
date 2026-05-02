@@ -218,29 +218,13 @@ end
 
   -- FOR-IN
   -- for var in iter do body end ->
-  -- local fun = function() return pairs(b) end
+  -- local fun = function() return pairs({3,4,5}) end
   -- local f,t,k,v = fun()
   -- while true do
   --   k,v = f(t,k)
   --   if not k then break end
   --   print(k,v)
   -- end
-
--- ["LETS",["f","t","k","v"],[["CALL",["GET","fun"]],
---   ["LOOP",
---     ["PROGN",
---       ["LET","_tmp",["MAKETABLE",1,["CALL",["GET","f"],["GET","t"],["GET","k"]]],
---         ["PROGN",
---           ["SET","k",["INDEX",["GET","_tmp"],1]],
---           ["SET","v",["INDEX",["GET","_tmp"],2]]
---         ]
---       ],
---       ["IF",["NOT",["GET","k"]],["BREAK"]],
---       ["CALL",["GET","print"],["GET","k"],["GET","v"]]
---     ]
---   ]
--- ]
-
 
   local function compForIn(ast)
     local var = ast[2]

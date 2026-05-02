@@ -15,7 +15,7 @@ local function makeParser(src)
 
   local function parseError(msg)
     local t = peek(1)
-    error(msg .. (sourceAt(t) or " at end of input"), 2)
+    error(msg .. (ts.sourceAt(t) or " at end of input"), 2)
   end
 
   -- Forward declarations

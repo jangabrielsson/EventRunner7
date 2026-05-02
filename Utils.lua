@@ -866,44 +866,11 @@ function clearTimeout2(ref)
   if longRefs[ref] then oldClearTimeout(longRefs[ref]) longRefs[ref]=nil else oldClearTimeout(ref) end
 end
 
-if fibaro.plua then
-  local id = 10000
-  local function createDevice(path)
-    local p = os.getenv("DEVICELIB") or ""
-    local code = fibaro.plua.lib.readFile(p..path..".lua")
-    local d = fibaro.plua.lib.loadQAString(code,{headers={"desktop:false"}})
-    return d.device.id
-  end
-  ER.loadSimDev = createDevice
-end
-
-do
-  -- ER.defineTestDevice(id) — registers an in-memory fake device for unit tests.
-  -- First call patches ER.getProp / ER.setProp to serve mock properties before
-  -- falling through to the real implementation for non-mocked device IDs.
-  local testDevProps = {}
-  function ER.defineTestDevice(id)
-    testDevProps[id] = testDevProps[id] or {}
-    if not ER._testHooked then
-      ER._testHooked = true
-      local origGet = ER.getProp
-      local origSet = ER.setProp
-      ER.getProp = function(obj, key)
-        local mock = testDevProps[obj]
-        if mock then return mock[key] end
-        return origGet(obj, key)
-      end
-      ER.setProp = function(obj, key, val)
-        local mock = testDevProps[obj]
-        if mock then mock[key] = val; return val end
-        return origSet(obj, key, val)
-      end
-    end
-  end
-end
-
 function ER.getVar(typ, name)
   if typ == 'GV' then
+    if not __fibaro_get_global_variable(name) then
+      error("Global variable '"..name.."' does not exist",2)
+    end
     return marshallFrom(fibaro.getGlobalVariable(name))
   elseif typ == 'QV' then
     return quickApp:getVariable(name)
@@ -916,6 +883,9 @@ end
 
 function ER.setVar(typ, name, value)
   if typ == 'GV' then
+    if not __fibaro_get_global_variable(name) then
+      error("Global variable '"..name.."' does not exist",2)
+    end
     value = type(value) == 'string' and value or json.encodeFast(value)
     return fibaro.setGlobalVariable(name, value)
   elseif typ == 'QV' then
@@ -927,87 +897,6 @@ function ER.setVar(typ, name, value)
   end
 end
 
-class "SimQuickApp"
-function SimQuickApp:__init(id)
-  self.id = id
-  self.props = {}
-end
-function SimQuickApp:updateProperty(prop, value)
-  local old = self.props[prop]
-  self.props[prop] = value
-  if old ~= value then
-    ER.sourceTrigger:post({type='device', id=self.id, property=prop, value=value})
-  end
-end
-function SimQuickApp:setValue(value) self:updateProperty('value', value) end
-function SimQuickApp:debug(...)
-  fibaro.debug(self.tag,...)
-end
-
-local loadedDeviceClasses = {}
-local loadedDevices = {}
-local idCounter = 10000
-
-local oldCall,oldGet = fibaro.call,fibaro.get
-local oldGetGV, oldSetGV = fibaro.getGlobalVariable, fibaro.setGlobalVariable
-fibaro.get = function(id, prop)
-  if loadedDevices[id] then
-    return loadedDevices[id].props[prop]
-  else
-    return oldGet(id, prop)
-  end
-end
-fibaro.call = function(id, action, ...)
-  if loadedDevices[id] then
-    local device = loadedDevices[id]
-    if type(device[action]) == 'function' then
-      return device[action](device, ...)
-    else
-      error("Device "..id.." does not have action "..action)
-    end
-  else
-    return oldCall(id, action, ...)
-  end
-end
-
-local simGVs = {}
-function ER.defineSimGlobalVariable(name, initialValue)
-  simGVs[name] = {value = initialValue, modified = os.time()}
-end
-function fibaro.getGlobalVariable(name)
-  if simGVs[name] ~= nil then return simGVs[name].value, simGVs[name].modified end
-  return oldGetGV(name)
-end
-function fibaro.setGlobalVariable(name, value)
-  assert(type(name) == 'string', "Global variable name must be a string")
-  if simGVs[name] ~= nil then 
-    if simGVs[name].value ~= value then
-      simGVs[name].value = value
-      simGVs[name].modified = os.time()
-      ER.sourceTrigger:post({type='global-variable', name=name, value=value})
-    end
-    return value
-  end
-  return oldSetGV(name, value)
-end
-
-local function loadDevice(name,id)
-  if not id then id = idCounter idCounter = idCounter + 1 end
-  if not loadedDeviceClasses[name] then
-    loadedDeviceClasses[name] = true
-    local f = io.open("tests/stdQAs/"..name..".lua", "r")
-     if f then
-      local code = f:read("*a")
-      load(code, "@"..name..".lua", "t", _G)()
-      f:close()
-     end
-  end
-  local device = _G["Sim_"..name](id)
-  loadedDevices[id] = device
-  return device.id
-end
-
-ER.loadDevice = loadDevice
 ER.alarmFuns = alarmFuns
 ER.toSeconds = toSeconds
 ER.midnight = midnight

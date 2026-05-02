@@ -82,12 +82,12 @@ local function compRule(r)
   opts = opts or {}
   
   RULEIDX = RULEIDX + 1
-  local rule = { id = RULEIDX, verbosity = opts.verbosity or "normal" }
+  local rule = { id = RULEIDX, verbosity = opts.verbosity or "normal", src = ER._ruleSrc }
   rules[RULEIDX] = rule
   setmetatable(rule, {
     __tostring = function(self) return "RULE" .. tostring(self.id) end
   })
-
+  
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
   scanHead(head, trs)             -- scanHead may modify ast...
   local fun  = ER.csp.compile(r)  -- compile rule action into CSP
@@ -220,7 +220,7 @@ local function compRule(r)
       end
     end
   end
-
+  
   rule:setupDaily(trs.hasCatch and true)
   
   -- rule:run() lets the user fire the rule manually from code.
@@ -273,7 +273,10 @@ function HOPS.GETPROP(ast,trs)
   local key = ast[3]
   local gf = ER.getProps[key]
   assert(gf, "GETPROP: no such property '"..tostring(key).."'")
-  trs.triggers[key..obj] = {type='device', id = obj, property = gf[3]}
+  if type(obj) ~= 'table' then obj = {obj} end
+  for k,v in pairs(obj) do
+    trs.triggers[gf[3]..v] = {type='device', id = v, property = gf[3]}
+  end
 end
 
 function HOPS.BETW(ast,trs)
@@ -383,191 +386,192 @@ local yieldHandlers = {
   asyncFun = function(cf, rule, cb, fun, ...)
     local timedOut,timeref = false,nil
     local opts = cf.ctx.opts or {}
-    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("calling async function %s", tostring(fun)))
-      local fcb = setmetatable({cf=cf,rule=rule}, {
-        __call = function(self,...) 
-          if timeref then timeref = clearTimeout(timeref) end
-          if timedOut then return end
-          logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("back from async func %s", tostring(fun)))
-          local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ...)), rule, cb)
+    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("calling async func".."tion %s", tostring(fun)))
+    local fcb = setmetatable({cf=cf,rule=rule}, {
+      __call = function(self,...) 
+        if timeref then timeref = clearTimeout(timeref) end
+        if timedOut then return end
+        logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("back from async func %s", tostring(fun)))
+        local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ...)), rule, cb)
+        if not ok then
+          logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
+        end
+      end
+    }) 
+    local res = {pcall(fun, fcb, ...)}
+    local timeout = tonumber(res[2]) or 3000
+    if res[1] then
+      -- Async, wait for callback or timeout
+      if timeout >= 0 then 
+        timeref = setTimeout(function() 
+          timeref = nil
+          timedOut = true
+          logRule(rule or opts, "verbose", dfltPrefix.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
+          local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, false)), rule, cb)
           if not ok then
             logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
           end
-        end
-      }) 
-      local res = {pcall(fun, fcb, ...)}
-      local timeout = tonumber(res[2]) or 3000
-      if res[1] then
-        if timeout >= 0 then -- Async, wait for callback or timeout
-          timeref = setTimeout(function() 
-            timeref = nil
-            timedOut = true
-            logRule(rule or opts, "verbose", dfltPrefix.errorPrefix, fmt("Async function %s timed out after %dms", tostring(fun), timeout))
-              local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, false)), rule, cb)
-              if not ok then
-                logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
-              end
-            end, timeout)
-          end -- -1 means sync, func called cb directlyso no timeout needed
-        else
-          logRule(rule, "normal", dfltPrefix.errorPrefix, fmt("Async function error: %s", tostring(res[2])))
-            timedOut = true
-            return cb() -- resume with no result on error
-          end
-        end,
-      }
-      
-      function resumeRunner(res, rule, cb)
-        if res[1] == 'suspended' then
-          local cf, tag = res[2], res[3]
-          local h = yieldHandlers[tag]
-          if h then
-            return h(cf, rule, cb, table.unpack(res, 4))
-          else
-            error("no yield handler for tag: " .. tostring(tag))
-          end
-        end
-        cb(table.unpack(res, 2))
+        end, timeout)
+      end -- -1 means sync, func called cb directlyso no timeout needed
+    else
+      logRule(rule, "normal", dfltPrefix.errorPrefix, fmt("Async func".."tion error: %s", tostring(res[2])))
+      timedOut = true
+      return cb() -- resume with no result on error
+    end
+  end,
+}
+
+function resumeRunner(res, rule, cb)
+  if res[1] == 'suspended' then
+    local cf, tag = res[2], res[3]
+    local h = yieldHandlers[tag]
+    if h then
+      return h(cf, rule, cb, table.unpack(res, 4))
+    else
+      error("no yield handler for tag: " .. tostring(tag))
+    end
+  end
+  cb(table.unpack(res, 2))
+end
+
+-- ruleRunner(f)       → bare eval: always logs, returns value(s) or nil
+-- ruleRunner(f, rule) → triggered action: logs per rule.verbosity
+function ruleRunner(f, rule, opts)
+  local synced   = false
+  local syncVals = nil
+  opts = opts or {}
+  opts.rule = rule
+  
+  local function onDone(...)
+    if synced then
+      -- completed asynchronously (after caller already returned nil)
+      if rule or opts then
+        logRule(rule or opts, "verbose", dfltPrefix.successPrefix, ...)
+        if (rule or opts) and (rule or opts).onDone then (rule or opts).onDone(...) end
+      elseif opts.onDone then
+        opts.onDone(...)
+      else
+        local n = select('#', ...)
+        if n > 0 then print(dfltPrefix.resultPrefix, ...) end
       end
-      
-      -- ruleRunner(f)       → bare eval: always logs, returns value(s) or nil
-      -- ruleRunner(f, rule) → triggered action: logs per rule.verbosity
-      function ruleRunner(f, rule, opts)
-        local synced   = false
-        local syncVals = nil
-        opts = opts or {}
-        opts.rule = rule
-        
-        local function onDone(...)
-          if synced then
-            -- completed asynchronously (after caller already returned nil)
-            if rule or opts then
-              logRule(rule or opts, "verbose", dfltPrefix.successPrefix, ...)
-              if (rule or opts) and (rule or opts).onDone then (rule or opts).onDone(...) end
-            elseif opts.onDone then
-              opts.onDone(...)
-            else
-              local n = select('#', ...)
-              if n > 0 then print(dfltPrefix.resultPrefix, ...) end
-            end
-          else
-            syncVals = table.pack(...)
-            -- sync completion: call hook immediately (before ruleRunner returns)
-            if rule and rule.onDone then rule.onDone(...) end
-          end
-        end
-        
-        local ok, err = pcall(function()
-          opts.vars = opts.vars or {}
-          opts.vars._opts = {opts}
-          resumeRunner(table.pack(ER.csp.eval(f,opts)), rule, onDone)
-        end)
-        synced = true
-        
-        if not ok then
-          if rule then
-            logRule(rule, "silent", dfltPrefix.errorPrefix, err)
-            return nil
-          else
-            error(err, 0)  -- re-throw: outer eval's pcall catches it
-          end
-        end
-        
-        if syncVals then
-          return table.unpack(syncVals, 1, syncVals.n)
-        else
-          -- expression suspended: nil is returned to caller
-          logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, "<suspended>")
-          return nil
-        end
-      end
-      
-      -- eval(src) compiles and runs EventScript source.
-      --   Rule form  ("cond => action"): registers the rule, returns the rule object.
-      --   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
-      --   Async expr ("wait(n); ..."):   returns nil, logs 💤; logs 📋 when done.
-      local function eval(src,opts)
-        opts = opts or {}
-        local ast    = ER.parse(src)           -- parse error propagates immediately
-        local isRule = (ast[1] == 'RULE')
-        local result
-        
-        local ok, err = pcall(function()
-          local tree = ER.compileAST(ast)
-          local code = ER.csp.compile(tree)
-          --print(json.encode(tree))
-          ER._ruleSrc = src
-          ER._ruleCmp = tree
-          result = table.pack(ruleRunner(code,nil,opts))  -- rule=nil → bare eval
-        end)
-        
-        if not ok then
-          print(dfltPrefix.errorPrefix, err)
-          error(err)
-        end
-        
-        -- For bare expressions: log the sync result if we got one.
-        -- Async (nil return) was already logged 💤 by ruleRunner.
-        -- Rule form: compRule already logged ✅ with trigger list.
-        if not isRule and result and result[1] ~= nil then
-          if not (opts.verbosity == "silent") then 
-            print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
-          end
-        end
-        
-        return result and table.unpack(result, 1, result.n)
-      end
-      
-      function fibaro.EventRunner(cb)
-        local er = {eval = eval, now = ER.now}
-        vm.defGlobal('print',    print)
-        vm.defGlobal('tostring', tostring)
-        vm.defGlobal('tonumber', tonumber)
-        vm.defGlobal('math',     math)
-        vm.defGlobal('pairs',    pairs)
-        vm.defGlobal('ipairs',   ipairs) 
-        vm.defGlobal("compRule", compRule)
-        vm.defGlobal('catch', catchValue)
-        
-        er.triggerVars = setmetatable({}, {
-          __index = function(t, k) return vm.getGlobal(k) end,
-          __newindex = function(t, k, v) 
-            ER._triggerVars[k] = true 
-            vm.defGlobal(k, v)
-          end
-        })
-        
-        ER.ASYNCFUNS = ER.ASYNCFUNS or {}
-        er.async = setmetatable({}, {
-          __newindex = function(t, k, v) 
-            assert(type(v) == 'function', "Only functions can be assigned to async")
-              ER.ASYNCFUNS[v] = true
-              vm.defGlobal(k,v)
-            end
-          })
-          ER.async = er.async
-          
-          ER.setupProps()
-          ER.setupFuns()
-          setupGlobalVariables()
-          
-          sourceTrigger = SourceTrigger()
-          ER.sourceTrigger = sourceTrigger
-          er.globals = ER.globals
-          er.defglobals = ER.defglobals
-          er.variables = er.defglobals
-          
-          midnightLoop()
-          
-          if fibaro.plua then
-            er.loadDevice = ER.loadDevice
-            er.createSimGlobal = ER.defineSimGlobalVariable
-          end
-          
-          for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
-          
-          setTimeout(function() 
-            sourceTrigger:run()
-            cb(er) 
-          end, 500)
-        end
+    else
+      syncVals = table.pack(...)
+      -- sync completion: call hook immediately (before ruleRunner returns)
+      if rule and rule.onDone then rule.onDone(...) end
+    end
+  end
+  
+  local ok, err = pcall(function()
+    opts.vars = opts.vars or {}
+    opts.vars._opts = {opts}
+    resumeRunner(table.pack(ER.csp.eval(f,opts)), rule, onDone)
+  end)
+  synced = true
+  
+  if not ok then
+    if rule then
+      logRule(rule, "silent", dfltPrefix.errorPrefix, err)
+      return nil
+    else
+      error(err, 0)  -- re-throw: outer eval's pcall catches it
+    end
+  end
+  
+  if syncVals then
+    return table.unpack(syncVals, 1, syncVals.n)
+  else
+    -- expression suspended: nil is returned to caller
+    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, "<suspended>")
+    return nil
+  end
+end
+
+-- eval(src) compiles and runs EventScript source.
+--   Rule form  ("cond => action"): registers the rule, returns the rule object.
+--   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
+--   Async expr ("wait(n); ..."):   returns nil, logs 💤; logs 📋 when done.
+local function eval(src,opts)
+  opts = opts or {}
+  opts.src = src  -- store source text for runtime error enrichment
+  local ast    = ER.parse(src)           -- parse error propagates immediately
+  local isRule = (ast[1] == 'RULE')
+  local result
+  
+  local ok, err = pcall(function()
+    local tree = ER.compileAST(ast)
+    local code = ER.csp.compile(tree)
+    --print(json.encode(tree))
+    ER._ruleSrc = src
+    ER._ruleCmp = tree
+    result = table.pack(ruleRunner(code,nil,opts))  -- rule=nil → bare eval
+  end)
+  
+  if not ok then
+    print(dfltPrefix.errorPrefix, err)
+    error(err)
+  end
+  
+  -- For bare expressions: log the sync result if we got one.
+  -- Async (nil return) was already logged 💤 by ruleRunner.
+  -- Rule form: compRule already logged ✅ with trigger list.
+  if not isRule and result and result[1] ~= nil then
+    if not (opts.verbosity == "silent") then 
+      print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
+    end
+  end
+  
+  return result and table.unpack(result, 1, result.n)
+end
+
+function fibaro.EventRunner(cb)
+  local er = {eval = eval, now = ER.now}
+  vm.defGlobal('print',    print)
+  vm.defGlobal('tostring', tostring)
+  vm.defGlobal('tonumber', tonumber)
+  vm.defGlobal('math',     math)
+  vm.defGlobal('pairs',    pairs)
+  vm.defGlobal('ipairs',   ipairs) 
+  vm.defGlobal("compRule", compRule)
+  vm.defGlobal('catch', catchValue)
+  
+  er.triggerVars = setmetatable({}, {
+    __index = function(t, k) return vm.getGlobal(k) end,
+    __newindex = function(t, k, v) 
+      ER._triggerVars[k] = true 
+      vm.defGlobal(k, v)
+    end
+  })
+  
+  ER.ASYNCFUNS = ER.ASYNCFUNS or {}
+  er.async = setmetatable({}, {
+    __newindex = function(t, k, v) 
+      assert(type(v) == 'fun'..'ction', "Only func".."tions can be assigned to async")
+      ER.ASYNCFUNS[v] = true
+      vm.defGlobal(k,v)
+    end
+  })
+  ER.async = er.async
+  
+  ER.setupProps()
+  ER.setupFuns()
+  setupGlobalVariables()
+  
+  sourceTrigger = SourceTrigger()
+  ER.sourceTrigger = sourceTrigger
+  er.globals = ER.globals
+  er.defglobals = ER.defglobals
+  er.variables = er.defglobals
+  
+  midnightLoop()
+  
+  er.loadSimDevice = ER.loadSimDevice
+  er.createSimGlobal = ER.defineSimGlobalVariable
+  er.loadPluaDevice = ER.loadPluaDevice
+  
+  for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
+  
+  setTimeout(function() 
+    sourceTrigger:run()
+    cb(er) 
+  end, 500)
+end
