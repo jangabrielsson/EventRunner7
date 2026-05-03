@@ -897,6 +897,26 @@ function ER.setVar(typ, name, value)
   end
 end
 
+local function deviceManager()
+  local devs = {}
+  local self = { devs = devs }
+  function self:register(id, _d)
+    local d = _d or api.get("/devices/"..id)
+    devs[id] = { type = d.type, actions = d.actions, properties = d.properties }
+  end
+  function self:remove(id) devs[id] = nil end
+  function self:isDevice(id) return devs[id] end
+  function hasAction(d,action) return self:isDevice(d) and self:isDevice(d).actions and self:isDevice(d).actions[action] end
+  
+  local devices = api.get("/devices")
+  for _,d in ipairs(devices) do self:register(d.id, d) end
+  ER.sourceTrigger:subscribe({type='deviceEvent'}, function(ev) 
+    ev = ev.event
+    if ev.value == 'removed' then self:remove(ev.id) elseif ev.value == 'created' then self:register(ev.id) end
+  end)
+  return self
+end
+
 ER.alarmFuns = alarmFuns
 ER.toSeconds = toSeconds
 ER.midnight = midnight
@@ -911,3 +931,4 @@ ER.sunCalc = sunCalc
 ER.dateTest = dateTest
 ER.marshallFrom = marshallFrom
 ER.base64encode = base64encode
+ER.deviceManager = deviceManager

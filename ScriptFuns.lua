@@ -2,6 +2,23 @@ fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local fmt = string.format
 
+local function armState(id) return id==0 and fibaro.getHomeArmState() or fibaro.getPartitionArmState(id) end
+local function arm(id,action)
+  if action=='arm' then 
+    local _,res = ER.alarmFuns.armPartition(id); return res == 200
+  else
+    local _,res = ER.alarmFuns.unarmPartition(id); return res == 200
+  end
+end
+local function tryArm(id)
+  local data,res = ER.alarmFuns.tryArmPartition(id)
+  if res ~= 200 then return false end
+  if type(data) == 'table' then
+    ER.sourceTrigger:post({type='alarm',id=id,action='tryArm',property='delayed',value=data})
+  end
+  return true
+end
+
 local getProps,setProps = {},{}
 local function setupProps()
   
@@ -127,7 +144,7 @@ local function setupProps()
   -- setProps helpers
   local function set(id,cmd,val) fibaro.call(id,cmd,val); return val end
   local function set2(id,cmd,val)
-    assert(type(val)=='table' and #val>=3,"setColor expects a table with 3 values")
+    assert(type(val)=='table' and #val>=3,"setColor expects a table with >=3 values")
     fibaro.call(id,cmd,table.unpack(val)); 
     return val 
   end
@@ -183,6 +200,11 @@ local function setupProps()
       fibaro.scene("execute",{id}) return true
     end
   end,""}
+  setProps.simKey={function(id,_,val) 
+    if type(val) ~= 'table' or not val.keyId or not val.keyAttribute then error("simKey expects a table with keyId and keyAttribute") end
+    ER.sourceTrigger:post({type='device', id=id, property='centralSceneEvent', value={keyId=val.keyId,keyAttribute=val.keyAttribute}})
+    return val
+  end,""}
   
   ER.getProps = getProps
   ER.setProps = setProps
@@ -190,7 +212,7 @@ end
 
 local function getProp(obj, key)
   local gf = getProps[key]
-  assert(gf, "getProp: no such property '"..tostring(key).."'")
+  assert(gf, "no such property :"..tostring(key).." (get)")
   if type(obj) == 'table' then
     local fun, prop = gf[2], gf[3]
     local reduce = gf[4] or table.map
@@ -207,7 +229,7 @@ local function setProp(obj, key, value)
     return true
   end
   local sf = setProps[key]
-  assert(sf, "setProp: no such property '"..tostring(key).."'")
+  assert(sf, "no such property :"..tostring(key).." (set)")
   sf[1](obj, sf[2], value)
   return true
 end
@@ -331,7 +353,7 @@ local function setupFuns()
         cb(false) -- do nothing
       end
     elseif trueFor.ref then -- test is false, and we have timer
-      env.clearTimeout[1](trueFor.ref)
+      env.cancel[1](trueFor.ref)
       trueFor.ref = nil
       cb(false)
     else

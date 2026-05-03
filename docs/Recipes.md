@@ -110,7 +110,7 @@ rule([[@00:00 =>
 ### Turn off all lights at 23 on weekdays and midnight on weekends
 
 ```lua
-rule([[23:00 & wday('mon-thu') =>
+rule([[@23:00 & wday('mon-thu') =>
   allLights:off;
   log('All lights turned off at 23:00')
 ]])
@@ -122,6 +122,8 @@ rule([[@00:00 & wday('fri-sun') =>
 ```
 
 ### Turn off lights on Earth Hour
+
+Rules without `=>` run their expression once at startup as a fire-and-forget statement:
 
 ```lua
 rule("earthLight = {kitchen.lamp, bedroom.lamp}")
@@ -206,7 +208,7 @@ rule([[trueFor(00:05,temp:value > 28) =>
 ]])
 
 rule([[trueFor(00:05,temp:value < 20) =>
-  fan:on;
+  fan:off;
   log('Fan turned off due to low temperature')
 ]])
 ```
@@ -218,8 +220,10 @@ rule([[trueFor(00:05,temp:value < 20) =>
 ```lua
 rule("user = 456") -- Id of user that should be pushed to
 rule([[trueFor(00:05,door:open) =>
-  user:msg = log('Door open for %s minutes',5*again(10))
+  user:msg = log('Door open for %s minutes', 5*again(10))
 ]])
+-- again(10) lets the trueFor re-arm and fire up to 10 more times (every 5 min),
+-- so the log text counts up: 5, 10, 15 ... minutes. Remove again() to fire only once.
 ```
 
 ### Notification on last Monday in week

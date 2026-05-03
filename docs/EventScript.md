@@ -1,6 +1,6 @@
 # EventScript Language Documentation
 
-EventScript is the rule-based automation language used by EventRunner6 for creating home automation rules on Fibaro HC3 controllers. It provides an intuitive syntax for defining triggers, conditions, and actions in automation scenarios.
+EventScript is the rule-based automation language used by EventRunner7 for creating home automation rules on Fibaro HC3 controllers. It provides an intuitive syntax for defining triggers, conditions, and actions in automation scenarios.
 
 ## Table of Contents
 
@@ -32,6 +32,7 @@ EventScript is the rule-based automation language used by EventRunner6 for creat
       - [Comparison Operators](#comparison-operators)
       - [Assignment Operators](#assignment-operators)
       - [Coalesce Operator](#coalesce-operator)
+  - [Triggers](#triggers)
     - [Daily Triggers](#daily-triggers)
     - [Interval Triggers](#interval-triggers)
     - [Event Triggers](#event-triggers)
@@ -197,7 +198,7 @@ var1, var2, ..., varn = expr1, expr2, ...
 Functions can return multiple values, with the last expression supporting multiple return values:
 
 ```lua
-var1, var2, var3 = 42, (function() return 3, 4 end)()
+var1, var2, var3 = 42, myMultipleValueFun()
 ```
 
 **Examples:**
@@ -308,7 +309,7 @@ rule("@@00:00:10 => log('Ping every 10 seconds')")
 
 An absolue long time [YEAR]/MONTH/DAY/HOUR.MIN[:SEC]
 ```lua
-rule("post(#futureEvent,2027/10/04/23:00)")  -- Post October 4, 23:00 2025
+rule("post(#futureEvent,2027/10/04/23:00)")  -- Post October 4, 23:00 2027
 rule("post(#futureEvent,/12/23/18:00)")  -- Post on Xmas eve, this year
 rule("#futureEvent => log('Future event'))")
 ```
@@ -332,7 +333,7 @@ Note that long times can't be compared to short times. To convert a long time to
 ```lua
 rule("@sunset => outdoorLights:on")
 rule("sensor:breached & sunrise..sunset => securityAlert()")
-rule("wnum % 2 == 0 => weeklyMaintenance()")  -- Every other week
+rule("@00:00 & wnum % 2 == 0 => weeklyMaintenance()")  -- Every other week (even week numbers)
 ```
 
 ### Operators
@@ -390,7 +391,7 @@ rule("@sunset-00:30 => lights:on")  -- 30 minutes before sunset
 rule("motion:breached => counter += 1; log('Motion count: %d', counter)")
 ```
 
-##Triggers
+## Triggers
 
 Triggers define the conditions under which rules should execute.
 The triggerExpression part of a rule can be a complex expression of triggers returning true or false
@@ -412,7 +413,7 @@ Daily triggers can only specify a time during the day. To invoke the rule and sp
 rule("@08:00 => lights:on")               -- Turn on lights at 8 AM
 rule("@{07:00,19:00} => securityCheck()")   -- Check security at 7 AM and 7 PM
 rule("@sunset => outdoorLights:on")       -- Turn on outdoor lights at sunset
-rule("@15:00 & day('mon-fri') => outdoorLights:on") -- Turn on outdoor lights at 15:00 or weekdays 
+rule("@15:00 & wday('mon-fri') => outdoorLights:on") -- Turn on outdoor lights at 15:00 on weekdays 
 ```
 
 ### Interval Triggers
@@ -518,7 +519,7 @@ rule("trueFor(00:05, sensor:safe) => light:off")
 -- Turn off light when sensor has been safe for 5 minutes
 
 rule("trueFor(00:10, door:open) => log('Door open for %d minutes', 10*again(5))")
--- Log message with again(n) re-enabling the condition n times
+-- Log at 10-min intervals while door stays open; again(5) re-enables firing up to 5 more times
 ```
 
 ### Date Functions
@@ -582,7 +583,7 @@ Functions for posting, subscribing to, and managing events.
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `post(event, time)` | Post event at specified time | `post(#morningEvent, '08:00')` |
+| `post(event, time)` | Post event at specified time | `post(#alarmEvent, '@08:00')` — at 08:00; `post(#event, '+01:00')` — in 1 h |
 | `cancel(ref)` | Cancel posted event | `cancel(timerRef)` |
 | `subscribe(event)` | Subscribe to remote events | `subscribe(#remoteEvent)` |
 | `publish(event)` | Publish event to remote systems | `publish(#statusUpdate)` |
@@ -613,6 +614,7 @@ Mathematical and statistical functions for calculations.
 | `sort(t)` | Sort table in place | `sort(values)` |
 | `osdate(t)` | Same as os.date | `dateStr = osdate('%Y-%m-%d')` |
 | `ostime(t)` | Same as os.time | `timestamp = ostime()` |
+| `nextDST()` | Returns epoch time of next Daylight Saving Time change | `post(#restart, nextDST())` |
 
 **Examples:**
 ```lua
@@ -956,5 +958,6 @@ rule("post(#foo)")
 6. **Document complex rules** with comments in your main function
 7. **Use trigger variables** for inter-rule communication
 8. **Leverage list operations** for aggregated device control
+9. **Turn on logging flags** during development with `er.opts = { started=true, check=true, triggers=true }` and turn them off for production
 
 

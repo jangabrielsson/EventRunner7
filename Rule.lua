@@ -44,7 +44,11 @@ end
 local function logRule(rule, minLevel, prefix, ...)
   if rule ~= nil then
     if not shouldLog(rule, minLevel) then return end
-    print(prefix, tostring(rule)..":", ...)
+    if prefix == dfltPrefix.errorPrefix and rule.src then
+      print(prefix, tostring(rule)..":", ..., "\n  rule: "..rule.src)
+    else
+      print(prefix, tostring(rule)..":", ...)
+    end
   else
     print(prefix, ...)
   end
@@ -374,10 +378,13 @@ end
 local yieldHandlers = {
   sleep = function(cf, rule, cb, ms)
     local opts = cf.ctx.opts or {}
+    ms = math.floor(ms*1000+0.5)
     logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("sleeping %dms", ms))
     setTimeout(function()
       logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("woke after %dms", ms))
-      local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ms)), rule, cb)
+      local ok, err = pcall(function()
+        resumeRunner(table.pack(ER.csp.resume(cf, ms)), rule, cb)
+      end)
       if not ok then
         logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
       end
@@ -392,7 +399,10 @@ local yieldHandlers = {
         if timeref then timeref = clearTimeout(timeref) end
         if timedOut then return end
         logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("back from async func %s", tostring(fun)))
-        local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, ...)), rule, cb)
+        local args = table.pack(...)
+        local ok, err = pcall(function()
+          resumeRunner(table.pack(ER.csp.resume(cf, table.unpack(args, 1, args.n))), rule, cb)
+        end)
         if not ok then
           logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
         end
@@ -407,7 +417,9 @@ local yieldHandlers = {
           timeref = nil
           timedOut = true
           logRule(rule or opts, "verbose", dfltPrefix.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
-          local ok, err = pcall(resumeRunner, table.pack(ER.csp.resume(cf, false)), rule, cb)
+          local ok, err = pcall(function()
+            resumeRunner(table.pack(ER.csp.resume(cf, false)), rule, cb)
+          end)
           if not ok then
             logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
           end
@@ -569,6 +581,8 @@ function fibaro.EventRunner(cb)
   er.loadPluaDevice = ER.loadPluaDevice
   
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
+  
+  ER.deviceManager()
   
   setTimeout(function() 
     sourceTrigger:run()

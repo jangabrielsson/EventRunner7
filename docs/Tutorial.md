@@ -323,8 +323,8 @@ function QuickApp:main(er)
   rule("@08:00 => post(#weekendCleanup, n/10:00)")  -- At 10:00 today, or if after 10:00, next daty at 10:00
   
   -- Post with date and time
-  rule("alarm:armed => post(#vacationMode, 2024/12/24/18:00')")  -- Christmas Eve 2024
-  rule("alarm:armed => post(#vacationMode, /12/24/18:00')")  -- Christmas Eve this year
+  rule("alarm:armed => post(#vacationMode, 2026/12/24/18:00)")  -- Christmas Eve 2026
+  rule("alarm:armed => post(#vacationMode, /12/24/18:00)")    -- Christmas Eve this year
   
   -- Event handlers
   rule([[#lightsOff => 
@@ -434,22 +434,17 @@ end
 
 ### Cancelling Scheduled Events
 
-You can cancel scheduled events using the reference returned by `post()`:
+You can cancel scheduled events using the reference returned by `post()`. The simplest pattern is a single rule that cancels any existing timer before posting a new one — `cancel()` is safe to call on a nil or expired reference:
 
 ```lua
 function QuickApp:main(er)
   local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
   
-  -- Store event reference for later cancellation
-  rule([[motion:breached => 
-    lightTimer = post(#autoLightsOff, +/00:10); -- Auto-off in 10 minutes
+  -- Each new motion event cancels the previous auto-off timer and starts a fresh one.
+  rule([[motion:breached =>
+    cancel(lightTimer);                          -- safe if nil or already expired
+    lightTimer = post(#autoLightsOff, +/00:10); -- reset the 10-minute countdown
     hallLight:on
-  ]])
-  
-  -- Cancel the timer if motion detected again
-  rule([[motion:breached & lightTimer => 
-    cancel(lightTimer); -- Cancel previous timer
-    lightTimer = post(#autoLightsOff, +/00:10) -- Start new timer
   ]])
   
   -- Handle the auto-off event
@@ -790,7 +785,7 @@ See also: Reference for trueFor details and options in [EventScript.md#truefor-f
 
 ### Vacation Mode
 ```lua
--- Set vacation mode
+-- Inside QuickApp:main(er), with triggerVar = er.triggerVariables already declared:
 triggerVar.vacationMode = false
 
 rule("vacationMode == true => "..
@@ -844,7 +839,7 @@ rule("#heaterOff => HT.patio.heater:off")
    ```lua
    rule("motion:breached & 22:00..06:00 => nightLight:on")
    ```
-43. **Use time guards with daily triggers**: Combine day and month ranges with daily triggers
+4. **Use time guards with daily triggers**: Combine day and month ranges with daily triggers
    ```lua
    rule("@sunset+00:01 & wday('mon-fri') & month('june-oct') => nightLight:on")
    ```
