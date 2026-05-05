@@ -387,6 +387,24 @@ local function makeParser(src)
       expect('end')
       return {'IF', cond, body, elseifs, else_block}
 
+    elseif ty == 'case' then
+      -- case { '||' exp '>>' block } end
+      -- Syntactic sugar for if-elseif chain: each '|| exp >> block' becomes a branch.
+      next()
+      local branches = {}
+      while match('case_bar') do
+        local cond = parseExp()
+        expect('case_arrow')
+        table.insert(branches, {cond, parseBlock()})
+      end
+      expect('end')
+      if #branches == 0 then
+        return {'BLOCK'}
+      end
+      local elseifs = {}
+      for i = 2, #branches do table.insert(elseifs, branches[i]) end
+      return {'IF', branches[1][1], branches[1][2], elseifs, nil}
+
     elseif ty == 'for' then
       next()
       local name = expect('identifier').value
@@ -481,6 +499,7 @@ local function makeParser(src)
 
   local terminators = {
     ['end'] = true, ['else'] = true, ['elseif'] = true, ['until'] = true,
+    ['case_bar'] = true,  -- '||' terminates a case branch block
   }
 
   parseBlock = function()

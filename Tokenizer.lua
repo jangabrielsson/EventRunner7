@@ -67,6 +67,9 @@ local keywords = {
   ['-='] = {type='incvar',value='minus'}, -- binary, variable decrement, var -= exp
   ['*='] = {type='incvar',value='multiply'}, -- binary, variable multiplication assignment, var *= exp
   ['/='] = {type='incvar',value='divide'}, -- binary, variable division assignment, var /= exp
+  ['case'] = {type='case',value='case'},   -- case statement keyword
+  ['||'] = {type='case_bar',value='case_bar'}, -- case branch separator
+  ['>>'] = {type='case_arrow',value='case_arrow'}, -- case branch arrow (condition >> block)
 }
 
 local function lookupTkType(t)
@@ -127,6 +130,7 @@ end
   return {type=k.type, value=k.value, tk=t}
 end
 },
+{"|",'||?',  kwHandler},  -- '||' case_bar (before single '|' catch-all)
 {"+-*/(){}&|!:;,.<>=[]",".",function(t) 
   local k = keywords[t]
   if not k then error("Bad token:"..t) end
