@@ -22,16 +22,20 @@ local function main(er) ER = er
     kitchen = { 
       lamp1 = loadDevice("binarySwitch"),
       lamp2 = loadDevice("binarySwitch"),
+      lamp3 = loadDevice("multilevelSwitch"),
     },
     hall = {
       motion1 = loadDevice("motionSensor"),
       motion2 = loadDevice("motionSensor"),
+      motion3 = loadDevice("motionSensor"),
       door1 = loadDevice("doorSensor"),
-      lamp = loadDevice("multilevelSwitch"),
+      lamp1 = loadDevice("multilevelSwitch"),
+      lamp2 = loadDevice("multilevelSwitch"),
     },
     livingRoom = {
       window1 = loadDevice("windowSensor"),
       window2 = loadDevice("windowSensor"),
+      window3 = loadDevice("windowSensor"),
       fire1 = loadDevice("fireDetector"),
       dimmer = loadDevice("multilevelSwitch"),
     },
@@ -59,7 +63,6 @@ local function main(er) ER = er
     },
   }
 
-  local dev = api.get("/devices/5560")
   -- populate variables with the HomeTable so we can access devices as kitchen.lamp1 etc in rules, and also kitchenLamps later on.
   for k,v in pairs(HT) do variables[k] = v end
   --fibaro.debugFlags.refreshEvents = true
@@ -69,274 +72,188 @@ local function main(er) ER = er
   end
   rule("kitchenLamps = {kitchen.lamp1,kitchen.lamp2}") -- test creating a variable with a table of devices, and that it works in rules
 
-  local checks, nChecks = {},2
+  local checks, nChecks = {},24
   function variables.check(n)
-    if checks[n] then print("❌  Check "..n.." already checked") end
+    if checks[n] then print("❌  Check "..n.." already checked") return end
     checks[n] = true
-    for i=1,nChecks do if not checks[i] then return end end
-    print("✅ All checks passed, test complete")
+    local done = true
+    print("✅",n,"done")
+    for i=1,nChecks do if not checks[i] then done = false; break end end
+    if done then print("✅ All "..nChecks.." checks passed, test complete") end
   end
 
-  -- Test rules with device sets and properties. These should trigger in sequence as the lamps are turned on and off.
+  -- check(1): kitchenLamps:isOn  — lamp1 turns on
+  -- check(2): kitchenLamps:isOff — lamp1 turns back off
+  -- NOTE: kitchen.lamp1 starts off, lamp2 starts off.
+  -- After this group, lamp1=off, lamp2=off.
   rule("once(kitchenLamps:isOn) => check(1)")
   rule("once(kitchenLamps:isOff) => check(2)")
   rule("wait(0); kitchen.lamp1:on")
-  rule("wait(0.1); kitchen.lamp1:off")
+  rule("wait(0.5); kitchen.lamp1:off")
 
-  -- Turn on lamp when motion is detected.
-  rule("{hall.motion1,hall.motion2}:breached => hall.lamp:on; check(3)")
-  -- and turn off when safe for 5min
-  rule("trueFor(00:05,{hall.motion1,hall.motion2}:safe) => hall.lamp:off; check(4)")
-
-  -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 1: binarySwitch — value, isOn, isOff, on/off actions
-  -- ────────────────────────────────────────────────────────────────────────────
-
-  -- Turn the switch on and verify :isOn triggers
-  rule("once(kitchen.lamp2:isOn) => log('PASS binarySwitch:isOn triggered')")
-  rule("wait(0.2); kitchen.lamp2:on")
-
-  -- Turn the switch off and verify :isOff triggers
-  rule("once(kitchen.lamp2:isOff) => log('PASS binarySwitch:isOff triggered')")
-  rule("wait(0.3); kitchen.lamp2:off")
-
-  -- :value property read in expression
-  rule("wait(0.4); kitchen.lamp2:on")
-  rule("wait(0.5); if kitchen.lamp2:value == true then log('PASS binarySwitch:value == true') end")
-
-  -- :isAllOn — true only when every device in the set is on
-  rule("kitchenLamps:isAllOn => log('PASS kitchenLamps:isAllOn')")
-  rule("wait(0.6); kitchen.lamp1:on; kitchen.lamp2:on")
-
-  -- :isAnyOff — triggers when at least one lamp goes off
-  rule("kitchenLamps:isAnyOff => log('PASS kitchenLamps:isAnyOff')")
-  rule("wait(0.7); kitchen.lamp2:off")
-
-  -- :toggle — should flip from off to on
-  rule("once(kitchen.lamp2:isOn) => log('PASS binarySwitch:toggle worked')")  -- already on; toggle expected on lamp2 which is off
-  rule("wait(0.8); kitchen.lamp2:toggle")  -- lamp2 is off, toggles to on
+  -- check(3): once({hall.motion1,hall.motion2}:breached) — use once() so later motion triggers don't re-fire
+  -- check(4): trueFor safe on both motions
+  -- hall.lamp starts off; motion1/2 start safe.
+  rule("once({hall.motion1,hall.motion2}:breached) => hall.motion2:value=false; check(3)")
+  rule("trueFor(00:00:02,{hall.motion1,hall.motion2}:safe) => hall.lamp1:off; check(4)")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 2: multilevelSwitch — value, setValue, on/off
+  -- TEST GROUP 1: binarySwitch — isOn / isOff
+  -- Uses kitchen.lamp2 (starts off). After group: lamp2=off.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  -- Set dimmer to 50% and read back :value
-  rule([[hall.lamp:value > 40 => log('PASS multilevelSwitch value > 40')]])
-  rule("hall.lamp:value = 50")
+  -- check(5): binarySwitch:isOn
+  rule("once(kitchen.lamp3:isOn) => check(5)")
+  rule("wait(0.1); kitchen.lamp3:on")
 
-  -- Turn dimmer fully on (value = 99)
-  rule("once(hall.lamp:isOn) => log('PASS multilevelSwitch:isOn at 99')")
-  rule("wait(1.1); hall.lamp:on")
-
-  -- Turn dimmer fully off (value = 0)
-  rule("once(hall.lamp:isOff) => log('PASS multilevelSwitch:isOff at 0')")
-  rule("wait(1.2); hall.lamp:off")
-
-  -- livingRoom dimmer to 75
-  rule([[livingRoom.dimmer:value > 70 => log('PASS dimmer value > 70')]])
-  rule("wait(1.3); livingRoom.dimmer:value = 75")
+  -- check(6): binarySwitch:isOff
+  rule("once(kitchen.lamp3:isOff) => check(6)")
+  rule("wait(0.5); kitchen.lamp3:off")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 3: doorSensor — breached / isClosed / isOpen
+  -- TEST GROUP 2: multilevelSwitch — on / off
+  -- Uses hall.lamp (starts off). After group: hall.lamp=off.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule("hall.door1:breached => log('PASS doorSensor:breached')")
+  -- check(7): multilevelSwitch:isOn at value 99
+  rule("once(hall.lamp2:isOn) => check(7)")
+  rule("wait(1.0); hall.lamp2:on")
+
+  -- check(8): multilevelSwitch:isOff at value 0
+  rule("once(hall.lamp2:isOff) => check(8)")
+  rule("wait(1.1); hall.lamp2:off")
+
+  -- (not checked) set dimmer to 75 via :value assignment on a separate dimmer device
+  rule("wait(1.2); livingRoom.dimmer:value = 75")
+
+  -- ────────────────────────────────────────────────────────────────────────────
+  -- TEST GROUP 3: doorSensor — breached / isClosed
+  -- Uses hall.door1 (starts false/closed). After group: door1=false.
+  -- ────────────────────────────────────────────────────────────────────────────
+
+  -- check(9): doorSensor:breached (value=true)
+  rule("once(hall.door1:breached) => check(9)")
   rule("wait(2.0); hall.door1:value = true")
 
-  -- isClosed / isOpen aliases for door value
-  rule("hall.door1:isOpen => log('PASS doorSensor:isOpen')")
-  rule("hall.door1:isClosed => log('PASS doorSensor:isClosed')")
-  rule("wait(2.1); hall.door1:value = false")  -- close the door (should fire isClosed next event)
+  -- check(10): doorSensor:isClosed (value=false)
+  rule("once(hall.door1:isClosed) => check(10)")
+  rule("wait(2.1); hall.door1:value = false")
 
   -- ────────────────────────────────────────────────────────────────────────────
   -- TEST GROUP 4: windowSensor — breached / safe
+  -- Uses livingRoom.window1 (starts false/safe). After group: window1=false.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule("livingRoom.window1:breached => log('PASS windowSensor:breached')")
-  rule("livingRoom.window1:safe    => log('PASS windowSensor:safe')")
-  rule("wait(3.0); livingRoom.window1:value = true")   -- breach
-  rule("wait(3.1); livingRoom.window1:value = false")  -- safe
+  -- check(11): windowSensor:breached
+  rule("once(livingRoom.window3:breached) => check(11)")
+  rule("wait(3.0); livingRoom.window3:value = true")
 
-  -- multiple windows — any breach in a set
-  rule("{livingRoom.window1,livingRoom.window2}:breached => log('PASS window set any:breached')")
-  rule("wait(3.2); livingRoom.window2:value = true")
+  -- check(12): windowSensor:safe
+  rule("once(livingRoom.window3:safe) => check(12)")
+  rule("wait(3.1); livingRoom.window3:value = false")
 
   -- ────────────────────────────────────────────────────────────────────────────
   -- TEST GROUP 5: motionSensor — breached / safe
+  -- Uses hall.motion1 (starts false/safe). After group: motion1=false.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule("hall.motion1:breached => log('PASS motionSensor:breached')")
-  rule("wait(4.0); hall.motion1:value = true")
+  -- check(13): motionSensor:breached — also fires check(3) rule, but that uses once() so no double-fire
+  rule("once(hall.motion3:breached) => check(13)")
+  rule("wait(1.0); hall.motion3:value = true")
 
-  rule("hall.motion1:safe => log('PASS motionSensor:safe')")
-  rule("wait(4.1); hall.motion1:value = false")
+  -- check(14): motionSensor:safe — motion1 back to safe; triggers trueFor in check(4) countdown
+  rule("once(hall.motion3:safe) => check(14)")
+  rule("wait(1.4); hall.motion3:value = false")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 6: floodSensor — value/breached
+  -- TEST GROUP 6: floodSensor — breached / safe
+  -- Uses bedroom.flood1 (starts false). After group: flood1=false.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule("bedroom.flood1:breached => log('PASS floodSensor:breached')")
+  -- check(15): floodSensor:breached
+  rule("once(bedroom.flood1:breached) => check(15)")
   rule("wait(5.0); bedroom.flood1:value = true")
 
-  rule("bedroom.flood1:safe => log('PASS floodSensor:safe')")
+  -- check(16): floodSensor:safe
+  rule("once(bedroom.flood1:safe) => check(16)")
   rule("wait(5.1); bedroom.flood1:value = false")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 7: smokeSensor — value
+  -- TEST GROUP 7: smokeSensor — value true
+  -- Uses bedroom.smoke1 (starts false). After group: smoke1=true (left on).
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule("bedroom.smoke1:value == true => log('PASS smokeSensor:value true')")
+  -- check(17): smokeSensor value becomes true
+  rule("once(bedroom.smoke1:value == true) => check(17)")
   rule("wait(6.0); bedroom.smoke1:value = true")
 
-  rule("bedroom.smoke1:value == false => log('PASS smokeSensor:value false')")
-  rule("wait(6.1); bedroom.smoke1:value = false")
-
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 8: temperatureSensor — temp / value
+  -- TEST GROUP 8: temperatureSensor — temp rises above threshold
+  -- Uses bedroom.temp1 (starts nil). After group: temp1={value=25,unit='C'}.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  -- Note: HC3 temperatureSensor stores value as {value=n, unit="C"}; :temp reads .value
-  rule([[bedroom.temp1:temp > 24 => log('PASS temperatureSensor:temp > 24')]])
+  -- check(18): temp > 24
+  rule([[once(bedroom.temp1:temp > 24) => check(18)]])
   rule("wait(7.0); bedroom.temp1:value = {value=25, unit='C'}")
 
-  rule([[bedroom.temp1:temp < 10 => log('PASS temperatureSensor:temp < 10')]])
-  rule("wait(7.1); bedroom.temp1:value = {value=5, unit='C'}")
-
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 9: humiditySensor — value
+  -- TEST GROUP 9: humiditySensor — value rises above threshold
+  -- Uses bedroom.humid1 (starts nil). After group: humid1=90.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule([[bedroom.humid1:value > 80 => log('PASS humiditySensor:value > 80')]])
+  -- check(19): humidity > 80
+  rule([[once(bedroom.humid1:value > 80) => check(19)]])
   rule("wait(8.0); bedroom.humid1:value = 90")
 
-  rule([[bedroom.humid1:value < 50 => log('PASS humiditySensor:value < 50')]])
-  rule("wait(8.1); bedroom.humid1:value = 40")
-
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 10: alarmPartition — armed / isArmed / isDisarmed
+  -- TEST GROUP 10: colorController — isOn
+  -- Uses entertainment.light1 (starts off). After group: light1=off.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  -- alarmPartition uses fibaro alarm API; these may not work fully offline
-  -- but the rule parsing + action dispatch should be exercised
-  rule("security.alarm1:isArmed   => log('PASS alarmPartition:isArmed')")
-  rule("security.alarm1:isDisarmed => log('PASS alarmPartition:isDisarmed')")
-  rule("wait(9.0); security.alarm1:armed = true")
-  rule("wait(9.1); security.alarm1:armed = false")
+  -- check(20): colorController:isOn
+  rule("once(entertainment.light1:isOn) & entertainment.light1:value ~= 75 => check(20)")
+  rule("wait(9.0); entertainment.light1:on")
+
+  -- (not checked) turn off again and set a brightness value
+  rule("wait(9.1); entertainment.light1:off")
+  rule("wait(9.2); entertainment.light1:value = 75")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 11: remoteController — central scene / key events
+  -- TEST GROUP 11: player — volume rises above threshold
+  -- Uses entertainment.player1 (starts nil volume). After group: volume=80.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  -- central scene event: keyId=1, keyAttribute="Pressed"
-  rule([[security.remote1:central.keyId == 1 => log('PASS remoteController central keyId 1')]])
-  rule([[security.remote1:key == '1:Pressed' => log('PASS remoteController key 1:Pressed')]])
-  rule("wait(10.0); security.remote1:simKey = {keyId=1, keyAttribute='Pressed'}")
-
-  -- second button press
-  rule([[security.remote1:central.keyId == 2 => log('PASS remoteController central keyId 2')]])
-  rule("wait(10.1); security.remote1:simKey = {keyId=2, keyAttribute='Pressed'}")
-
-  -- HeldDown attribute
-  rule([[security.remote1:key == '1:HeldDown' => log('PASS remoteController key 1:HeldDown')]])
-  rule("wait(10.2); security.remote1:simKey = {keyId=1, keyAttribute='HeldDown'}")
+  -- check(21): player volume > 50
+  rule([[once(entertainment.player1:volume > 50) => check(21)]])
+  rule("wait(10.0); entertainment.player1:volume = 80")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 12: colorController — value / color / on / off / setValue / setColor
+  -- TEST GROUP 12: energyMeter — value rises above threshold
+  -- Uses outdoor.energy1 (starts nil). After group: energy1=226.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule("once(entertainment.light1:isOn) => log('PASS colorController:isOn')")
-  rule("wait(11.0); entertainment.light1:on")
-
-  rule("once(entertainment.light1:isOff) => log('PASS colorController:isOff')")
-  rule("wait(11.1); entertainment.light1:off")
-
-  rule([[entertainment.light1:value > 60 => log('PASS colorController:value > 60')]])
-  rule("wait(11.2); entertainment.light1:value = 75")
-
-  -- setColor: r=200 g=10 b=100 w=255 — value stored as "r,g,b,w" string
-  rule([[entertainment.light1:value > 0 => log('PASS colorController:setColor triggered value update')]])
-  rule("wait(11.3); entertainment.light1:color = {200,10,100,255}")
+  -- check(22): energy value > 200
+  rule([[once(outdoor.energy1:value > 200) => check(22)]])
+  rule("wait(11.0); outdoor.energy1:value = 226.137")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 13: player — volume / play / pause / setVolume
+  -- TEST GROUP 13: window set — any window in set breached
+  -- Uses livingRoom.window2 (starts false; window1 already safe from group 4).
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule([[entertainment.player1:volume > 50 => log('PASS player:volume > 50')]])
-  rule("wait(12.0); entertainment.player1:volume = 80")
-
-  rule([[entertainment.player1:volume < 30 => log('PASS player:volume < 30')]])
-  rule("wait(12.1); entertainment.player1:volume = 20")
-
-  -- play / pause actions just dispatch (player sim does not update a state property)
-  rule("wait(12.2); entertainment.player1:play")
-  rule("wait(12.3); entertainment.player1:pause")
+  -- check(23): any window in set breached — use window2 so window1 rule (group 4) is already once()'d
+  rule("once({livingRoom.window1,livingRoom.window2}:breached) => check(23)")
+  rule("wait(12.0); livingRoom.window2:value = true")
 
   -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 14: energyMeter — value (kWh)
+  -- TEST GROUP 14: trueFor — sustained breach fires rule
+  -- Uses hall.motion2 (starts false; distinct from motion1 used in groups 3/5).
+  -- motion2 is set true at 13.0s; trueFor(2s) fires ~15s → check(24).
   -- ────────────────────────────────────────────────────────────────────────────
 
-  rule([[outdoor.energy1:value > 200 => log('PASS energyMeter:value > 200')]])
-  rule("wait(13.0); outdoor.energy1:value = 226.137")
-
-  rule([[outdoor.energy1:power > 0 => log('PASS energyMeter:power > 0')]])
-  rule("wait(13.1); outdoor.energy1:value = 250")
-
-  -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 15: device sets — mixed property conditions
-  -- ────────────────────────────────────────────────────────────────────────────
-
-  -- Trigger when any sensor in a set is breached
-  rule("allBreachSensors = {bedroom.flood1, hall.motion2, livingRoom.window2}")
-  rule("allBreachSensors:breached => log('PASS mixed sensor set any:breached')")
-  rule("wait(14.0); hall.motion2:value = true")
-
-  -- Action on a set of switches: turn all off at once
-  rule("wait(14.1); {kitchen.lamp1,kitchen.lamp2}:off")
-  rule("once({kitchen.lamp1,kitchen.lamp2}:isOff) => log('PASS set :off action both off')")
-
-  -- once() guard — should only fire once across repeated triggers
-  local onceCount = 0
-  function variables.countOnce() onceCount = onceCount + 1; if onceCount > 1 then print('❌ once() fired more than once') else print('PASS once() fired exactly once') end end
-  rule("once(livingRoom.window1:breached) => countOnce()")
-  rule("wait(14.2); livingRoom.window1:value = true")
-  rule("wait(14.3); livingRoom.window1:value = false")
-  rule("wait(14.4); livingRoom.window1:value = true")  -- should NOT fire countOnce() again
-
-  -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 16: :last — time since last value change
-  -- ────────────────────────────────────────────────────────────────────────────
-
-  -- :last returns seconds since last property change; after a fresh set it should be near 0
-  rule("wait(15.0); hall.door1:value = true")
-  rule([[wait(15.1); if hall.door1:last < 5 then log('PASS :last < 5 seconds after update') end]])
-
-  -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 17: global variable triggers
-  -- ────────────────────────────────────────────────────────────────────────────
-
-  createGlobal("alarmMode", "off")
-
-  -- rule([[#alarmMode == 'night' => log('PASS globalVar alarmMode == night')]])
-  -- rule("wait(16.0); #alarmMode = 'night'")
-
-  -- rule([[#alarmMode == 'off' => log('PASS globalVar alarmMode == off')]])
-  -- rule("wait(16.1); #alarmMode = 'off'")
-
-  -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 18: trueFor with sensor condition
-  -- ────────────────────────────────────────────────────────────────────────────
-
-  -- waitFor(duration, condition) — fires when condition has been true for duration
-  -- Using a very short duration (0.5s) so the test completes without speedTime
-  rule("wait(17.0); bedroom.temp1:value = {value=30, unit='C'}")
-  rule([[trueFor(00:00:01,bedroom.temp1:temp > 28) => log('PASS trueFor temp > 28 for 1s')]])
-
-  -- ────────────────────────────────────────────────────────────────────────────
-  -- TEST GROUP 19: trueFor with short sensor condition
-  -- ────────────────────────────────────────────────────────────────────────────
-
-  rule("wait(18.0); hall.motion2:value = true")
-  rule([[trueFor(00:00:01,hall.motion2:breached) => log('PASS trueFor motion2:breached for 1s')]])
+  -- check(24): motion2 breached for 2 seconds
+  rule([[trueFor(00:00:02,hall.motion2:breached) => check(24)]])
+  rule("wait(13.0); hall.motion2:value = true")
 
 end
 

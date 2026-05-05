@@ -37,6 +37,9 @@ local function main(er) ER = er
   test("return 1+(5+5)*2",{1+(5+5)*2})
   test("return 10/2",{5})
   test("return $G_foo+1",{67})
+  test("return 3 ?? 6",{3})
+  test("return nil ?? 6",{6})
+  test("return false ?? 6",{false})
 
   -- Control structures
   test("if true then return 5 end",{5})
@@ -85,8 +88,8 @@ local function main(er) ER = er
   rule("$G_foo = true")
   test("return $G_foo",{true})
   -- Need a short wait before setting $G_foo to ensure the 3 first GV events generated when triggering the rule, $G_foo.b will not be 77. The rule will ignore those triggers instead of counting them as test failures, since the rule condition is not met. 
-  test("$G_foo.b == 77 => return 99","wait(1); $G_foo={b=77}",{99})
-  test("$G_bar[1].b == 77 => return 99","wait(1); $G_bar={{b=77}}",{99})
+  test("type($G_foo)=='table' & $G_foo.b == 77 => return 99","wait(1); $G_foo={b=77}",{99})
+  test("type($G_foo)=='table' & $G_bar[1].b == 77 => return 99","wait(1); $G_bar={{b=77}}",{99})
 
 
   -- Tables
@@ -132,7 +135,7 @@ local function main(er) ER = er
   test("return now",{ER.now()})
 
   -- wait
-  test("local a = ostime(); wait(4000); return ostime()-a",{4}) -- wait should be approximately 4 seconds
+  test("local a = ostime(); wait(4); return ostime()-a",{4}) -- wait should be approximately 4 seconds
 
   -- Device property triggers
   test("light1:isOn => return 99","light1:on",{99})

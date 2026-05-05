@@ -2,7 +2,7 @@
 
 --%%file:CSP.lua,csp
 
-local CONT = fibaro.CONT
+local CONT = fibaro.ER.csp
 local eval    = CONT.eval
 local resume  = CONT.resume
 local compile = CONT.compile

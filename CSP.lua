@@ -191,6 +191,7 @@ local OPS = {
   LTE = function(av, bv) return av<=bv end,
   GT = function(av, bv) return av>bv end,
   GTE = function(av, bv) return av>=bv end,
+  NILCO = function(av, bv) if av~=nil then return av else return bv end end,
 }
 
 local function BINOP(name, a,b)
@@ -218,6 +219,7 @@ local function LT(a,b) return BINOP("LT", a,b) end
 local function EQ(a,b) return BINOP("EQ", a,b) end
 local function LTE(a,b) return BINOP("LTE", a,b) end
 local function GTE(a,b) return BINOP("GTE", a,b) end
+local function NILCO(a,b) return BINOP("NILCO", a,b) end
 
 -- AND returns the first falsy value, or the last value if all are truthy (Lua semantics).
 local function AND(a, b)
@@ -556,6 +558,23 @@ local function SET(name, val_expr)
   end
 end
 
+-- INCVAR writes to the innermost binding for name.
+local function INCVAR(name, op, val_expr)
+  return function(cont)
+    return val_expr(TR(function(v)
+      local found, currVal = _ctx:getVar(name)
+      if not found then return rterror("Undefined variable: '" .. tostring(name) .. "'") end
+      local result = OPS[op](currVal, v)
+      _ctx:setVar(name, result)
+      if ER._triggerVars and ER._triggerVars[name] then
+        ER.sourceTrigger:post({type='trigger-variable', name = name, value = result})
+      end
+      trace("INCVAR  var", name, "=", result, op)
+      return cont(result)
+    end))
+  end
+end
+
 -- GETVAR reads special vars.
 local function GETVAR(typ,name)
   return function(cont)
@@ -704,9 +723,9 @@ local expr = {
   CALL  = CALL,
   CONST = CONST,
   ADD = ADD, SUB = SUB, MUL = MUL, DIV = DIV, MOD = MOD, POW = POW,
-  EQ  = EQ,  LT  = LT,  LTE = LTE, GT  = GT,  GTE = GTE,
+  EQ  = EQ,  LT  = LT,  LTE = LTE, GT  = GT,  GTE = GTE, NILCO = NILCO,
   AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT, BETW = BETW,
-  INDEX = INDEX, SETINDEX = SETINDEX, SETFIELD = SETFIELD,
+  INDEX = INDEX, SETINDEX = SETINDEX, SETFIELD = SETFIELD, INCVAR = INCVAR,
   MAKETABLE = MAKETABLE,
   DAILY = DAILY,  INTERV = INTERV,
   GETPROP = GETPROP,  SETPROP = SETPROP,
@@ -770,6 +789,7 @@ local function compile(t)
   elseif op == "GETVAR"    then return GETVAR(t[2], ca(t[3]))
   elseif op == "SETVAR"    then return SETVAR(t[2], ca(t[3]), ca(t[4]))
   elseif op == "SETFIELD"  then return SETFIELD(ca(t[2]), t[3], ca(t[4]))
+  elseif op == 'INCVAR'    then return INCVAR(t[2], t[3], ca(t[4]))
   elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(t[3]))
   elseif op == "LET"       then return LET(t[2], ca(t[3]), ca(t[4]))
   elseif op == "LETS"      then return LETS(t[2], cal(t[3]), ca(t[4]))

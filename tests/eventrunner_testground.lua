@@ -26,7 +26,7 @@ local function main(er) ER = er
   er.defglobals.window2 = loadDevice("windowSensor")
   er.defglobals.fire1 = loadDevice("fireDetector")
 
-  rule("{44,66}:value=99")
+  rule("a=2; a += 66; return a")
 
 end
 

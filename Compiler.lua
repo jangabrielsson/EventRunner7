@@ -28,7 +28,7 @@ end
 local DIRECT_BINOPS = {
   ADD='ADD', SUB='SUB', MUL='MUL', DIV='DIV', MOD='MOD', POW='POW',
   EQ='EQ',  LT='LT',  LTE='LTE', GT='GT',  GTE='GTE',
-  AND='AND', OR='OR',
+  AND='AND', OR='OR', NILCO='NILCO',
   CONCAT='CONCAT', BETW='BETW',
 }
 
@@ -62,6 +62,15 @@ local function compileTarget(var, val_csp)
   else
     error("Compiler: unsupported assignment target: " .. tostring(var[1]))
   end
+end
+
+local IncOpMap = { plus='ADD', minus='SUB', multiply='MUL', divide='DIV' }
+local function compIncvar(ast)
+  local var = ast[2]
+  local exp = compile(ast[3])
+  local op = ast[4]
+  --return compileTarget(var, {IncOpMap[op], {'GET', var[2]}, exp})
+  return {'INCVAR', var[2], IncOpMap[op], exp}  -- handled as a special case in the VM for efficiency
 end
 
 -- ── Statement-list compiler (handles LOCAL hoisting) ──────────────────────
@@ -310,6 +319,7 @@ end
 comp.NOW = function() return {'NOW'} end
 comp.BREAK  = function() return {'BREAK'} end
 comp.ASSIGN = compAssign
+comp.INCVAR = compIncvar
 comp.IF     = compIf
 comp.WHILE  = compWhile
 comp.REPEAT  = compRepeat

@@ -62,7 +62,11 @@ local keywords = {
   ['@@'] = {type='interv',value='interv'}, -- unary, interval rule, @@00:05
   ['++'] = {type='conc',value='conc'}, -- binary, string concatenation
   ['==='] = {type='match',value='match'}, -- binary, string match
-  ['??'] = {type='nilco',value='nilco'}, -- binary, nil coalescing
+  ['??'] = {type='op',value='nilco'}, -- binary, nil coalescing
+  ['+='] = {type='incvar',value='plus'}, -- binary, variable increment, var += exp
+  ['-='] = {type='incvar',value='minus'}, -- binary, variable decrement, var -= exp
+  ['*='] = {type='incvar',value='multiply'}, -- binary, variable multiplication assignment, var *= exp
+  ['/='] = {type='incvar',value='divide'}, -- binary, variable division assignment, var /= exp
 }
 
 local function lookupTkType(t)
@@ -116,6 +120,13 @@ local tknsStrs = {
 end
 },
 {".","%.%.",  kwHandler},   -- .. between operator (must precede single '.')
+{"?","%?%?",  kwHandler},   -- nilco, nil coalescing
+{"+-*/",".=",function(t) 
+  local k = keywords[t]
+  if not k then error("Bad token:"..t) end
+  return {type=k.type, value=k.value, tk=t}
+end
+},
 {"+-*/(){}&|!:;,.<>=[]",".",function(t) 
   local k = keywords[t]
   if not k then error("Bad token:"..t) end

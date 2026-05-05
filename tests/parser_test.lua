@@ -254,7 +254,7 @@ check("n/ nexttime", "x = n/600",   {'ASSIGN',{{'NAME','x'}},{{'NEXTTIME',{'NUMB
 check("+/ plustime", "x = +/600",   {'ASSIGN',{{'NAME','x'}},{{'PLUSTIME',{'NUMBER',600}}}})
 
 check("t/ in condition", "if t/600 > now then end",
-  {'IF', {'GT',{'TODAY',{'NUMBER',600}},{'NAME','now'}}, {'BLOCK'}, {}, nil})
+  {'IF', {'GT',{'TODAY',{'NUMBER',600}},{'NOW'}}, {'BLOCK'}, {}, nil})
 
 check("t/ as arg", "f(t/600, n/900)",
   {'CALL',{'NAME','f'},{'TODAY',{'NUMBER',600}},{'NEXTTIME',{'NUMBER',900}}})

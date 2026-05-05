@@ -19,6 +19,9 @@ stat ::= varlist '=' explist |
          for namelist in explist do block end |
          local namelist ['=' explist] |
          setprop
+         incvar
+
+incvar ::= var '+=' exp | var '-=' exp | var '*=' exp | var '/=' exp
 
 laststat ::= return [explist] | break
 

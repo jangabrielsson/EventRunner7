@@ -299,12 +299,22 @@ local function makeParser(src)
     return left
   end
 
+    -- nilcoexp ::= relexp {'??' relexp}
+  local function parseNilcoexp()
+    local left = parseRelexp()
+    while peek(1) and peek(1).type == 'op' and peek(1).value == 'nilco' do
+      next()
+      left = {'NILCO', left, parseRelexp()}
+    end
+    return left
+  end
+
   -- andexp ::= relexp {'&' relexp}
   local function parseAndexp()
-    local left = parseRelexp()
+    local left = parseNilcoexp()
     while peek(1) and peek(1).type == 'op' and peek(1).value == 'and' do
       next()
-      left = {'AND', left, parseRelexp()}
+      left = {'AND', left, parseNilcoexp()}
     end
     return left
   end
@@ -319,7 +329,7 @@ local function makeParser(src)
     return left
   end
 
-  parseExp = parseOrexp
+  parseExp = parseOrexp -- parseNilcoexp
 
   --------------------------------------------------------------------------
   -- Statements
@@ -452,6 +462,13 @@ local function makeParser(src)
       while match('comma') do
         local v = parsePrefixexpFull()
         table.insert(vars, v)
+      end
+      if peek(1) and peek(1).type == 'incvar' then
+        expect('incvar')
+        if vars[1][1] ~= 'NAME' then
+          parseError("Left-hand side of increment/decrement must be a variable")
+        end
+        return {'INCVAR', vars[1], parseExp(), peek(-1).value}
       end
       expect('assign')
       return {'ASSIGN', vars, parseExplist()}
