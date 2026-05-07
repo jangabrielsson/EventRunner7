@@ -25,11 +25,11 @@ manual	Trigger	Manual operation status
 - OK, mostlyTrue	True if majority of values are true
 - OK, mostlyFalse	True if majority of values are false
 
-local r = rule("triggerExpression => actions")
-r.disable() -- disables the rule and stops all timers started by the rule
-r.enable() -- enables the rule. A daily or interval rule will start to run
-r.start() -- trigger the rule manually
-r.info() 
+- OK, local r = rule("triggerExpression => actions")
+- OK, r.disable() -- disables the rule and stops all timers started by the rule
+- OK, r.enable() -- enables the rule. A daily or interval rule will start to run
+- OK, r.start() -- trigger the rule manually
+- OK, r.info() 
 
 er.opts = { started = true, check = true, triggers = true }
 

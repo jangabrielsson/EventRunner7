@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Writing EventScript Rules</title>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+
+/* ===========================================
+   CSS CUSTOM PROPERTIES — NOTEBOOK TABS THEME
+   =========================================== */
+:root {
+  --bg-outer:      #2d2d2d;
+  --bg-page:       #f8f6f1;
+  --bg-holes:      #e8e4dc;
+  --bg-code:       #eeebe4;
+  --text-primary:  #1a1a1a;
+  --text-secondary:#555;
+  --text-muted:    #999;
+  --text-eyebrow:  #888;
+
+  /* Section tabs */
+  --tab-1: #98d4bb;   /* Mint     — Basics   */
+  --tab-2: #c7b8ea;   /* Lavender — Triggers */
+  --tab-3: #f4b8c5;   /* Pink     — Variables */
+  --tab-4: #a8d8ea;   /* Sky      — Events    */
+  --tab-5: #ffe6a7;   /* Cream    — Patterns  */
+
+  /* Code syntax */
+  --code-keyword: #5a3a8a;
+  --code-string:  #2e7a38;
+  --code-comment: #999;
+  --code-number:  #1a5fa0;
+  --code-call:    #c0391e;
+
+  /* Layout */
+  --holes-w:  36px;
+  --tabs-w:   32px;
+  --card-w:   min(88vw, 900px);
+  --card-h:   min(82vh, 620px);
+
+  /* Typography — all clamp() */
+  --font-display: 'Bodoni Moda', Georgia, serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --title-size:   clamp(1.8rem, 5vw, 3.8rem);
+  --h2-size:      clamp(1.3rem, 3.2vw, 2.4rem);
+  --body-size:    clamp(0.78rem, 1.4vw, 1rem);
+  --small-size:   clamp(0.62rem, 1vw, 0.8rem);
+  --code-size:    clamp(0.62rem, 1.2vw, 0.82rem);
+  --eyebrow-size: clamp(0.58rem, 0.9vw, 0.74rem);
+
+  --slide-padding: clamp(1.2rem, 3.5vw, 2.8rem);
+  --content-gap:   clamp(0.5rem, 1.5vh, 1.2rem);
+  --ease-expo:     cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ===========================================
+   VIEWPORT FITTING: MANDATORY BASE STYLES
+   =========================================== */
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+}
+html {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+.slide {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.slide-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-height: 100%;
+  overflow: hidden;
+  padding: var(--slide-padding);
+}
+.card, .container, .content-box {
+  max-width: min(90vw, 1000px);
+  max-height: min(80vh, 700px);
+}
+.feature-list, .bullet-list {
+  gap: clamp(0.4rem, 1vh, 1rem);
+}
+.feature-list li, .bullet-list li {
+  font-size: var(--body-size);
+  line-height: 1.4;
+}
+img, .image-container {
+  max-width: 100%;
+  max-height: min(50vh, 400px);
+  object-fit: contain;
+}
+
+@media (max-height: 700px) {
+  :root {
+    --slide-padding: clamp(0.75rem, 3vw, 2rem);
+    --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+    --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+    --h2-size: clamp(1rem, 3vw, 1.75rem);
+  }
+}
+@media (max-height: 600px) {
+  :root {
+    --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+    --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+    --title-size: clamp(1.1rem, 4vw, 2rem);
+    --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+    --code-size: clamp(0.58rem, 1vw, 0.75rem);
+  }
+  .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-height: 500px) {
+  :root {
+    --slide-padding: clamp(0.4rem, 2vw, 1rem);
+    --title-size: clamp(1rem, 3.5vw, 1.5rem);
+    --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+    --body-size: clamp(0.65rem, 1vw, 0.85rem);
+  }
+}
+@media (max-width: 600px) {
+  :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.2s !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* ===========================================
+   GLOBAL RESET & BASE
+   =========================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ===========================================
+   SLIDE LAYOUT — DARK OUTER
+   =========================================== */
+.slide {
+  background: var(--bg-outer);
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===========================================
+   PAPER CARD — FLOATING NOTEBOOK PAGE
+   =========================================== */
+.paper {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  background: var(--bg-page);
+  border-radius: 3px;
+  box-shadow:
+    0 24px 72px rgba(0,0,0,0.5),
+    0 4px 16px rgba(0,0,0,0.25),
+    inset 0 0 0 1px rgba(255,255,255,0.08);
+  display: flex;
+  overflow: hidden;
+}
+
+/* === HOLE PUNCH COLUMN === */
+.holes {
+  flex-shrink: 0;
+  width: var(--holes-w);
+  background: var(--bg-holes);
+  border-right: 1px solid #d4cfc6;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  z-index: 2;
+  padding: clamp(1rem, 2vh, 1.8rem) 0;
+}
+.hole {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-outer);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.45);
+  flex-shrink: 0;
+}
+
+/* === CONTENT AREA === */
+.page-content {
+  flex: 1;
+  padding: var(--slide-padding) clamp(1rem, 2.5vw, 2rem) var(--slide-padding) clamp(1rem, 2.5vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* === SECTION TABS === */
+.tabs {
+  flex-shrink: 0;
+  width: var(--tabs-w);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding-top: clamp(1rem, 2vh, 2rem);
+  gap: 6px;
+  z-index: 3;
+}
+.tab {
+  writing-mode: vertical-rl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: var(--eyebrow-size);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  padding: clamp(8px,1.5vh,14px) 0;
+  border-radius: 0 3px 3px 0;
+  opacity: 0.35;
+  transform: translateX(0);
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.tab:nth-child(1) { background: var(--tab-1); height: clamp(52px,9vh,80px); }
+.tab:nth-child(2) { background: var(--tab-2); height: clamp(60px,10vh,88px); }
+.tab:nth-child(3) { background: var(--tab-3); height: clamp(68px,11vh,96px); }
+.tab:nth-child(4) { background: var(--tab-4); height: clamp(60px,10vh,88px); }
+.tab:nth-child(5) { background: var(--tab-5); height: clamp(52px,9vh,80px); }
+
+/* Active tab per section */
+.paper[data-section="0"] .tab:nth-child(1),
+.paper[data-section="1"] .tab:nth-child(2),
+.paper[data-section="2"] .tab:nth-child(3),
+.paper[data-section="3"] .tab:nth-child(4),
+.paper[data-section="4"] .tab:nth-child(5) {
+  opacity: 1;
+  transform: translateX(5px);
+  box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+}
+
+/* ===========================================
+   TYPOGRAPHY
+   =========================================== */
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--eyebrow-size);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-eyebrow);
+  margin-bottom: var(--content-gap);
+}
+.section-tag {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: var(--eyebrow-size);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 2px;
+  margin-bottom: var(--content-gap);
+}
+.section-tag.basics   { background: var(--tab-1); color: #1a5040; }
+.section-tag.triggers { background: var(--tab-2); color: #3a2560; }
+.section-tag.vars     { background: var(--tab-3); color: #60202c; }
+.section-tag.events   { background: var(--tab-4); color: #1a4560; }
+.section-tag.patterns { background: var(--tab-5); color: #604a10; }
+
+h1.slide-title {
+  font-family: var(--font-display);
+  font-size: var(--title-size);
+  font-weight: 700;
+  line-height: 1.08;
+  color: var(--text-primary);
+  margin-bottom: var(--content-gap);
+}
+h1.slide-title em { font-style: italic; font-weight: 400; }
+
+h2.slide-heading {
+  font-family: var(--font-display);
+  font-size: var(--h2-size);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin-bottom: var(--content-gap);
+}
+h2.slide-heading em { font-style: italic; font-weight: 400; }
+
+.rule-accent {
+  width: clamp(36px, 5vw, 52px);
+  height: 3px;
+  border-radius: 2px;
+  margin-bottom: var(--content-gap);
+}
+.rule-accent.mint     { background: var(--tab-1); }
+.rule-accent.lavender { background: var(--tab-2); }
+.rule-accent.pink     { background: var(--tab-3); }
+.rule-accent.sky      { background: var(--tab-4); }
+.rule-accent.cream    { background: var(--tab-5); }
+
+.slide-body {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 62ch;
+}
+.slide-body strong { color: var(--text-primary); font-weight: 600; }
+
+.slide-subtitle {
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 1.8vw, 1.25rem);
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ===========================================
+   BULLET LISTS
+   =========================================== */
+.bullet-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.3rem, 1vh, 0.75rem);
+  margin-top: clamp(0.2rem, 0.8vh, 0.5rem);
+}
+.bullet-list li {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.bullet-list li::before {
+  content: '→';
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 0.05em;
+}
+.bullet-list li strong { color: var(--text-primary); font-weight: 600; }
+.bullet-list li code {
+  font-family: var(--font-mono);
+  font-size: calc(var(--body-size) * 0.9);
+  background: var(--bg-code);
+  border: 1px solid #d8d3ca;
+  padding: 0 5px;
+  border-radius: 3px;
+  color: var(--code-call);
+}
+
+/* ===========================================
+   CODE BLOCKS
+   =========================================== */
+.code-block {
+  background: var(--bg-code);
+  border: 1px solid #d8d3ca;
+  border-left: 3px solid var(--tab-1);
+  border-radius: 4px;
+  padding: clamp(0.7rem, 1.5vh, 1.2rem) clamp(0.8rem, 2vw, 1.4rem);
+  margin-top: clamp(0.4rem, 1vh, 0.8rem);
+  overflow: hidden;
+}
+.code-block.lavender-accent { border-left-color: var(--tab-2); }
+.code-block.pink-accent     { border-left-color: var(--tab-3); }
+.code-block.sky-accent      { border-left-color: var(--tab-4); }
+.code-block.cream-accent    { border-left-color: var(--tab-5); }
+
+.code-block pre {
+  font-family: var(--font-mono);
+  font-size: var(--code-size);
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre;
+  overflow: hidden;
+}
+/* Syntax coloring spans — added by JS highlighter */
+.kw  { color: var(--code-keyword); font-weight: 500; }
+.str { color: var(--code-string); }
+.cmt { color: var(--code-comment); font-style: italic; }
+.num { color: var(--code-number); }
+.fn  { color: var(--code-call); }
+
+/* Inline code */
+.inline-code {
+  font-family: var(--font-mono);
+  font-size: calc(var(--body-size) * 0.88);
+  background: var(--bg-code);
+  border: 1px solid #d8d3ca;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ===========================================
+   FEATURE GRID (3-card layout)
+   =========================================== */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(0.5rem, 1.5vw, 1rem);
+  margin-top: clamp(0.4rem, 1vh, 0.8rem);
+}
+.feature-card {
+  background: var(--bg-code);
+  border: 1px solid #d8d3ca;
+  border-radius: 4px;
+  padding: clamp(0.6rem, 1.5vh, 1.1rem) clamp(0.7rem, 1.5vw, 1.2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.feature-card .fc-label {
+  font-family: var(--font-mono);
+  font-size: var(--eyebrow-size);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.feature-card .fc-title {
+  font-family: var(--font-body);
+  font-size: clamp(0.75rem, 1.3vw, 0.95rem);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.feature-card .fc-body {
+  font-family: var(--font-body);
+  font-size: clamp(0.65rem, 1.1vw, 0.82rem);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.feature-card .fc-code {
+  font-family: var(--font-mono);
+  font-size: clamp(0.58rem, 1vw, 0.75rem);
+  color: var(--code-call);
+  margin-top: 4px;
+}
+
+/* ===========================================
+   DIAGRAM / ANATOMY LAYOUT
+   =========================================== */
+.anatomy {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vw, 1.2rem);
+  margin: clamp(0.5rem, 1.5vh, 1rem) 0;
+}
+.anatomy-box {
+  background: var(--bg-code);
+  border: 1px solid #d8d3ca;
+  border-radius: 4px;
+  padding: clamp(0.5rem, 1.2vh, 0.9rem) clamp(0.6rem, 1.5vw, 1.1rem);
+  text-align: center;
+  flex: 1;
+}
+.anatomy-box .ab-label {
+  font-family: var(--font-body);
+  font-size: var(--eyebrow-size);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+.anatomy-box .ab-code {
+  font-family: var(--font-mono);
+  font-size: clamp(0.68rem, 1.3vw, 0.9rem);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.anatomy-arrow {
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2.5vw, 1.8rem);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.anatomy-box.active {
+  border-color: var(--tab-1);
+  background: #edf6f2;
+}
+
+/* ===========================================
+   PROGRESS BAR
+   =========================================== */
+.progress-bar {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  background: var(--tab-1);
+  width: 0%;
+  transition: width 0.3s ease;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* ===========================================
+   NAV DOTS
+   =========================================== */
+.nav-dots {
+  position: fixed;
+  bottom: clamp(0.8rem, 2vh, 1.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  z-index: 100;
+}
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.nav-dot.active {
+  background: rgba(255,255,255,0.75);
+  transform: scale(1.3);
+}
+
+/* ===========================================
+   KEYBOARD HINT
+   =========================================== */
+.keyboard-hint {
+  position: fixed;
+  bottom: clamp(0.6rem, 1.5vh, 1.2rem);
+  right: clamp(0.8rem, 2vw, 1.5rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.5rem, 0.8vw, 0.65rem);
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.08em;
+  z-index: 100;
+}
+
+/* ===========================================
+   SLIDE NUMBER
+   =========================================== */
+.slide-num {
+  position: absolute;
+  bottom: clamp(0.5rem, 1.5vh, 1rem);
+  left: calc(var(--holes-w) + clamp(1rem, 2.5vw, 2rem));
+  font-family: var(--font-mono);
+  font-size: var(--eyebrow-size);
+  color: var(--text-muted);
+}
+
+/* ===========================================
+   INLINE EDITING
+   =========================================== */
+#edit-hotzone {
+  position: fixed;
+  top: 0; left: 0;
+  width: 50px; height: 50px;
+  z-index: 200;
+  cursor: default;
+}
+#edit-toggle {
+  position: fixed;
+  top: 12px; left: 12px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--tab-1);
+  color: #1a5040;
+  border: none;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  z-index: 201;
+  display: none;
+  transition: background 0.2s ease;
+}
+#edit-toggle:hover { background: #7ec9a8; }
+#edit-toggle.active { background: var(--tab-3); color: #60202c; }
+
+body.edit-mode h1,
+body.edit-mode h2,
+body.edit-mode p,
+body.edit-mode li,
+body.edit-mode .ab-code,
+body.edit-mode .fc-title,
+body.edit-mode .fc-body {
+  outline: 1px dashed #c7b8ea;
+  border-radius: 2px;
+  min-width: 1em;
+}
+
+/* ===========================================
+   ENTRANCE ANIMATIONS
+   =========================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.55s var(--ease-expo),
+    transform 0.55s var(--ease-expo);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition:
+    opacity 0.55s var(--ease-expo),
+    transform 0.55s var(--ease-expo);
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity 0.55s var(--ease-expo),
+    transform 0.55s var(--ease-expo);
+}
+.slide.visible .reveal,
+.slide.visible .reveal-left,
+.slide.visible .reveal-scale {
+  opacity: 1;
+  transform: none;
+}
+/* Stagger */
+.slide.visible .reveal:nth-child(1)  { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2)  { transition-delay: 0.15s; }
+.slide.visible .reveal:nth-child(3)  { transition-delay: 0.25s; }
+.slide.visible .reveal:nth-child(4)  { transition-delay: 0.35s; }
+.slide.visible .reveal:nth-child(5)  { transition-delay: 0.45s; }
+.slide.visible .reveal:nth-child(6)  { transition-delay: 0.55s; }
+.slide.visible .reveal-left:nth-child(1) { transition-delay: 0.08s; }
+.slide.visible .reveal-left:nth-child(2) { transition-delay: 0.18s; }
+.slide.visible .reveal-left:nth-child(3) { transition-delay: 0.28s; }
+.slide.visible .reveal-left:nth-child(4) { transition-delay: 0.38s; }
+.slide.visible .reveal-left:nth-child(5) { transition-delay: 0.48s; }
+.slide.visible .reveal-left:nth-child(6) { transition-delay: 0.58s; }
+.slide.visible .reveal-scale:nth-child(1) { transition-delay: 0.1s; }
+.slide.visible .reveal-scale:nth-child(2) { transition-delay: 0.2s; }
+.slide.visible .reveal-scale:nth-child(3) { transition-delay: 0.3s; }
+
+</style>
+</head>
+<body>
+
+<!-- === PROGRESS BAR === -->
+<div class="progress-bar" id="progress-bar"></div>
+
+<!-- === NAV DOTS === -->
+<nav class="nav-dots" id="nav-dots" aria-label="Slide navigation"></nav>
+
+<!-- === KEYBOARD HINT === -->
+<div class="keyboard-hint">↑↓ or Space to navigate · E to edit</div>
+
+<!-- === INLINE EDITING === -->
+<div id="edit-hotzone"></div>
+<button id="edit-toggle" title="Toggle edit mode (E)">Edit</button>
+
+<!-- =============================================
+     SLIDE 1 — TITLE
+     ============================================= -->
+<section class="slide" id="slide-1">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="eyebrow reveal">Fibaro HC3 · EventRunner</div>
+      <h1 class="slide-title reveal">Writing<br><em>EventScript</em><br>Rules</h1>
+      <div class="rule-accent mint reveal"></div>
+      <p class="slide-subtitle reveal">A clear tutorial — from your first trigger<br>to complex event sequences.</p>
+      <div class="slide-num">01 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div>
+      <div class="tab">Triggers</div>
+      <div class="tab">Variables</div>
+      <div class="tab">Events</div>
+      <div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 2 — WHAT IS EVENTSCRIPT?
+     ============================================= -->
+<section class="slide" id="slide-2">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag basics reveal">Basics</div>
+      <h2 class="slide-heading reveal">What is <em>EventScript?</em></h2>
+      <div class="rule-accent mint reveal"></div>
+      <p class="slide-body reveal">EventScript is a declarative language for writing home automation <strong>rules</strong>. Each rule is an expression of the form <span class="inline-code">condition =&gt; action</span>. When the condition's triggers fire, the action runs.</p>
+      <div class="code-block reveal">
+        <pre><code data-lua>-- When sunset occurs, turn on the outdoor lights
+rule("@sunset =&gt; outdoorLights:on")
+
+-- When temperature drops below 5°C, warn
+rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
+      </div>
+      <div class="slide-num">02 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 3 — ANATOMY OF A RULE
+     ============================================= -->
+<section class="slide" id="slide-3">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag basics reveal">Basics</div>
+      <h2 class="slide-heading reveal">Anatomy of a <em>Rule</em></h2>
+      <div class="rule-accent mint reveal"></div>
+      <div class="anatomy reveal">
+        <div class="anatomy-box">
+          <div class="ab-label">Condition</div>
+          <div class="ab-code">@08:00</div>
+        </div>
+        <div class="anatomy-arrow">⇒</div>
+        <div class="anatomy-box active">
+          <div class="ab-label">Action</div>
+          <div class="ab-code">kitchenLight:on</div>
+        </div>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>The <strong>condition</strong> is a pure expression — no assignments or side effects</li>
+        <li>The <strong>action</strong> runs when the condition's event fires</li>
+        <li>Use <code>er.eval()</code> or the shorthand <code>rule()</code> to register</li>
+        <li>Each registered rule gets an id: <code>RULE1</code>, <code>RULE2</code>, …</li>
+      </ul>
+      <div class="slide-num">03 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 4 — THE eval() API
+     ============================================= -->
+<section class="slide" id="slide-4">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag basics reveal">Basics</div>
+      <h2 class="slide-heading reveal">The <em>eval()</em> API</h2>
+      <div class="rule-accent mint reveal"></div>
+      <div class="feature-grid reveal">
+        <div class="feature-card reveal-scale">
+          <div class="fc-label">Rule form</div>
+          <div class="fc-title">Registers &amp; listens</div>
+          <div class="fc-body">Returns a rule object. Logs ✅ RULE&lt;n&gt; with its triggers at registration.</div>
+          <div class="fc-code">rule("cond =&gt; action")</div>
+        </div>
+        <div class="feature-card reveal-scale">
+          <div class="fc-label">Sync expression</div>
+          <div class="fc-title">Runs immediately</div>
+          <div class="fc-body">No <code>=&gt;</code>. Runs now and returns its value. Logs 📋 result.</div>
+          <div class="fc-code">er.eval("return 3 + 4")</div>
+        </div>
+        <div class="feature-card reveal-scale">
+          <div class="fc-label">Async expression</div>
+          <div class="fc-title">Suspends &amp; resumes</div>
+          <div class="fc-body">Contains <code>wait()</code>. Returns nil immediately, logs 📋 when done.</div>
+          <div class="fc-code">er.eval("wait(100); return 7")</div>
+        </div>
+      </div>
+      <div class="slide-num">04 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 5 — TIME TRIGGERS
+     ============================================= -->
+<section class="slide" id="slide-5">
+  <div class="paper" data-section="1">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag triggers reveal">Triggers</div>
+      <h2 class="slide-heading reveal">Time <em>Triggers</em> <span style="font-style:normal;font-size:0.6em;color:var(--text-muted)">@</span></h2>
+      <div class="rule-accent lavender reveal"></div>
+      <div class="code-block lavender-accent reveal">
+        <pre><code data-lua>rule("@08:00 =&gt; log('Good morning!')")         -- exact time
+rule("@{07:00,19:00} =&gt; securityCheck()")      -- multiple times
+rule("@sunset =&gt; outdoorLights:on")            -- sun event
+rule("@sunrise-00:30 =&gt; blinds:open")          -- offset from sun
+rule("@{08:00,catch} =&gt; morningLight:on")      -- catch missed fires</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Use <code>catch</code> in the time list so the rule fires immediately on startup if the time has already passed today</li>
+        <li>Day guards: add <code>&amp; wday('mon-fri')</code> to restrict to weekdays</li>
+      </ul>
+      <div class="slide-num">05 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 6 — INTERVAL TRIGGERS
+     ============================================= -->
+<section class="slide" id="slide-6">
+  <div class="paper" data-section="1">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag triggers reveal">Triggers</div>
+      <h2 class="slide-heading reveal">Interval <em>Triggers</em> <span style="font-style:normal;font-size:0.6em;color:var(--text-muted)">@@</span></h2>
+      <div class="rule-accent lavender reveal"></div>
+      <div class="code-block lavender-accent reveal">
+        <pre><code data-lua>rule("@@00:05 =&gt; log('Every 5 minutes')")
+rule("@@00:00:30 =&gt; temperatureCheck()")   -- every 30 seconds
+rule("@@-01:00 =&gt; log('Top of the hour')")  -- clock-aligned</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><strong>Relative</strong> <code>@@HH:MM</code> — fires every N minutes from startup</li>
+        <li><strong>Aligned</strong> <code>@@-HH:MM</code> — fires on the clock boundary (e.g. every :00)</li>
+        <li>Supports seconds: <code>@@HH:MM:SS</code></li>
+        <li>Great for periodic polling, health checks, or scheduled reports</li>
+      </ul>
+      <div class="slide-num">06 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 7 — DEVICE TRIGGERS
+     ============================================= -->
+<section class="slide" id="slide-7">
+  <div class="paper" data-section="1">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag triggers reveal">Triggers</div>
+      <h2 class="slide-heading reveal">Device <em>Triggers</em></h2>
+      <div class="rule-accent lavender reveal"></div>
+      <div class="code-block lavender-accent reveal">
+        <pre><code data-lua>rule("motionSensor:breached =&gt; hallLight:on")
+rule("frontDoor:isOpen =&gt; log('Door opened!')")
+rule("tempSensor:value &gt; 25 =&gt; fan:on")
+rule("tempSensor:value &gt;= 26 =&gt; fan:on")       -- threshold
+rule("{door1,door2,window1}:breached =&gt; alert()")
+rule("sensors:value:average &gt; 25 =&gt; hvac:on")  -- list avg</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>:breached</code> / <code>:isOpen</code> / <code>:isOn</code> / <code>:value</code> — common property triggers</li>
+        <li>Wrap multiple device IDs in <code>{...}</code> to trigger on any of them</li>
+      </ul>
+      <div class="slide-num">07 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 8 — TIME GUARDS
+     ============================================= -->
+<section class="slide" id="slide-8">
+  <div class="paper" data-section="1">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag triggers reveal">Triggers</div>
+      <h2 class="slide-heading reveal">Time <em>Guards</em></h2>
+      <div class="rule-accent lavender reveal"></div>
+      <div class="code-block lavender-accent reveal">
+        <pre><code data-lua>-- Only activate night light between 22:00 and 06:00
+rule("motion:breached &amp; 22:00..06:00 =&gt; nightLight:on")
+
+-- Only on weekdays
+rule("@07:30 &amp; wday('mon-fri') =&gt; log('Weekday!')")
+
+-- Sustained condition: true for N minutes before firing
+rule("trueFor(00:10, !hallMotion:breached) =&gt; hallLight:off")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Use <code>&amp;</code> to add a guard expression to any trigger</li>
+        <li><code>HH:MM..HH:MM</code> tests whether "now" is within that range</li>
+        <li><code>trueFor(duration, expr)</code> waits until expr is stable for that long</li>
+      </ul>
+      <div class="slide-num">08 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 9 — VARIABLES
+     ============================================= -->
+<section class="slide" id="slide-9">
+  <div class="paper" data-section="2">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag vars reveal">Variables</div>
+      <h2 class="slide-heading reveal"><em>Variables</em> &amp; the Home Table</h2>
+      <div class="rule-accent pink reveal"></div>
+      <div class="code-block pink-accent reveal">
+        <pre><code data-lua>local rule, var = er.rule, er.variables
+
+var.threshold = 25
+var.HT = { kitchen = { light = 54, motion = 77 } }
+
+rule("@sunset =&gt; HT.kitchen.light:on")
+rule("tempSensor:value &gt; threshold =&gt; fan:on")
+
+function var.securityCheck()
+  if frontDoor:isOpen then log('Door open!') end
+end</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>er.variables</code> (alias <code>var</code>) — shared across all rules in scope</li>
+        <li>A <strong>Home Table</strong> organises device IDs into readable paths</li>
+      </ul>
+      <div class="slide-num">09 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 10 — TRIGGER VARIABLES
+     ============================================= -->
+<section class="slide" id="slide-10">
+  <div class="paper" data-section="2">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag vars reveal">Variables</div>
+      <h2 class="slide-heading reveal"><em>Trigger</em> Variables</h2>
+      <div class="rule-accent pink reveal"></div>
+      <div class="code-block pink-accent reveal">
+        <pre><code data-lua>local rule, triggerVar = er.rule, er.triggerVariables
+
+triggerVar.homeOccupied = false
+
+-- This rule fires whenever homeOccupied changes to true
+rule("homeOccupied == true =&gt; log('Someone is home!')")
+
+rule("@sunset =&gt; homeOccupied = true")
+rule("motionSensor:breached =&gt; homeOccupied = true")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Writing to <code>triggerVar.x</code> posts a <code>trigger-variable</code> event, firing any watching rule</li>
+        <li>Unlike plain variables, these <strong>react</strong> — they are the subject of conditions</li>
+      </ul>
+      <div class="slide-num">10 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 11 — ASYNC ACTIONS: wait()
+     ============================================= -->
+<section class="slide" id="slide-11">
+  <div class="paper" data-section="2">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag vars reveal">Variables</div>
+      <h2 class="slide-heading reveal">Async Actions: <em>wait()</em></h2>
+      <div class="rule-accent pink reveal"></div>
+      <div class="code-block pink-accent reveal">
+        <pre><code data-lua>-- Turn light on, wait 5 min, turn off if no motion
+rule([[motion:breached =&gt;
+  hallLight:on;
+  wait(300000);           -- 300 000 ms = 5 minutes
+  if !motion:breached then
+    hallLight:off
+  end
+]])</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>wait(ms)</code> suspends the action and resumes via <code>setTimeout</code></li>
+        <li>Multiple <code>wait</code> calls chain correctly in sequence</li>
+        <li>Set <code>rule.verbosity = "verbose"</code> to log 💤 / ⏰ around each wait</li>
+      </ul>
+      <div class="slide-num">11 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 12 — CUSTOM EVENTS: BASICS
+     ============================================= -->
+<section class="slide" id="slide-12">
+  <div class="paper" data-section="3">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag events reveal">Events</div>
+      <h2 class="slide-heading reveal">Custom <em>Events</em></h2>
+      <div class="rule-accent sky reveal"></div>
+      <div class="code-block sky-accent reveal">
+        <pre><code data-lua>-- Post a named event from a trigger
+rule("@sunset =&gt; post(#eveningRoutine)")
+rule("motion:breached &amp; 22:00..06:00 =&gt; post(#nightMode)")
+
+-- Handlers act like named subroutines
+rule([[#eveningRoutine =&gt;
+  outdoorLights:on;
+  securitySystem:arm;
+  log('Evening routine activated')
+]])</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>#name</code> is a custom event — use <code>post(#name)</code> to fire it</li>
+        <li>Event rules decouple triggers from logic, keeping rules small and clear</li>
+      </ul>
+      <div class="slide-num">12 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 13 — EVENTS: SCHEDULING
+     ============================================= -->
+<section class="slide" id="slide-13">
+  <div class="paper" data-section="3">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag events reveal">Events</div>
+      <h2 class="slide-heading reveal">Scheduling <em>Events</em></h2>
+      <div class="rule-accent sky reveal"></div>
+      <div class="code-block sky-accent reveal">
+        <pre><code data-lua>-- Relative delay  (+/ prefix)
+rule("@sunset =&gt; post(#lightsOff, +/01:30)")    -- 1h 30m later
+rule("motion:breached =&gt; post(#autoOff, +/00:05)") -- 5min later
+
+-- Absolute time  (t/ = today, n/ = today-or-tomorrow)
+rule("@08:00 =&gt; post(#cleanup, n/10:00)")       -- next 10:00
+rule("@sunset =&gt; post(#bedtime, t/23:00)")      -- 23:00 today</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>+/HH:MM</code> — relative delay from now</li>
+        <li><code>t/HH:MM</code> — absolute time today; <code>n/HH:MM</code> — today or tomorrow</li>
+        <li>Full dates: <code>2026/12/24/18:00</code> or <code>/12/24/18:00</code> (this year)</li>
+      </ul>
+      <div class="slide-num">13 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 14 — EVENTS: PARAMETERS
+     ============================================= -->
+<section class="slide" id="slide-14">
+  <div class="paper" data-section="3">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag events reveal">Events</div>
+      <h2 class="slide-heading reveal">Event <em>Parameters</em></h2>
+      <div class="rule-accent sky reveal"></div>
+      <div class="code-block sky-accent reveal">
+        <pre><code data-lua>rule("temp:value &gt; 25 =&gt; post(#alert{level='high'})")
+rule("temp:value &lt; 15 =&gt; post(#alert{level='low'})")
+
+-- Pattern-match on parameters
+rule("#alert{level='high'} =&gt; fan:on")
+rule("#alert{level='low'}  =&gt; heater:on")
+rule("#alert =&gt; log('Temp event: %s', level)") -- catch-all
+
+rule("motion:breached =&gt; post(#motion{room='hall'})") </code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Parameters flow into the action scope as named locals</li>
+        <li>A rule without params is a catch-all — receives any matching event name</li>
+      </ul>
+      <div class="slide-num">14 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 15 — CANCEL & DEBOUNCE
+     ============================================= -->
+<section class="slide" id="slide-15">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Cancel &amp; <em>Debounce</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Each new motion event resets the 10-minute countdown
+rule([[motion:breached =&gt;
+  cancel(lightTimer);                       -- safe if nil
+  lightTimer = post(#autoOff, +/00:10);     -- reset timer
+  hallLight:on
+]])
+
+rule([[#autoOff =&gt;
+  if !motion:breached then hallLight:off end
+]])</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>cancel(ref)</code> is safe to call on <code>nil</code> or an already-fired reference</li>
+        <li>This pattern keeps a light on as long as motion continues, then auto-off</li>
+      </ul>
+      <div class="slide-num">15 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 16 — BEST PRACTICES
+     ============================================= -->
+<section class="slide" id="slide-16">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Best <em>Practices</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <ul class="bullet-list reveal">
+        <li><strong>Use a Home Table</strong> — organise device IDs so rules read like plain English</li>
+        <li><strong>One rule, one responsibility</strong> — post events to break complex logic into subroutines</li>
+        <li><strong>Add <code>catch</code></strong> to morning time rules so they fire on restart if the time has passed</li>
+        <li><strong>Align intervals</strong> with <code>@@-HH:MM</code> for on-the-clock reports</li>
+        <li><strong>Use verbosity</strong> — set <code>rule.verbosity = "verbose"</code> while debugging, then revert</li>
+        <li><strong>Cancel before post</strong> — always <code>cancel(timer)</code> before rescheduling to avoid duplicates</li>
+      </ul>
+      <div class="slide-num">16 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   =========================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides      = Array.from(document.querySelectorAll('.slide'));
+    this.current     = 0;
+    this.total       = this.slides.length;
+    this.isAnimating = false;
+
+    this._setupObserver();
+    this._setupKeyboard();
+    this._setupTouch();
+    this._setupWheel();
+    this._buildNavDots();
+    this._updateProgress();
+    this._updateDots();
+
+    // Mark first slide visible immediately
+    this.slides[0].classList.add('visible');
+  }
+
+  /* --- INTERSECTION OBSERVER --- */
+  _setupObserver() {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          const idx = this.slides.indexOf(entry.target);
+          if (idx !== -1) {
+            this.current = idx;
+            this._updateProgress();
+            this._updateDots();
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+    this.slides.forEach(s => io.observe(s));
+  }
+
+  /* --- KEYBOARD NAVIGATION --- */
+  _setupKeyboard() {
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') { e.preventDefault(); editorSave(); return; }
+      if (e.key === 'e' || e.key === 'E') { toggleEditMode(); return; }
+      if (['ArrowDown','ArrowRight','PageDown','Space',' '].includes(e.key)) {
+        e.preventDefault();
+        this._goTo(Math.min(this.current + 1, this.total - 1));
+      } else if (['ArrowUp','ArrowLeft','PageUp'].includes(e.key)) {
+        e.preventDefault();
+        this._goTo(Math.max(this.current - 1, 0));
+      } else if (e.key === 'Home') {
+        e.preventDefault(); this._goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); this._goTo(this.total - 1);
+      }
+    });
+  }
+
+  /* --- TOUCH/SWIPE --- */
+  _setupTouch() {
+    let startY = 0, startX = 0;
+    document.addEventListener('touchstart', e => {
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dy = startY - e.changedTouches[0].clientY;
+      const dx = startX - e.changedTouches[0].clientX;
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 40) {
+        this._goTo(dy > 0
+          ? Math.min(this.current + 1, this.total - 1)
+          : Math.max(this.current - 1, 0));
+      }
+    }, { passive: true });
+  }
+
+  /* --- MOUSE WHEEL --- */
+  _setupWheel() {
+    let lastWheel = 0;
+    document.addEventListener('wheel', e => {
+      const now = Date.now();
+      if (now - lastWheel < 600) return;
+      lastWheel = now;
+      e.preventDefault();
+      this._goTo(e.deltaY > 0
+        ? Math.min(this.current + 1, this.total - 1)
+        : Math.max(this.current - 1, 0));
+    }, { passive: false });
+  }
+
+  /* --- NAVIGATE TO SLIDE --- */
+  _goTo(idx) {
+    if (idx === this.current) return;
+    this.current = idx;
+    this.slides[idx].scrollIntoView({ behavior: 'smooth' });
+    this._updateProgress();
+    this._updateDots();
+  }
+
+  /* --- PROGRESS BAR --- */
+  _updateProgress() {
+    const pct = this.total > 1
+      ? (this.current / (this.total - 1)) * 100
+      : 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+  }
+
+  /* --- NAV DOTS --- */
+  _buildNavDots() {
+    const container = document.getElementById('nav-dots');
+    container.innerHTML = '';
+    this.slides.forEach((_, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'nav-dot' + (i === 0 ? ' active' : '');
+      btn.setAttribute('aria-label', `Go to slide ${i + 1}`);
+      btn.addEventListener('click', () => this._goTo(i));
+      container.appendChild(btn);
+    });
+  }
+
+  _updateDots() {
+    const dots = document.querySelectorAll('.nav-dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === this.current));
+  }
+}
+
+/* ===========================================
+   LUA SYNTAX HIGHLIGHTER
+   =========================================== */
+const LUA_KW = /\b(local|function|if|then|else|elseif|end|do|while|for|in|return|true|false|nil|not|and|or|repeat|until|break)\b/g;
+const LUA_STR_SQ = /'([^'\\]|\\.)*'/g;
+const LUA_STR_DQ = /"([^"\\]|\\.)*"/g;
+const LUA_CMT = /--.*/g;
+const LUA_NUM = /\b\d+(\.\d+)?\b/g;
+// Lua method/function calls: word followed by ( or :
+const LUA_CALL = /\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*[\(:.])/g;
+
+function highlightLua(text) {
+  // We process in pass to avoid re-matching inside already-tagged spans.
+  // Strategy: replace with placeholder tokens, then restore.
+  const placeholders = [];
+  function stash(s) { placeholders.push(s); return `\x00${placeholders.length - 1}\x00`; }
+
+  // 1. Escape HTML entities (already done in source as &lt; etc.)
+  // 2. Extract comments first (highest priority)
+  text = text.replace(LUA_CMT, m => stash(`<span class="cmt">${m}</span>`));
+  // 3. String literals
+  text = text.replace(LUA_STR_SQ, m => stash(`<span class="str">${m}</span>`));
+  text = text.replace(LUA_STR_DQ, m => stash(`<span class="str">${m}</span>`));
+  // 4. Numbers
+  text = text.replace(LUA_NUM, m => stash(`<span class="num">${m}</span>`));
+  // 5. Keywords
+  text = text.replace(LUA_KW, m => stash(`<span class="kw">${m}</span>`));
+  // 6. Function/method calls
+  // Only color identifiers that are followed by ( (not : device syntax)
+  text = text.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/g,
+    (m, name) => stash(`<span class="fn">${name}</span>`));
+  // 7. Restore placeholders
+  text = text.replace(/\x00(\d+)\x00/g, (_, i) => placeholders[+i]);
+  return text;
+}
+
+document.querySelectorAll('code[data-lua]').forEach(el => {
+  el.innerHTML = highlightLua(el.innerHTML);
+});
+
+/* ===========================================
+   INLINE EDITING
+   =========================================== */
+let editMode = false;
+let editTimeout = null;
+const hotzone  = document.getElementById('edit-hotzone');
+const editBtn  = document.getElementById('edit-toggle');
+const EDITABLE = 'h1, h2, p, li, .ab-code, .fc-title, .fc-body';
+
+hotzone.addEventListener('mouseenter', () => {
+  editTimeout = setTimeout(() => { editBtn.style.display = 'block'; }, 400);
+});
+hotzone.addEventListener('mouseleave', () => {
+  clearTimeout(editTimeout);
+  if (!editMode) setTimeout(() => { editBtn.style.display = 'none'; }, 600);
+});
+editBtn.addEventListener('mouseleave', () => {
+  if (!editMode) setTimeout(() => { editBtn.style.display = 'none'; }, 600);
+});
+editBtn.addEventListener('click', toggleEditMode);
+
+function toggleEditMode() {
+  editMode = !editMode;
+  document.body.classList.toggle('edit-mode', editMode);
+  editBtn.textContent = editMode ? 'Done' : 'Edit';
+  editBtn.classList.toggle('active', editMode);
+  editBtn.style.display = 'block';
+
+  document.querySelectorAll(EDITABLE).forEach(el => {
+    if (editMode) {
+      el.contentEditable = 'true';
+      el.spellcheck = false;
+    } else {
+      el.contentEditable = 'false';
+    }
+  });
+
+  if (editMode) {
+    alert('Click any text to edit it.\nCtrl+S or Cmd+S to save.');
+  } else {
+    editorSave();
+  }
+}
+
+function editorSave() {
+  // Save to localStorage
+  const key = 'eventscript-slides-v1';
+  const data = {};
+  document.querySelectorAll('.slide').forEach((s, i) => {
+    data[i] = s.querySelector('.page-content').innerHTML;
+  });
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+
+  // Export current HTML to file
+  const html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'eventscript-rules.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Restore from localStorage on load
+(function restoreEdits() {
+  try {
+    const saved = localStorage.getItem('eventscript-slides-v1');
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    document.querySelectorAll('.slide').forEach((s, i) => {
+      if (data[i]) {
+        const pc = s.querySelector('.page-content');
+        if (pc) pc.innerHTML = data[i];
+      }
+    });
+    // Re-run highlighter after restore
+    document.querySelectorAll('code[data-lua]').forEach(el => {
+      if (!el.querySelector('.kw')) el.innerHTML = highlightLua(el.innerHTML);
+    });
+  } catch(e) {}
+})();
+
+/* ===========================================
+   BOOT
+   =========================================== */
+const presentation = new SlidePresentation();
+</script>
+</body>
+</html>

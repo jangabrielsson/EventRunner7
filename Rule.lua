@@ -127,8 +127,8 @@ local function compRule(r)
       post = {postR}, 
       cancel = {cancelR},
       setTimeout = {setTimeoutR},
-      enable = {function() rule:enable() end},
-      disable = {function() rule:disable() end},
+      enable = {function() rule.enable() end},
+      disable = {function() rule.disable() end},
     }
     for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
@@ -232,10 +232,7 @@ local function compRule(r)
     logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
     ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event=event})})
   end
-  
-  function rule:disable() rule._disabled = true end
-  function rule:enable() rule._disabled = nil end
-  
+
   function rule:dumpTriggers(pref)
     for _, tr in pairs(trs.triggers) do
       local a = getmetatable(tr)
@@ -245,7 +242,16 @@ local function compRule(r)
       print(pref or "  ", dfltPrefix.dailyListPrefix, ER.timeStr(t()))
     end
   end
-  
+
+  function rule.start(event) rule:run(event) return rule end
+  function rule.disable() rule._disabled = true return rule end
+  function rule.enable() rule._disabled = nil return rule end
+  function rule.info() 
+    print(tostring(rule)..":", rule.src)
+    rule:dumpTriggers("  ")
+    return rule
+  end
+
   logRule(rule,"normal",dfltPrefix.ruleDefPrefix, "registered:")
   if shouldLog(rule, "normal") then rule:dumpTriggers("- ") end
   return rule
@@ -446,6 +452,19 @@ function resumeRunner(res, rule, cb)
   cb(table.unpack(res, 2))
 end
 
+local function beautifyArgs(args, res) -- recursively convert args to more readable forms for logging
+  res = res or {}
+  for i=1,args.n or #args do 
+    local obj = args[i]
+    local tstr = (getmetatable(obj) or {}).__tostring
+    if tstr then res[i] = (type(tstr) == 'function') and tstr(obj) or tstr -- honor __tostring if it exists
+    elseif type(obj) == 'table' then -- json enoce tables
+      res[i] = json.encode(beautifyArgs(table.pack(table.unpack(obj)), {}))
+    else res[i] = tostring(obj) end
+  end
+  return res
+end
+
 -- ruleRunner(f)       → bare eval: always logs, returns value(s) or nil
 -- ruleRunner(f, rule) → triggered action: logs per rule.verbosity
 function ruleRunner(f, rule, opts)
@@ -528,7 +547,7 @@ local function eval(src,opts)
   -- Rule form: compRule already logged ✅ with trigger list.
   if not isRule and result and result[1] ~= nil then
     if not (opts.verbosity == "silent") then 
-      print(dfltPrefix.resultPrefix, table.unpack(result, 1, result.n))
+      print(dfltPrefix.resultPrefix, table.unpack(beautifyArgs(result), 1, result.n))
     end
   end
   

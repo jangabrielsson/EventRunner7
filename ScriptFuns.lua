@@ -237,7 +237,8 @@ end
   ER.propFilters = filters
 end
 
-local function getProp(obj, key)
+local function getProp(obj, key, ctx)
+  local found,event = ctx:getVar('event')
   if ER.propFilters[key] then
     if type(obj) ~= 'table' then obj = {obj} end
     return ER.propFilters[key](obj)
@@ -251,31 +252,32 @@ local function getProp(obj, key)
       return table.map(function(o) 
         o = ER.resolvePropObject(o)
         if not o:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
-        return o:_getProp(key)
+        return o:_getProp(key, event)
       end, obj)
     end
     return reduce(function(o) 
         o = ER.resolvePropObject(o)
         if not o:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
-        return o:_getProp(key)
+        return o:_getProp(key, event)
       end, obj)
   end
   obj = ER.resolvePropObject(obj)
   assert(obj:hasGetProp(key), "no such property :"..tostring(key).." (get)")
-  return obj:_getProp(key)
+  return obj:_getProp(key, event)
 end
 
-local function setProp(obj, key, value)
+local function setProp(obj, key, value, ctx)
+  local found,event = ctx:getVar('event')
   if type(obj) == "table" then
     for _,obj in ipairs(obj) do
-      setProp(obj, key, value)
+      setProp(obj, key, value, ctx)
     end
     return true
   end
   obj = ER.resolvePropObject(obj)
   assert(obj:hasSetProp(key), "no such property :"..tostring(key).." (set)")
   --obj = ER.resolvePropObject(obj)
-  obj:_setProp(key, value)
+  obj:_setProp(key, value, event)
   return true
 end
 

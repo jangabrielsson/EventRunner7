@@ -43,7 +43,7 @@ local function main(er) ER = er
   er.defglobals.mydev = MyDevice()
 
   rule("temps = { mydev, temp1, temp2, temp3}")
-  rule("json.encode(temps:temp)")
+  --rule("json.encode(temps:temp)")
 end
 
 

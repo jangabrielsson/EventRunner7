@@ -954,20 +954,20 @@ end
 NumberPropObject = {}
 class 'NumberPropObject'(PropObject)
 function NumberPropObject:__init(num)  PropObject.__init(self) self.id = num end
-function NumberPropObject:_getProp(prop)
+function NumberPropObject:_getProp(prop, event)
   local gp = ER.getProps[prop]
   if not gp then error("Unknown property: "..tostring(prop)) end
   local fun = gp[2]
   local prop = gp[3]
-  local value = fun(self.id,prop) --,env.trigger)
+  local value = fun(self.id,prop,event)
   return value
 end
-function NumberPropObject:_setProp(prop,value)
+function NumberPropObject:_setProp(prop,value, event)
   local sp = ER.setProps[prop]
   if not sp then return nil,"Unknown property: "..tostring(prop) end
   local fun = sp[1]
   local cmd = sp[2]
-  local r = fun(self.id,cmd,value)
+  local r = fun(self.id,cmd,value,event)
   return true
 end
 function NumberPropObject:hasReduce(prop) return  (ER.getProps[prop] or {})[4] end
