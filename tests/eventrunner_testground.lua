@@ -25,9 +25,25 @@ local function main(er) ER = er
   er.defglobals.window1 = loadDevice("windowSensor")
   er.defglobals.window2 = loadDevice("windowSensor")
   er.defglobals.fire1 = loadDevice("fireDetector")
+  er.defglobals.temp1 = loadDevice("temperatureSensor")
+  er.defglobals.temp2 = loadDevice("temperatureSensor")
+  er.defglobals.temp3 = loadDevice("temperatureSensor")
+  
+  rule("temp1:value = 10; temp2:value = 20; temp3:value = 30")
 
-  rule("a=2; a += 66; return a")
+  er.definePropClass("MyDevice")
+  function MyDevice:__init() self.value = 21; er.PropObject.__init(self) end
+  function MyDevice.getProp:temp() return self.value end
+  function MyDevice.setProp:temp(prop, value) self.value = value return true end
+  function MyDevice.map.temp(fun,list) 
+    local sum = 0
+    for _,v in ipairs(list) do sum = sum + fun(v) end
+    return sum
+  end
+  er.defglobals.mydev = MyDevice()
 
+  rule("temps = { mydev, temp1, temp2, temp3}")
+  rule("json.encode(temps:temp)")
 end
 
 

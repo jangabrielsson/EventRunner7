@@ -907,7 +907,7 @@ local function deviceManager()
   function self:remove(id) devs[id] = nil end
   function self:isDevice(id) return devs[id] end
   function hasAction(d,action) return self:isDevice(d) and self:isDevice(d).actions and self:isDevice(d).actions[action] end
-  
+
   local devices = api.get("/devices")
   for _,d in ipairs(devices) do self:register(d.id, d) end
   ER.sourceTrigger:subscribe({type='deviceEvent'}, function(ev) 
@@ -915,6 +915,77 @@ local function deviceManager()
     if ev.value == 'removed' then self:remove(ev.id) elseif ev.value == 'created' then self:register(ev.id) end
   end)
   return self
+end
+
+PropObject = {}
+class 'PropObject'
+function PropObject:__init()
+  self._isPropObject = true
+  self.__str="PObj:"..tostring({}):match("(%d.*)")
+end
+function PropObject:hasGetProp(prop) return self.getProp[prop] end
+function PropObject:hasSetProp(prop) return self.setProp[prop] end
+function PropObject:isTrigger(prop) return self.trigger[prop] end
+function PropObject:hasReduce(prop) return self.map[prop] end
+function PropObject:_setProp(prop,value)
+  local sp = self.setProp[prop]
+  if not sp then return nil,"Unknown property: "..tostring(prop) end
+  sp(self,prop,value)
+  return true
+end
+function PropObject:_getProp(prop,env)
+  local gp = self.getProp[prop]
+  if not gp then return nil,"Unknown property: "..tostring(prop) end
+  return gp(self,prop)
+end
+function PropObject:getTrigger(id,prop)
+  local t = self.trigger[prop]
+  return t and type(t) == "func".."tion" and t(self,id,prop) or type(t) == 'table' and t or nil
+end
+function PropObject:__tostring() return self.__str end
+
+ER.PropObject = PropObject
+function ER.definePropClass(name)
+  class(name)(PropObject)
+  local cl = _G[name]
+  cl.getProp,cl.setProp,cl.trigger,cl.map={},{},{},{}
+end
+
+NumberPropObject = {}
+class 'NumberPropObject'(PropObject)
+function NumberPropObject:__init(num)  PropObject.__init(self) self.id = num end
+function NumberPropObject:_getProp(prop)
+  local gp = ER.getProps[prop]
+  if not gp then error("Unknown property: "..tostring(prop)) end
+  local fun = gp[2]
+  local prop = gp[3]
+  local value = fun(self.id,prop) --,env.trigger)
+  return value
+end
+function NumberPropObject:_setProp(prop,value)
+  local sp = ER.setProps[prop]
+  if not sp then return nil,"Unknown property: "..tostring(prop) end
+  local fun = sp[1]
+  local cmd = sp[2]
+  local r = fun(self.id,cmd,value)
+  return true
+end
+function NumberPropObject:hasReduce(prop) return  (ER.getProps[prop] or {})[4] end
+function NumberPropObject:hasGetProp(prop) return ER.getProps[prop] end
+function NumberPropObject:hasSetProp(prop) return ER.setProps[prop] end
+function NumberPropObject:isTrigger(prop) return (ER.getProps[prop] or {})[5] end
+function NumberPropObject:getTrigger(id, prop) return {type='device', id = self.id, property =  ER.getProps[prop][3]} end
+
+local numObjects = {}
+local function preResolvePropObject(id,obj) numObjects[id] = obj end
+
+function ER.resolvePropObject(obj)
+  if type(obj) == 'userdata' and obj._isPropObject then return obj
+  elseif type(obj) == 'number' then 
+    local po = numObjects[obj] or NumberPropObject(obj)
+    numObjects[obj] = po
+    return po
+  else return nil end
 end
 
 ER.alarmFuns = alarmFuns

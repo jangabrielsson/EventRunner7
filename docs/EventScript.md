@@ -198,7 +198,7 @@ var1, var2, ..., varn = expr1, expr2, ...
 Functions can return multiple values, with the last expression supporting multiple return values:
 
 ```lua
-var1, var2, var3 = 42, myMultipleValueFun()
+var1, var2, var3 = 42, twoValuesFun()
 ```
 
 **Examples:**
@@ -406,7 +406,7 @@ rule("@{time1,time2,...} => action")      -- Trigger at multiple times
 rule("@{time,catch} => action")           -- Catchup: Run if deployed after time
 rule("12:00..sunset => action")           -- Time interval guard, mostly part of more complex triggers
 ```
-Daily triggers can only specify a time during the day. To invoke the rule and specific days add a guard to the triggerExpression to test that it is the right day.
+Daily triggers can only specify a time during the day. To invoke the rule on specific days add a guard to the triggerExpression to test that it is the right day.
 
 **Examples:**
 ```lua
@@ -453,19 +453,20 @@ rule("@sunset => post(#myEvent)")            --POst #MyEvent at sunset
 rule("#myEvent{x=42} => log('x is %s',env.event.x)")  -- Trigger on event with parameters
 rule("post(#myEvent{x=42})")                      -- Post event with parameters
 ```
-Note: the event that triggers the rule is available in the local variable ev.event.
+Values of type string and starting with prefix '\$' is considered a pattern, and will bind the variable after the '\$' to the value if there is a match. The value is added as a local variable to the rule.
+Note: the event that triggers the rule is also available in the local variable ev.p.<name\>
 
 ```lua
-rule("#myEvent{x='$v'} => log('x is %s',env.p.v)")  -- Trigger on event with pattern match
+rule("#myEvent{x='$v'} => log('x is %s',v)")  -- Trigger on event with pattern match
 rule("post(#myEvent{x=42})")                      -- Post event with parameters
 ```
-Values of type string and starting with prefix '\$' is considered a pattern, and will bind the variable after the '\$' to the value if there is a match. Matched variables are available in env.p.*
+Patterns can also contain conditions/constraints
 
 ```lua
-rule("#myEvent{x='$v>8'} => log('x is %s',env.p.v)")  -- Trigger on event with pattern match
+rule("#myEvent{x='$v>8'} => log('x is %s',v)")  -- Trigger on event with pattern match
 rule("post(#myEvent{x=9})")                      -- Post event with parameters
 ```
-Patterns can also have an operator constraints applied. The trigger event only match, and the local variable is bound, if the constraint is true.
+The trigger event only match, and the local variable is bound, if the constraint is true.
 In the above example v must be greater than 8 for the trigger event to match.
 Possible operators are
 | Operator | Description | Example |
@@ -515,8 +516,8 @@ rule("trueFor(duration, condition) => action")
 
 **Examples:**
 ```lua
-rule("trueFor(00:05, sensor:safe) => light:off")
--- Turn off light when sensor has been safe for 5 minutes
+rule("trueFor(00:05, sensor1:safe & sensor2:safe) => light:off")
+-- Turn off light when sensors has been safe for 5 minutes
 
 rule("trueFor(00:10, door:open) => log('Door open for %d minutes', 10*again(5))")
 -- Log at 10-min intervals while door stays open; again(5) re-enables firing up to 5 more times
@@ -589,11 +590,12 @@ Functions for posting, subscribing to, and managing events.
 | `publish(event)` | Publish event to remote systems | `publish(#statusUpdate)` |
 | `remote(deviceId, event)` | Send event to specific QuickApp | `remote(123, #customEvent)` |
 
+Note: remote events requires the other QA to be an EventRunner QA.
+
 **Examples:**
 ```lua
 rule("@sunset => timerRef = post(#lightsOff, '+01:00')")  -- Post event in 1 hour
 rule("motion:breached => cancel(timerRef)")               -- Cancel scheduled event
-rule("#remoteEvent => log('Received remote event')")     -- Handle remote event
 rule("alarm:armed => remote(456, #securityAlert)")       -- Send to specific device
 ```
 
@@ -634,7 +636,8 @@ Functions for managing Fibaro global variables.
 
 **Examples:**
 ```lua
-rule("@startup => if global('systemStatus') then systemStatus = 'running' end")
+rule("if !global('systemStatus') then log('Creating systemStatus') end")
+rule("@startup => systemStatus = 'running'")
 rule("@shutdown => deleteglobal('temporaryFlag')")
 ```
 

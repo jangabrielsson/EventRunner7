@@ -206,19 +206,63 @@ local function setupProps()
     return val
   end,""}
   
+local filters = {}
+local function NB(x) if type(x)=='number' then return x~=0 and true or false else return x end end
+local function mapAnd(l) for _,v in ipairs(l) do if not NB(v) then return false end end return true end
+local function mapOr(l) for _,v in ipairs(l) do if NB(v) then return true end end return false end
+function filters.average(list) local s = 0; for _,v in ipairs(list) do s=s+BN(v) end return s/#list end
+function filters.sum(list) local s = 0; for _,v in ipairs(list) do s=s+BN(v) end return s end
+function filters.allFalse(list) return not mapOr(list) end
+function filters.someFalse(list) return not mapAnd(list)  end
+function filters.allTrue(list) return mapAnd(list) end
+function filters.someTrue(list) return mapOr(list)  end
+function filters.mostlyTrue(list) local s = 0; for _,v in ipairs(list) do s=s+(NB(v) and 1 or 0) end return s>#list/2 end
+function filters.mostlyFalse(list) local s = 0; for _,v in ipairs(list) do s=s+(NB(v) and 0 or 1) end return s>#list/2 end
+function filters.bin(list) local s={}; for _,v in ipairs(list) do s[#s+1]=NB(v) and 1 or 0 end return s end
+function filters.id(list,ev) return ev and next(ev) and ev.id or list end -- If we called from rule trigger collector we return whole list
+local function collect(t,m)
+  if type(t)=='table' then
+    for _,v in pairs(t) do collect(v,m) end
+  else m[t]=true end
+end
+function filters.leaf(tree)
+  local map,res = {},{}
+  collect(tree,map)
+  for e,_ in pairs(map) do res[#res+1]=e end
+  return res 
+end
+
   ER.getProps = getProps
   ER.setProps = setProps
+  ER.propFilters = filters
 end
 
 local function getProp(obj, key)
-  local gf = getProps[key]
-  assert(gf, "no such property :"..tostring(key).." (get)")
-  if type(obj) == 'table' then
-    local fun, prop = gf[2], gf[3]
-    local reduce = gf[4] or table.map
-    return reduce(function(e) return fun(e, prop) end, obj)
+  if ER.propFilters[key] then
+    if type(obj) ~= 'table' then obj = {obj} end
+    return ER.propFilters[key](obj)
   end
-  return gf[2](obj, gf[3])
+  if type(obj) == 'table' then
+    assert(obj[1], "invalid property access on table without objects :"..tostring(key))
+    local fobj = ER.resolvePropObject(obj[1])
+    if not fobj:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
+    local reduce = fobj:hasReduce(key)
+    if not reduce then 
+      return table.map(function(o) 
+        o = ER.resolvePropObject(o)
+        if not o:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
+        return o:_getProp(key)
+      end, obj)
+    end
+    return reduce(function(o) 
+        o = ER.resolvePropObject(o)
+        if not o:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
+        return o:_getProp(key)
+      end, obj)
+  end
+  obj = ER.resolvePropObject(obj)
+  assert(obj:hasGetProp(key), "no such property :"..tostring(key).." (get)")
+  return obj:_getProp(key)
 end
 
 local function setProp(obj, key, value)
@@ -228,9 +272,10 @@ local function setProp(obj, key, value)
     end
     return true
   end
-  local sf = setProps[key]
-  assert(sf, "no such property :"..tostring(key).." (set)")
-  sf[1](obj, sf[2], value)
+  obj = ER.resolvePropObject(obj)
+  assert(obj:hasSetProp(key), "no such property :"..tostring(key).." (set)")
+  --obj = ER.resolvePropObject(obj)
+  obj:_setProp(key, value)
   return true
 end
 

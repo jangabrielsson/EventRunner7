@@ -3,3 +3,52 @@
 - OK, pair/ipair for loop
 - OK, table assignment
 - OK, Disable/enable rule
+
+- OK, User defined properties
+
+subscribe(event)	Subscribe to remote events	subscribe(#remoteEvent)
+publish(event)	Publish event to remote systems	publish(#statusUpdate)
+remote(deviceId, event)	Send event to specific QuickApp	remote(123, #customEvent)
+
+enable(rule)	Enable rule by ID or object	enable(nightModeRule)
+disable(rule)	Disable rule by ID or object	disable(dayModeRule)
+
+manual	Trigger	Manual operation status
+
+- OK, List Operation	Description
+- OK, average	Average of numbers in list
+- OK, sum	Sum of values in list
+- OK, allTrue	True if all values are true
+- OK, someTrue	True if at least one value is true
+- OK, allFalse	True if all values are false
+- OK, someFalse	True if at least one value is false
+- OK, mostlyTrue	True if majority of values are true
+- OK, mostlyFalse	True if majority of values are false
+
+local r = rule("triggerExpression => actions")
+r.disable() -- disables the rule and stops all timers started by the rule
+r.enable() -- enables the rule. A daily or interval rule will start to run
+r.start() -- trigger the rule manually
+r.info() 
+
+er.opts = { started = true, check = true, triggers = true }
+
+er.opts = {
+    started = boolean/function, -- true => system start log, alt. user function(rule,env,trigger)
+    check = boolean/function,   -- true => system check log, alt. user function(rule,env,cond result)
+    result = boolean/function,  -- true => system result log, alt. user function(rule,result)
+    triggers = boolean,         -- list triggers when rule defined
+    waiting = boolean/function, -- true => system waiting log, alt. user function(rule,env,time)
+    waited = boolean/function,  -- true => system waited log, alt. user function(rule,env,time)
+    defined = boolean/function,  -- true => log rule defined, alt. user function(rule)
+    ruleDefPrefix = "✅",       -- prefix string for rule defined result
+    triggerListPrefix = "⚡",    -- prefix string for listed rule triggers
+    dailyListPrefix = "🕒",     -- prefix string for listed rule dailys
+    startPrefix = "🎬",         -- prefix string for rule started/triggered
+    successPrefix = "👍",       -- prefix string for rule check/success
+    failPrefix = "👎",          -- prefix string for rule check/fail
+    resultPrefix = "📋",        -- prefix string for rule result
+    errorPrefix = "❌",         -- prefix string for rule compile error
+    waitPrefix = "💤",          -- prefix string for rule waiting/sleep notification
+    waitedPrefix = "⏰",        -- prefix string for rule waited/awake notification
+} 

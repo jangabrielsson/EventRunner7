@@ -576,6 +576,8 @@ function fibaro.EventRunner(cb)
   
   midnightLoop()
   
+  er.definePropClass = ER.definePropClass
+  er.PropObject = ER.PropObject
   er.loadSimDevice = ER.loadSimDevice
   er.createSimGlobal = ER.defineSimGlobalVariable
   er.loadPluaDevice = ER.loadPluaDevice
@@ -583,7 +585,7 @@ function fibaro.EventRunner(cb)
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
   
   ER.deviceManager()
-  
+
   setTimeout(function() 
     sourceTrigger:run()
     cb(er) 
