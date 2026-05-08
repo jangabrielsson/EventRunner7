@@ -274,18 +274,25 @@ local function stdScan(ast,trs)
 end
 
 -- Std Head Ops: just scan their children
-local stdHOPS = {"RETURN", "NOT", "AND", "OR", "CALL","ADD", "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW"}
+local stdHOPS = {
+  "RETURN", "NOT", "AND", "OR", "CALL","ADD", 
+  "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW"
+}
 local HOPS = {}
 for _,op in ipairs(stdHOPS) do HOPS[op] = stdScan end
 
 function HOPS.GETPROP(ast,trs)
   local obj = exprFun(ast[2])()
   local key = ast[3]
-  local gf = ER.getProps[key]
-  assert(gf, "GETPROP: no such property '"..tostring(key).."'")
   if type(obj) ~= 'table' then obj = {obj} end
-  for k,v in pairs(obj) do
-    trs.triggers[gf[3]..v] = {type='device', id = v, property = gf[3]}
+  for _,o in pairs(obj) do
+    local gp = ER.resolvePropObject(o)
+    if not gp:hasGetProp(key) then
+      error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp))
+    end
+    local trigger = gp:getTrigger(o,key)
+    local id = trigger.property or trigger.name or trigger.type
+    trs.triggers[id..tostring(gp)] = trigger
   end
 end
 
@@ -583,7 +590,6 @@ function fibaro.EventRunner(cb)
   })
   ER.async = er.async
   
-  ER.setupProps()
   ER.setupFuns()
   setupGlobalVariables()
   

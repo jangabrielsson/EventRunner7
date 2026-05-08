@@ -33,8 +33,9 @@ local function main(er) ER = er
 
   er.definePropClass("MyDevice")
   function MyDevice:__init() self.value = 21; er.PropObject.__init(self) end
-  function MyDevice.getProp:temp() return self.value end
-  function MyDevice.setProp:temp(prop, value) self.value = value return true end
+  function MyDevice.getProp:temp(_) return self.value end
+  function MyDevice.setProp:temp(_, value) self.value = value return true end
+  function MyDevice.trigger:temp() return {type='device', id=tostring(self), property='value'} end
   function MyDevice.map.temp(fun,list) 
     local sum = 0
     for _,v in ipairs(list) do sum = sum + fun(v) end
@@ -42,7 +43,8 @@ local function main(er) ER = er
   end
   er.defglobals.mydev = MyDevice()
 
-  rule("temps = { mydev, temp1, temp2, temp3}")
+  --rule("temps = { mydev, temp1, temp2, temp3}")
+  rule("mydev:temp => log('OK')")
   --rule("json.encode(temps:temp)")
 end
 
