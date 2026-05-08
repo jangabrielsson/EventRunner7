@@ -234,7 +234,6 @@ local function setupFuns()
 
 end
 
-ER.setupProps = setupProps
 ER.setupFuns = setupFuns
 ER.getProp = getProp
 ER.setProp = setProp
