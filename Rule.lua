@@ -13,7 +13,19 @@ local DAILYID = 1
 local rules = {}
 ER._triggerVars = {}
 
-local dfltPrefix = {
+local function isRule(obj) return type(obj) == 'table' and obj.type == 'RULE' end
+local function getRule(rule) 
+  return isRule(rule) and rule or rules[tonumber(rule) or 0]
+end
+
+local dfltPrefix = { -- This is the defaults opts table. A mix of flags and log prefixes that the user can customize.
+  started = false,  -- true => system start log, alt. user function(rule,env,trigger)
+  check = true,    -- true => system check log, alt. user function(rule,env,cond result)
+  result = false,  -- true => system result log, alt. user function(rule,result)
+  triggers = true, -- true => list triggers when rule defined, alt. user function(rule)
+  waiting = false, -- true => system waiting log, alt. user function(rule,env,time)
+  waited = false,  -- true => system waited log, alt. user function(rule,env,time)
+  defined = true, -- true => log rule defined, alt. user function(rule)
   warningPrefix = "⚠️",
   ruleDefPrefix = "✅",
   triggerListPrefix = "⚡",
@@ -44,7 +56,7 @@ end
 local function logRule(rule, minLevel, prefix, ...)
   if rule ~= nil then
     if not shouldLog(rule, minLevel) then return end
-    if prefix == dfltPrefix.errorPrefix and rule.src then
+    if prefix == rule.opts.errorPrefix and rule.src then
       print(prefix, tostring(rule)..":", ..., "\n  rule: "..rule.src)
     else
       print(prefix, tostring(rule)..":", ...)
@@ -86,7 +98,7 @@ local function compRule(r)
   opts = opts or {}
   
   RULEIDX = RULEIDX + 1
-  local rule = { id = RULEIDX, verbosity = opts.verbosity or "normal", src = ER._ruleSrc }
+  local rule = { type='RULE', id = RULEIDX, verbosity = opts.verbosity or "normal", src = ER._ruleSrc, opts = opts }
   rules[RULEIDX] = rule
   setmetatable(rule, {
     __tostring = function(self) return "RULE" .. tostring(self.id) end
@@ -127,8 +139,8 @@ local function compRule(r)
       post = {postR}, 
       cancel = {cancelR},
       setTimeout = {setTimeoutR},
-      enable = {function() rule.enable() end},
-      disable = {function() rule.disable() end},
+      enable = {function(id) rule.enable(id) end},
+      disable = {function(id) rule.disable(id) end},
     }
     for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
@@ -142,11 +154,11 @@ local function compRule(r)
     sourceTrigger:subscribe(event, function(ev)
       if rule._disabled then return end
       if recalcDaily then 
-        logRule(rule, "silent", dfltPrefix.dailyListPrefix, "Recalculating Daily timers")
+        logRule(rule, "silent", opts.dailyListPrefix, "Recalculating Daily timers")
         for _,r in pairs(rules) do r:setupDaily() end
         return
       end
-      logRule(rule, "verbose", dfltPrefix.startPrefix)
+      if opts.started then logRule(rule, "normal", opts.startPrefix, ev.event) end
       ruleRunner(rule.fun, rule, {
         vars = mkEvVars(key,ev)})
       end
@@ -159,7 +171,7 @@ local function compRule(r)
   local intervalEvent = {type='INTERVAL', id=rule.id}
   if trs.interval then
     sourceTrigger:subscribe(intervalEvent, function(ev)
-      logRule(rule, "verbose", dfltPrefix.startPrefix, "(interval)")
+      logRule(rule, "verbose", opts.startPrefix, "(interval)")
       ruleRunner(rule.fun, rule, {
         vars = mkEvVars('INTERVAL',{event=intervalEvent})})
       end
@@ -195,7 +207,7 @@ local function compRule(r)
       DAILYID = DAILYID + 1
       sourceTrigger:subscribe(subev, function(ev)
         if rule._disabled then return end
-        logRule(rule, "verbose", dfltPrefix.startPrefix,tostring(subev))
+        logRule(rule, "verbose", opts.startPrefix,tostring(subev))
         ruleRunner(rule.fun, rule, {
           vars = mkEvVars('DAILY',ev)})
         end
@@ -216,10 +228,10 @@ local function compRule(r)
       if t < ER.D2024 then t = t + midnight end
       -- if time has already passed for today, skip
       if t >= now then
-        logRule(rule, "verbose", dfltPrefix.dailyListPrefix,"Daily trigger scheduled fo".."r "..ER.timeStr(t))
+        logRule(rule, "verbose", opts.dailyListPrefix,"Daily trigger scheduled fo".."r "..ER.timeStr(t))
         dtimers[#dtimers+1] = postR(subev,t-now)
       elseif catch then -- unless we are in catch node..
-        logRule(rule, "verbose", dfltPrefix.dailyListPrefix,"Daily trigger "..ER.timeStr(t).." missed, catching now")
+        logRule(rule, "verbose", opts.dailyListPrefix,"Daily trigger "..ER.timeStr(t).." missed, catching now")
         postR(subev,0)
       end
     end
@@ -229,31 +241,49 @@ local function compRule(r)
   
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run(event)
-    logRule(self, "verbose", dfltPrefix.startPrefix, "(manual)")
+    logRule(self, "verbose", self.opts.startPrefix, "(manual)")
     ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event=event})})
   end
 
   function rule:dumpTriggers(pref)
     for _, tr in pairs(trs.triggers) do
       local a = getmetatable(tr)
-      print(pref or "  ", dfltPrefix.triggerListPrefix, tr)
+      print(pref or "  ", self.opts.triggerListPrefix, tr)
     end
     for t,_ in pairs(rule.dailys) do
-      print(pref or "  ", dfltPrefix.dailyListPrefix, ER.timeStr(t()))
+      print(pref or "  ", self.opts.dailyListPrefix, ER.timeStr(t()))
     end
   end
 
   function rule.start(event) rule:run(event) return rule end
-  function rule.disable() rule._disabled = true return rule end
-  function rule.enable() rule._disabled = nil return rule end
+  function rule.disable(id) 
+    if id == nil then rule._disabled = true 
+    else 
+      local r = getRule(id)
+      if r then r.disable() end
+    end
+    return rule
+  end
+  function rule.enable(id) 
+    if id == nil then rule._disabled = nil 
+    else 
+      local r = getRule(id)
+      if r then r.enable() end
+    end
+    return rule
+  end
   function rule.info() 
     print(tostring(rule)..":", rule.src)
     rule:dumpTriggers("  ")
     return rule
   end
 
-  logRule(rule,"normal",dfltPrefix.ruleDefPrefix, "registered:")
-  if shouldLog(rule, "normal") then rule:dumpTriggers("- ") end
+  if opts.defined then
+    logRule(rule,"normal",rule.opts.ruleDefPrefix, "registered:")
+    if opts.triggers then
+      if shouldLog(rule, "normal") then rule:dumpTriggers("- ") end
+    end
+  end
   return rule
 end
 
@@ -392,32 +422,42 @@ local yieldHandlers = {
   sleep = function(cf, rule, cb, ms)
     local opts = cf.ctx.opts or {}
     ms = math.floor(ms*1000+0.5)
-    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("sleeping %dms", ms))
+    local o = rule.opts or opts
+    if o.waiting then
+      logRule(rule or opts, "normal", o.waitPrefix, fmt("sleeping %dms", ms))
+    end
     setTimeout(function()
-      logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("woke after %dms", ms))
+      if o.waited then
+        logRule(rule or opts, "normal", o.waitedPrefix, fmt("woke after %dms", ms))
+      end
       local ok, err = pcall(function()
         resumeRunner(table.pack(ER.csp.resume(cf, ms)), rule, cb)
       end)
       if not ok then
-        logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
+        logRule(rule or opts, "normal", o.errorPrefix, err)
       end
     end, ms)
   end,
   asyncFun = function(cf, rule, cb, fun, ...)
     local timedOut,timeref = false,nil
     local opts = cf.ctx.opts or {}
-    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, fmt("calling async func".."tion %s", tostring(fun)))
+    local o = rule.opts or opts
+    if o.waiting then
+      logRule(rule or opts, "normal", o.waitPrefix, fmt("calling async func".."tion %s", tostring(fun)))
+    end
     local fcb = setmetatable({cf=cf,rule=rule}, {
       __call = function(self,...) 
         if timeref then timeref = clearTimeout(timeref) end
         if timedOut then return end
-        logRule(rule or opts, "verbose", dfltPrefix.waitedPrefix, fmt("back from async func %s", tostring(fun)))
+        if o.waited then
+          logRule(rule or opts, "normal", o.waitedPrefix, fmt("back from async func %s", tostring(fun)))
+        end
         local args = table.pack(...)
         local ok, err = pcall(function()
           resumeRunner(table.pack(ER.csp.resume(cf, table.unpack(args, 1, args.n))), rule, cb)
         end)
         if not ok then
-          logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
+          logRule(rule or opts, "normal", o.errorPrefix, err)
         end
       end
     }) 
@@ -429,17 +469,17 @@ local yieldHandlers = {
         timeref = setTimeout(function() 
           timeref = nil
           timedOut = true
-          logRule(rule or opts, "verbose", dfltPrefix.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
+          logRule(rule or opts, "verbose", o.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
           local ok, err = pcall(function()
             resumeRunner(table.pack(ER.csp.resume(cf, false)), rule, cb)
           end)
           if not ok then
-            logRule(rule or opts, "normal", dfltPrefix.errorPrefix, err)
+            logRule(rule or opts, "normal", o.errorPrefix, err)
           end
         end, timeout)
       end -- -1 means sync, func called cb directlyso no timeout needed
     else
-      logRule(rule, "normal", dfltPrefix.errorPrefix, fmt("Async func".."tion error: %s", tostring(res[2])))
+      logRule(rule, "normal", o.errorPrefix, fmt("Async func".."tion error: %s", tostring(res[2])))
       timedOut = true
       return cb() -- resume with no result on error
     end
@@ -478,19 +518,22 @@ function ruleRunner(f, rule, opts)
   local synced   = false
   local syncVals = nil
   opts = opts or {}
+  if rule and rule.opts then
+    setmetatable(opts, {__index = rule.opts})
+  end
   opts.rule = rule
   
   local function onDone(...)
     if synced then
       -- completed asynchronously (after caller already returned nil)
       if rule or opts then
-        logRule(rule or opts, "verbose", dfltPrefix.successPrefix, ...)
+        logRule(rule or opts, "verbose", opts.successPrefix, ...)
         if (rule or opts) and (rule or opts).onDone then (rule or opts).onDone(...) end
       elseif opts.onDone then
         opts.onDone(...)
       else
         local n = select('#', ...)
-        if n > 0 then print(dfltPrefix.resultPrefix, ...) end
+        if n > 0 then print(opts.resultPrefix, ...) end
       end
     else
       syncVals = table.pack(...)
@@ -508,7 +551,7 @@ function ruleRunner(f, rule, opts)
   
   if not ok then
     if rule then
-      logRule(rule, "silent", dfltPrefix.errorPrefix, err)
+      logRule(rule, "silent", opts.errorPrefix, err)
       return nil
     else
       error(err, 0)  -- re-throw: outer eval's pcall catches it
@@ -519,7 +562,7 @@ function ruleRunner(f, rule, opts)
     return table.unpack(syncVals, 1, syncVals.n)
   else
     -- expression suspended: nil is returned to caller
-    logRule(rule or opts, "verbose", dfltPrefix.waitPrefix, "<suspended>")
+    logRule(rule or opts, "verbose", opts.waitPrefix, "<suspended>")
     return nil
   end
 end
@@ -530,6 +573,8 @@ end
 --   Async expr ("wait(n); ..."):   returns nil, logs 💤; logs 📋 when done.
 local function eval(src,opts)
   opts = opts or {}
+  setmetatable(ER.er.opts, {__index = dfltPrefix}) -- override default options with provided ones, need to do it here as user may have reassigned ER.er.opts
+  setmetatable(opts, {__index = ER.er.opts})       -- inherit default options
   opts.src = src  -- store source text for runtime error enrichment
   local ast    = ER.parse(src)           -- parse error propagates immediately
   local isRule = (ast[1] == 'RULE')
@@ -545,7 +590,7 @@ local function eval(src,opts)
   end)
   
   if not ok then
-    print(dfltPrefix.errorPrefix, err)
+    print(opts.errorPrefix, err)
     error(err)
   end
   
@@ -553,23 +598,30 @@ local function eval(src,opts)
   -- Async (nil return) was already logged 💤 by ruleRunner.
   -- Rule form: compRule already logged ✅ with trigger list.
   if not isRule and result and result[1] ~= nil then
-    if not (opts.verbosity == "silent") then 
-      print(dfltPrefix.resultPrefix, table.unpack(beautifyArgs(result), 1, result.n))
+    if not (opts.verbosity == "silent") and opts.result then 
+      print(opts.resultPrefix, table.unpack(beautifyArgs(result), 1, result.n))
     end
   end
   
   return result and table.unpack(result, 1, result.n)
 end
 
+local function ruleGuard(success)
+  local ctx = ER._ctx
+  local opts = ctx:getOpts()
+  local _,event = ctx:getVar('event')
+  event = event and setmetatable(event, ER.EventMT) or ""
+  if opts.check then
+    logRule(opts.rule, "normal", success and opts.successPrefix or opts.failPrefix,event)
+  end
+  return success
+end
+
 function fibaro.EventRunner(cb)
   local er = {eval = eval, now = ER.now}
-  -- vm.defGlobal('print',    print)
-  -- vm.defGlobal('tostring', tostring)
-  -- vm.defGlobal('tonumber', tonumber)
-  -- vm.defGlobal('math',     math)
-  -- vm.defGlobal('pairs',    pairs)
-  -- vm.defGlobal('ipairs',   ipairs) 
-  vm.defGlobal("compRule", compRule)
+
+  vm.defGlobal("_compRule", compRule)
+  vm.defGlobal("_ruleCondition", ruleGuard)
   vm.defGlobal('catch', catchValue)
   
   er.triggerVars = setmetatable({}, {
@@ -595,6 +647,7 @@ function fibaro.EventRunner(cb)
   
   sourceTrigger = SourceTrigger()
   ER.sourceTrigger = sourceTrigger
+  er.sourceTrigger = sourceTrigger  
   er.globals = ER.globals
   er.defglobals = ER.defglobals
   er.variables = er.defglobals
@@ -606,7 +659,12 @@ function fibaro.EventRunner(cb)
   er.loadSimDevice = ER.loadSimDevice
   er.createSimGlobal = ER.defineSimGlobalVariable
   er.loadPluaDevice = ER.loadPluaDevice
-  
+  ER.isRule = isRule
+  ER.getRule = getRule
+
+  er.opts = {} -- default options
+  ER.er = er
+
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
   
   ER.deviceManager()

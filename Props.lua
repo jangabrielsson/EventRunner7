@@ -97,11 +97,13 @@ local propertyTable = {
   },
   isOn = {
     trigger = {type='device', property='value'},
-    get = function(pd,id) return BN(get(pd,id))>0 end
+    get = function(pd,id) return BN(get(pd,id))>0 end,
+    reduce = table.mapOr
   },
   isOff = {
     trigger = {type='device', property='value'},
-    get = function(pd,id) return BN(get(pd,id))==0 end
+    get = function(pd,id) return BN(get(pd,id))==0 end,
+    reduce = table.mapAnd
   },
   isAllOn = {
     trigger = {type='device', property='value'},

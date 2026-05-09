@@ -136,17 +136,61 @@ local function setupFuns()
   function builtin.listglobals() return api.get("/globalVariables") end
   function builtin.deleteglobal(name) api.delete("/globalVariables/"..name) end
   
-  function builtin.subscribe(event) end
-  function builtin.publish(event) end
-  function builtin.remote(deviceId,event) end
+  fibaro.ER_subscriptionVar = "ER_subscription"
+  local ersf = false
+  local function setupERsubscription()
+    if ersf then return end ersf = true
+    api.post("/globalVariables",{
+      name=fibaro.ER_subscriptionVar, value='{"type":"."}'
+    })
+    ER.sourceTrigger:subscribe({type='global-variable', name=fibaro.ER_subscriptionVar},
+    function(ev) 
+      local stat,event = pcall(json.decode, ev.event.value)
+      if stat and ER.isEvent(event) and event._published then
+        ER.sourceTrigger:post(event)
+      end
+    end)
+  end
+
+  function builtin.subscribe(event) 
+    assert(ER.isEvent(event), "argument to subscribe must be an event")
+    setupERsubscription()
+    local sevent = table.copy(event)
+    sevent._from = "$_<>"..plugin.mainDeviceId
+    sevent._published = true
+    ER.sourceTrigger:subscribe(sevent,function(ev) 
+      local event = ev.event
+      ER.sourceTrigger:post(event.value)
+    end)
+  end
+  function builtin.publish(event)
+    assert(ER.isEvent(event), "argument to publish must be an event")
+    setupERsubscription()
+    local pevent = table.copy(event)
+    pevent._from = plugin.mainDeviceId
+    pevent._published = true
+    fibaro.setGlobalVariable(fibaro.ER_subscriptionVar, json.encode(pevent))
+  end
+
+  function builtin.remote(deviceId,event) 
+    assert(ER.isEvent(event), "argument to remote must be an event")
+    ER.sourceTrigger:postRemote(deviceId,event)
+  end
+
   function builtin.adde(t,v) table.insert(t,v) return t end
   function builtin.remove(t,v) 
     for i=#t,1,-1 do if t[i]==v then table.remove(t,i) end end 
     return t
   end
   
-  function builtin.enable(rule) end
-  function builtin.disable(rule) end
+  function builtin.enable(rule)
+    assert(ER.isRule(rule) or type(rule) == "number", "argument to enable must be a rule/id")
+    ER.getRule(rule).enable()
+  end
+  function builtin.disable(rule) 
+    assert(ER.isRule(rule) or type(rule) == "number", "argument to disable must be a rule/id")
+    ER.getRule(rule).disable()
+  end
   
   local async = ER.async
 

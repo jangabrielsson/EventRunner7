@@ -6,14 +6,14 @@
 
 - OK, User defined properties
 
-subscribe(event)	Subscribe to remote events	subscribe(#remoteEvent)
-publish(event)	Publish event to remote systems	publish(#statusUpdate)
-remote(deviceId, event)	Send event to specific QuickApp	remote(123, #customEvent)
+- OK, subscribe(event)	Subscribe to remote events	subscribe(#remoteEvent)
+- OK, publish(event)	Publish event to remote systems	publish(#statusUpdate)
+- OK, remote(deviceId, event)	Send event to specific QuickApp	remote(123, #customEvent)
 
-enable(rule)	Enable rule by ID or object	enable(nightModeRule)
-disable(rule)	Disable rule by ID or object	disable(dayModeRule)
+- OK, enable(rule)	Enable rule by ID or object	enable(nightModeRule)
+- OK, disable(rule)	Disable rule by ID or object disable(dayModeRule)
 
-manual	Trigger	Manual operation status
+- OK, manual	Trigger	Manual operation status
 
 - OK, List Operation	Description
 - OK, average	Average of numbers in list
@@ -31,8 +31,9 @@ manual	Trigger	Manual operation status
 - OK, r.start() -- trigger the rule manually
 - OK, r.info() 
 
-er.opts = { started = true, check = true, triggers = true }
+- OK, er.opts = { started = true, check = true, triggers = true }
 
+- OK, missing functional option
 er.opts = {
     started = boolean/function, -- true => system start log, alt. user function(rule,env,trigger)
     check = boolean/function,   -- true => system check log, alt. user function(rule,env,cond result)

@@ -28,13 +28,20 @@ local function main(er) ER = er
   er.defglobals.temp1 = loadDevice("temperatureSensor")
   er.defglobals.temp2 = loadDevice("temperatureSensor")
   er.defglobals.temp3 = loadDevice("temperatureSensor")
+
+  --fibaro.debugFlags.sourceTrigger = true
   
   rule("temp1:value = 10; temp2:value = 20; temp3:value = 30")
 
   er.definePropClass("MyDevice")
+  local MyDevice = {}
   function MyDevice:__init() self.value = 21; er.PropObject.__init(self) end
   function MyDevice.getProp:temp(_) return self.value end
-  function MyDevice.setProp:temp(_, value) self.value = value return true end
+  function MyDevice.setProp:temp(_, value) 
+    self.value = value 
+    er.sourceTrigger:post({type='device', id=tostring(self), property='value', value=value} )  
+    return true
+  end
   function MyDevice.trigger:temp() return {type='device', id=tostring(self), property='value'} end
   function MyDevice.map.temp(fun,list) 
     local sum = 0
@@ -44,7 +51,8 @@ local function main(er) ER = er
   er.defglobals.mydev = MyDevice()
 
   --rule("temps = { mydev, temp1, temp2, temp3}")
-  rule("mydev:temp => log('OK')")
+  rule("mydev:temp > 41 => wait(2); log('OK')")
+  rule("mydev:temp = 42",{result=true})
   --rule("json.encode(temps:temp)")
 end
 

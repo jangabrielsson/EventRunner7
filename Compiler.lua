@@ -329,8 +329,9 @@ comp.CALL   = compCall
 
 function comp.RULE(ast)
   -- {'RULE', condition, block}
-  local rule = compile({'IF',ast[2],ast[3],{},{'RETURN',{'STRING',ER.ruleFail}}}) -- if condition matches, run block; else return failure string
-  return {"CALL",{"GET",'compRule'}, {"CONST",rule}}
+  local cond = {"CALL", {'NAME','_ruleCondition'}, ast[2]}
+  local rule = compile({'IF',cond,ast[3],{},{'RETURN',{'STRING',ER.ruleFail}}}) -- if condition matches, run block; else return failure string
+  return {"CALL",{"GET",'_compRule'}, {"CONST",rule}}
 end
 
 -- TABLE: {[k]=v, name=v, v, ...}  →  MAKETABLE(k1,v1, k2,v2, ...)

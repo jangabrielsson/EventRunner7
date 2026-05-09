@@ -329,7 +329,7 @@ local function createEventEngine()
   self.BREAK = BREAK
   local handlers = {}
   local function isEvent(e) return type(e) == 'table' and type(e.type)=='string' end
-  
+  ER.isEvent = isEvent
   local function sameType(a,b) if type(a) == type(b) then return a,b end end
   local function coerce(x,y) local x1 = tonumber(x) if x1 then return x1,tonumber(y) else return sameType(x,y) end end
   local constraints = {}
@@ -917,6 +917,38 @@ local function deviceManager()
   return self
 end
 
+------- Patch fibaro.call to track manual switches -------------------------
+  local lastID,switchMap = {},{}
+  local oldFibaroCall = fibaro.call
+  function fibaro.call(id,action,...)
+    if ({turnOff=true,turnOn=true,on=true,toggle=true,off=true,setValue=true})[action] then lastID[id]={script=true,time=os.time()} end
+    if action=='setValue' and switchMap[id]==nil then
+      local actions = (__fibaro_get_device(id) or {}).actions or {}
+      switchMap[id] = actions.turnOff and not actions.setValue
+    end
+    if action=='setValue' and switchMap[id] then return oldFibaroCall(id,({...})[1] and 'turnOn' or 'turnOff') end
+    return oldFibaroCall(id,action,...)
+  end
+  
+  local function lastHandler(ev)
+    if ev.type=='device' and ev.property=='value' then
+      local last = lastID[ev.id]
+      local _,t = fibaro.get(ev.id,'value')
+      if not(last and last.script and t-last.time <= 2) then
+        lastID[ev.id]={script=false, time=t}
+      end
+    end
+  end
+  
+  ER.sourceTrigger.eventEngine.registerCallback(lastHandler)
+  
+  function QuickApp:lastManual(id)
+    local last = lastID[id]
+    if not last then return -1 end
+    return last.script and -1 or os.time()-last.time
+  end
+
+-------------------------------------------------
 ER.alarmFuns = alarmFuns
 ER.toSeconds = toSeconds
 ER.midnight = midnight
