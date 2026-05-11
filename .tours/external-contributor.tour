@@ -1,0 +1,85 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "EventRunner7 — External Contributor Orientation",
+  "description": "For contributors new to this codebase: the architecture, the compile pipeline, the trampoline VM, safe areas to work in, and the landmines to avoid.",
+  "isPrimary": true,
+  "steps": [
+    {
+      "file": "EventRunner.inc",
+      "line": 1,
+      "title": "The Load Order — Start Here",
+      "description": "**EventRunner7 is a domain-specific language implementation** — a full compiler + VM — that runs home automation rules on Fibaro HC3 controllers. This `.inc` file declares the module load order used by the `plua` runner.\n\nThe pipeline in sequence:\n1. `Tokenizer.lua` — source text → token stream\n2. `Parser.lua` — tokens → AST\n3. `Compiler.lua` — AST → CSP instruction tables\n4. `CSP.lua` — CSP tables → CPS closures + trampoline VM\n5. `Utils.lua` / `Props.lua` / `ScriptFuns.lua` — stdlib and device glue\n6. `Rule.lua` — the top-level `eval()` / `rule()` API\n\n**Gotcha:** `Sim.lua` is *not* listed here — it's loaded by test files only. Never depend on Sim in production code."
+    },
+    {
+      "file": "Tokenizer.lua",
+      "line": 4,
+      "title": "Tokenizer — Custom Operators and Time Literals",
+      "description": "**Situation:** The keyword table is the complete vocabulary of EventScript. Operators like `@`, `@@`, `$`, `$$`, `$$$`, `..`, `??`, `+=` are all defined here as first-class token types.\n\n**Mechanism:** A lookup table (`tokenLookup`) is built at module load time, indexed by the first character of each pattern. The tokenizer scans one character at a time, finds candidates, and tries patterns greedily longest-first.\n\n**Implication:** To add a new operator, add it here first — the parser and compiler must also know about it. Do not add a token that shares a prefix with existing ones without placing it *before* the shorter entry in `tknsStrs`.\n\n**Gotcha:** Time literals like `12:30` are converted to seconds-since-midnight by the tokenizer handler, not by the parser. `wait(00:05)` is `wait(300)` by the time the parser sees it."
+    },
+    {
+      "file": "Tokenizer.lua",
+      "line": 178,
+      "title": "sourceMarker — The Error Cursor",
+      "description": "**Situation:** This function produces the `^^^^^` cursor line shown under failing EventScript source in error messages.\n\n**Mechanism:** It splits the source on `\\n`, finds which line contains `pos`, then renders `^` characters starting at column `pos - lineStart`. Used both at tokenize time (unexpected character) and at runtime (via `ER.sourceMarker` exported at line 312).\n\n**Implication:** If you are adding a new error path, pass `pos` and `len` from the token or AST node to get cursor enrichment for free — the infrastructure is already there.\n\n**Gotcha:** `len` is clamped to the end of the line. Multi-line spans are not supported; the cursor always shows on the line containing `pos`."
+    },
+    {
+      "file": "Parser.lua",
+      "line": 7,
+      "title": "Parser — Recursive Descent, Source-Position Tagged",
+      "description": "**Situation:** `makeParser(src)` returns a single-use parser. It calls `ER.tokenStream(src)` and exposes `peek`/`next`/`match`/`expect` locally.\n\n**Mechanism:** Classic recursive-descent. Every AST node is a Lua table `{opcode, child1, child2, ...}`. The `P(node, tok)` helper (line 20) stamps `_pos` and `_len` onto a node from the token that introduced it — this is what feeds the source-map system used for cursor errors at runtime.\n\n**Implication:** If you add a new syntax form, call `P(node, tok)` on the node you return. Without it, runtime errors inside that construct will show no cursor.\n\n**Gotcha:** `savePos`/`restorePos` enable speculative parsing (try-and-backtrack). Avoid consuming tokens in a speculative path before you are sure the branch succeeds."
+    },
+    {
+      "file": "Compiler.lua",
+      "line": 1,
+      "title": "Compiler — AST to CSP Instruction Tables",
+      "description": "**Situation:** The compiler translates the AST produced by the parser into nested Lua tables matching CSP opcodes — e.g. `{'ADD', {'GET','x'}, 5}`.\n\n**Mechanism:** A dispatch table `comp` maps AST node opcodes to handler functions. The entry point `compile(ast)` calls `comp[ast[1]](ast)`. After compiling, if `_srcmap` is active, source positions are recorded onto the result table: `_srcmap[result] = {pos, len}`.\n\n**Implication:** `_srcmap` must be declared at the top of the file (it is — line 15) so all `comp.*` handlers close over the *same* upvalue. This was a real bug: moving the declaration fixed cursor enrichment for global variables.\n\n**Gotcha:** `RULE` nodes are special — `comp.RULE` wraps the compiled body in a `_compRule` call and stashes `_srcmap` on the result table so `compRule()` in Rule.lua can pass it to the CSP compiler."
+    },
+    {
+      "file": "Compiler.lua",
+      "line": 434,
+      "title": "compileASTWithMap — The Srcmap Entry Point",
+      "description": "**Situation:** This is the function called by `Rule.lua` when it wants both the compiled CSP tree *and* the position map for runtime cursor enrichment.\n\n**Mechanism:** Sets `_srcmap = {}`, runs `compile(ast)`, then returns both. The map is a table keyed by CSP instruction table references (identity, not value), mapping to `{pos, len}` pairs.\n\n**Implication:** Use this instead of bare `ER.compileAST` whenever you need runtime error cursors — it's a zero-cost wrapper when no error occurs.\n\n**Gotcha:** The map uses table identity (`t` as a key, not `tostring(t)`), so it only works while the compiled tables are alive. Don't serialize the srcmap."
+    },
+    {
+      "file": "CSP.lua",
+      "line": 157,
+      "title": "The Trampoline — How the VM Avoids Stack Overflows",
+      "description": "**Situation:** EventScript rules can be arbitrarily long sequences of async steps (loops, waits, event callbacks). A naive recursive interpreter would overflow the Lua call stack.\n\n**Mechanism:** `TR(f)` wraps a continuation so that instead of calling `f(args)` directly, it *returns* `f, args...` as a tuple. The `trampoline()` loop (line 650) keeps calling the returned function until it gets `nil` back — turning deep recursion into a flat loop. Every CSP primitive returns `TR(nextStep)(args)` rather than calling `nextStep(args)`.\n\n**Implication:** When writing new CSP primitives, you *must* return `cont(value)` through a `TR` wrapper, not call it directly. Calling continuations directly will eventually stack-overflow on long rules.\n\n**Gotcha:** `YIELD_TAG` (line 6) is the sentinel that pauses trampolining and saves a resume token. Code after a `wait()` resumes via `vm.resume(token, ...)` — it does not re-enter from the top."
+    },
+    {
+      "file": "CSP.lua",
+      "line": 665,
+      "title": "eval() — Single pcall, All Error Types Enriched",
+      "description": "**Situation:** `eval()` is the single entry point for running any compiled expression. It snapshots context, runs the trampoline inside a `pcall`, and enriches any error with source position before re-raising.\n\n**Mechanism:** A bottom-level error handler (`pushErrorHandler`) is installed so that `rterror()` / `THROW()` route through it. Raw Lua errors (arithmetic on nil, missing methods) also propagate to the outer `pcall`. After the pcall, `_ctx:getCurpos()` is read *before* `_ctx:restore(outer)` wipes it — that timing is critical.\n\n**Implication:** All error types — runtime type errors, user `error()` calls, and EventScript `throw` — automatically get cursor enrichment. You don't need per-site pcalls for new primitives.\n\n**Gotcha:** `TRY` blocks push a handler *above* the bottom handler. TRY only catches EventScript-level `throw` — raw Lua errors inside TRY bodies bypass it and reach the bottom pcall. This is by design but can surprise you when debugging."
+    },
+    {
+      "file": "CSP.lua",
+      "line": 782,
+      "title": "maybeWrap — How Cursors Are Set at Runtime",
+      "description": "**Situation:** `_curpos` in the context holds the *last evaluated* source position. When an error occurs, `eval()` reads it as the cursor location.\n\n**Mechanism:** `maybeWrap(f, t)` checks if `_cspsrcmap[t]` has an entry. If so, it wraps the closure `f` to call `_ctx:setCurpos(sp)` before running. This is applied to every compiled instruction during `vm.compile(tree, srcmap)`.\n\n**Implication:** The cursor always points at the last AST node that began evaluation before the error — typically the innermost failing subexpression, not its parent.\n\n**Gotcha:** `_cspsrcmap` is only non-nil during the `vm.compile()` call. After that the map is stored on the closure via upvalue capture (`sp`). Don't try to access `_cspsrcmap` at runtime."
+    },
+    {
+      "file": "Rule.lua",
+      "line": 577,
+      "title": "eval() in Rule.lua — The Public API Entry Point",
+      "description": "**Situation:** This is what `er.eval(src)` and `rule(src)` call. It orchestrates the full pipeline: parse → compileASTWithMap → vm.compile → ruleRunner.\n\n**Mechanism:** `opts.src` is stored here so the error enrichment in `CSP.eval()` can append source text to messages. The `pcall` wrapper catches both parse errors (from `ER.parse`) and compile errors (from `ER.compileASTWithMap`), logging them with the `❌` prefix.\n\n**Implication:** Safe to add new `opts` fields here — they are threaded through to `ruleRunner` and `_ctx`. The `dfltPrefix` table (line 23) controls all log emoji prefixes; users can override them.\n\n**Gotcha:** `isRule` is determined from `ast[1] == 'RULE'` *before* compilation. A rule expression (`condition => action`) goes through `compRule()` which registers it with a trigger system — it does not run immediately. A bare expression runs synchronously and returns its value."
+    },
+    {
+      "file": "Sim.lua",
+      "line": 11,
+      "title": "Sim — Fake Devices for Tests",
+      "description": "**Situation:** `Sim.lua` provides `SimQuickApp` — a minimal fake device that posts trigger events when properties change — used only in tests.\n\n**Mechanism:** `fibaro.call` and `fibaro.get` are monkey-patched to route to loaded sim devices first, then fall back to the real HC3 API. `loadedDevices` is the registry.\n\n**Implication:** To add a new device type for testing, subclass a standard QA from `tests/stdQAs/` rather than modifying Sim.lua. The `stdQAs/` files are safe contribution territory.\n\n**Gotcha:** Sim overrides are global — any code loaded after Sim.lua sees the patched `fibaro.*` functions. Don't load Sim in production modules."
+    },
+    {
+      "file": "tests/expr_test.lua",
+      "line": 18,
+      "title": "Tests — How to Run and Add Them",
+      "description": "**Situation:** The primary regression suite. Run it with:\n```\nplua --fibaro --nodebugger --run-for 30 tests/expr_test.lua\n```\nOutput ends with `N passed, M failed`. The 8 current failures all require live HC3 device resolution (`resolvePropObject`) and are expected in offline mode.\n\n**Mechanism:** The test harness at line 18–75 provides `test(name, src, expected)` and `testPred(name, src, pred)`. Each calls `ER.parse` → `ER.compileAST` → `vm.compile` → `vm.eval` and compares the result.\n\n**Implication:** Add new test cases at the bottom of `main()`. Keep them offline-safe: no device property reads, no `$gv` writes that require HC3. Use `testPred` for time-dependent results.\n\n**Gotcha:** The test file uses `--run-for 30` not `--run-for 0` — it must finish within 30 simulated seconds or timer-based tests won't complete. Also: `plua` output piping requires plua ≥ 1.3.9; use file redirection with older versions."
+    },
+    {
+      "directory": "tests/stdQAs",
+      "title": "Safe Contribution Territory",
+      "description": "**What you can safely change without breaking the pipeline:**\n- `tests/stdQAs/` — add or fix device simulation classes here\n- `tests/expr_test.lua` — add new test cases at the bottom of `main()`\n- `docs/` — fix or extend language documentation\n- `ScriptFuns.lua` — add new built-in functions (register them in `setupFuns()`)\n\n**What to be careful with:**\n- `Tokenizer.lua` — adding tokens with shared prefixes can silently break existing tokenization order\n- `Parser.lua` — always call `P(node, tok)` on new AST nodes, and use `savePos`/`restorePos` correctly for speculative branches\n- `Compiler.lua` — keep `_srcmap` at the top of the file; any handler that introduces a new CSP instruction table should record its position\n- `CSP.lua` — always return through `TR(cont)(value)`, never call continuations directly; understand the TRY/pcall interaction before adding new error handling\n\n**Suggested next tours:** explore `docs/Grammar.txt` to understand the full language grammar, or read `docs/EventScript.md` for the user-facing language reference."
+    }
+  ]
+}

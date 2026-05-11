@@ -60,7 +60,7 @@ local function logRule(rule, minLevel, prefix, ...)
     if not shouldLog(rule, minLevel) then return end
     if prefix == rule.opts.errorPrefix and rule.src then
       local a = {...}
-      print(prefix, tostring(rule)..":", ..., "\n  rule: "..rule.src)
+      print(prefix, tostring(rule)..":", ..., "\n  src: "..rule.src)
     else
       print(prefix, tostring(rule)..":", ...)
     end
@@ -425,7 +425,7 @@ local yieldHandlers = {
   sleep = function(cf, rule, cb, ms)
     local opts = cf.ctx.opts or {}
     ms = math.floor(ms*1000+0.5)
-    local o = rule.opts or opts
+    local o = rule and rule.opts or opts
     if o.waiting then
       logRule(rule or opts, "normal", o.waitPrefix, fmt("sleeping %dms", ms))
     end
@@ -555,9 +555,13 @@ function ruleRunner(f, rule, opts)
   if not ok then
     if rule then
       logRule(rule, "silent", opts.errorPrefix, err)
+      if rule then
+        logRule(rule, "silent", opts.errorPrefix, "Disabled")
+        rule.disable()
+      end
       return nil
     else
-      error(err, 0)  -- re-throw: outer eval's pcall catches it
+      error(err, 2)  -- re-throw: outer eval's pcall catches it
     end
   end
   
@@ -594,7 +598,7 @@ local function eval(src,opts)
   
   if not ok then
     print(opts.errorPrefix, err)
-    error(err)
+    --error(err) -- we already printed this... re-throwing would cause double printing if eval is called from another eval's pcall, so just return nil on error.
   end
   
   -- For bare expressions: log the sync result if we got one.

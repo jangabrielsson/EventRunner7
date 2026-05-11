@@ -34,7 +34,7 @@ local old__fibaro_get_global_variable = __fibaro_get_global_variable
 
 fibaro.get = function(id, prop)
   if loadedDevices[id] then
-    return loadedDevices[id].props[prop]
+    return loadedDevices[id].props[prop],os.time()
   else
     return oldGet(id, prop)
   end
