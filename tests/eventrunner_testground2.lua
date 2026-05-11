@@ -16,9 +16,11 @@ local function main(er) ER = er
   local rule, test = er.eval, er.test
   local function loadDevice(name) return er.loadSimDevice(name) end
 
-  rule("post(#device{property='centralSceneEvent',id=99,value={keyId=3,keyAttribute='Pressed'}})")
-  function foo() error("err") end
-  rule("#device => foo('err'); log('Event %s',event)")
+  -- rule("post(#device{property='centralSceneEvent',id=99,value={keyId=3,keyAttribute='Pressed'}})")
+  -- function foo() error("err") end
+  -- rule("#device => foo('err'); log('Event %s',event)")
+
+  rule("@now => return 7 / nil")
 end
 
 function QuickApp:onInit()

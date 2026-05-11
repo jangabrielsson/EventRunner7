@@ -869,7 +869,7 @@ end
 function ER.getVar(typ, name)
   if typ == 'GV' then
     if not __fibaro_get_global_variable(name) then
-      error("Global variable '"..name.."' does not exist",2)
+      error("Global variable '"..name.."' does not exist", 0)
     end
     return marshallFrom(fibaro.getGlobalVariable(name))
   elseif typ == 'QV' then
@@ -877,14 +877,14 @@ function ER.getVar(typ, name)
   elseif typ == 'PV' then
     return quickApp:internalStorageGet(name)
   else
-    error("Unknown variable type: " .. tostring(typ))
+    error("Unknown variable type: " .. tostring(typ), 0)
   end
 end
 
 function ER.setVar(typ, name, value)
   if typ == 'GV' then
     if not __fibaro_get_global_variable(name) then
-      error("Global variable '"..name.."' does not exist",2)
+      error("Global variable '"..name.."' does not exist", 0)
     end
     value = type(value) == 'string' and value or json.encodeFast(value)
     return fibaro.setGlobalVariable(name, value)
@@ -893,7 +893,7 @@ function ER.setVar(typ, name, value)
   elseif typ == 'PV' then
     return quickApp:internalStorageSet(name, value)
   else
-    error("Unknown variable type: " .. tostring(typ))
+    error("Unknown variable type: " .. tostring(typ), 0)
   end
 end
 

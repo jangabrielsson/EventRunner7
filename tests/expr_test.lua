@@ -5,6 +5,7 @@
 --%%file:Parser.lua,parser
 --%%file:Utils.lua,utils
 --%%file:CSP.lua,csp
+--%%file:Props.lua,props
 --%%file:Compiler.lua,compiler
 --%%file:ScriptFuns.lua,scriptfuns
 --%%file:Rule.lua,rule

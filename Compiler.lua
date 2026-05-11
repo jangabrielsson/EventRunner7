@@ -9,6 +9,10 @@ local ER = fibaro.ER
 
 local compile  -- forward-declared so handlers can call each other recursively
 
+-- _srcmap: when non-nil, maps CSP instruction table refs → {pos,len}.
+-- Declared at top-level so ALL functions below close over the same upvalue.
+local _srcmap = nil
+
 -- ── Literal nodes ─────────────────────────────────────────────────────────
 
 local function compNumber(ast) return tonumber(ast[2]) end
@@ -51,17 +55,23 @@ end
 -- ── Assignment target helper ───────────────────────────────────────────────
 -- Returns a CSP SET table for a supported lvalue node.
 local function compileTarget(var, val_csp)
+  local result
   if var[1] == 'NAME' then
-    return {'SET', var[2], val_csp}
+    result = {'SET', var[2], val_csp}
   elseif var[1] == 'GV' or var[1] == 'QV' or var[1] == 'PV' then
-    return {"SETVAR", var[1], var[2], val_csp}
+    result = {"SETVAR", var[1], var[2], val_csp}
   elseif var[1] == 'INDEX' then
-    return {"SETINDEX", compile(var[2]), compile(var[3]), val_csp}
+    result = {"SETINDEX", compile(var[2]), compile(var[3]), val_csp}
   elseif var[1] == 'FIELD' then
-    return {"SETFIELD", compile(var[2]), var[3], val_csp}  -- var[3] is raw string; ca() wraps it in CONST
+    result = {"SETFIELD", compile(var[2]), var[3], val_csp}  -- var[3] is raw string; ca() wraps it in CONST
   else
     error("Compiler: unsupported assignment target: " .. tostring(var[1]))
   end
+  -- Propagate source position from lvalue AST to the CSP instruction table.
+  if _srcmap and var._pos and type(result) == 'table' then
+    _srcmap[result] = {pos = var._pos, len = var._len or 1}
+  end
+  return result
 end
 
 local IncOpMap = { plus='ADD', minus='SUB', multiply='MUL', divide='DIV' }
@@ -287,10 +297,6 @@ intrinsics.wait = function(ms_ast)
 end
 
 -- ── Dispatch table ────────────────────────────────────────────────────────
-
--- _srcmap: when non-nil, maps CSP instruction table refs → {pos,len}.
--- Declared here (before comp.RULE) so all comp.* functions close over it.
-local _srcmap = nil
 
 local comp = {}
 

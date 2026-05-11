@@ -121,11 +121,11 @@ local function makeParser(src)
     elseif t and t.type == 'number' then
       next(); return P({'NUMBER', t.value}, t)    -- e.g. 88:value
     elseif t and t.type == 'gv' then
-      next(); return {'GV', expect('identifier').value}
+      next(); local id = expect('identifier'); local n = {'GV', id.value}; n._pos = t.pos; n._len = id.pos + id.len - t.pos; return n
     elseif t and t.type == 'qv' then
-      next(); return {'QV', expect('identifier').value}
+      next(); local id = expect('identifier'); local n = {'QV', id.value}; n._pos = t.pos; n._len = id.pos + id.len - t.pos; return n
     elseif t and t.type == 'pv' then
-      next(); return {'PV', expect('identifier').value}
+      next(); local id = expect('identifier'); local n = {'PV', id.value}; n._pos = t.pos; n._len = id.pos + id.len - t.pos; return n
     elseif t and t.type == 'lpar' then
       next()
       local e = parseExp()
@@ -195,11 +195,11 @@ local function makeParser(src)
     if not t then parseError("Unexpected end of input") end
     local ty = t.type
     if ty == 'nil' then
-      next(); return {'NIL'}
+      next(); return P({'NIL'}, t)
     elseif ty == 'true' then
-      next(); return {'BOOL', true}
+      next(); return P({'BOOL', true}, t)
     elseif ty == 'false' then
-      next(); return {'BOOL', false}
+      next(); return P({'BOOL', false}, t)
     elseif ty == 'string' then
       next(); return P({'STRING', t.value}, t)
     elseif ty == 'function' then

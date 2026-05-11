@@ -185,28 +185,28 @@ local function CONST(c)
 end
 
 local OPS = {
-  ADD = function(av, bv) return av+bv end,
-  SUB = function(av, bv) return av-bv end,
-  MUL = function(av, bv) return av*bv end,
-  DIV = function(av, bv) return av/bv end,
-  MOD = function(av, bv) return av%bv end,
-  POW = function(av, bv) return av^bv end,
-  EQ = function(av, bv) return av==bv end,
-  LT = function(av, bv) return av<bv end,
-  LTE = function(av, bv) return av<=bv end,
-  GT = function(av, bv) return av>bv end,
-  GTE = function(av, bv) return av>=bv end,
-  NILCO = function(av, bv) if av~=nil then return av else return bv end end,
+  ADD = function(left_hand, right_hand) return left_hand+right_hand end,
+  SUB = function(left_hand, right_hand) return left_hand-right_hand end,
+  MUL = function(left_hand, right_hand) return left_hand*right_hand end,
+  DIV = function(left_hand, right_hand) return left_hand/right_hand end,
+  MOD = function(left_hand, right_hand) return left_hand%right_hand end,
+  POW = function(left_hand, right_hand) return left_hand^right_hand end,
+  EQ = function(left_hand, right_hand) return left_hand==right_hand end,
+  LT = function(left_hand, right_hand) return left_hand<right_hand end,
+  LTE = function(left_hand, right_hand) return left_hand<=right_hand end,
+  GT = function(left_hand, right_hand) return left_hand>right_hand end,
+  GTE = function(left_hand, right_hand) return left_hand>=right_hand end,
+  NILCO = function(left_hand, right_hand) if left_hand~=nil then return left_hand else return right_hand end end,
 }
 
 local function BINOP(name, a,b)
   local op = OPS[name]
   assert(op, "Unknown operator: "..tostring(name))
   return function(cont)
-    return a(TR(function(av)
-      return b(TR(function(bv)
-        local result = op(av, bv)
-        trace(name, av, bv, "=", result)
+    return a(TR(function(left_hand)
+      return b(TR(function(right_hand)
+        local result = op(left_hand, right_hand)
+        trace(name, left_hand, right_hand, "=", result)
         return cont(result)
       end))
     end))
@@ -407,7 +407,7 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
         ER._ctx = _ctx  -- make current context available to the called function
         local rets = table.pack(pcall(f, ...))
         ER._ctx = nil
-        if not rets[1] then return rterror(rets[2]) end
+        if not rets[1] then error(rets[2], 0) end  -- re-raise; eval()'s pcall enriches
         trace("CALL->", table.unpack(rets, 2, rets.n))
         return cont(table.unpack(rets, 2, rets.n))
       end))
@@ -585,7 +585,7 @@ end
 local function GETVAR(typ,name)
   return function(cont)
     return name(TR(function(n)
-      local v = ER.getVar(typ,n)
+      local v = ER.getVar(typ,n)  -- errors propagate to eval()'s pcall
       return cont(v)
     end))
   end
@@ -596,7 +596,7 @@ local function SETVAR(typ, name, val_expr)
   return function(cont)
     return name(TR(function(n)
       return val_expr(TR(function(v)
-        ER.setVar(typ, n, v)
+        ER.setVar(typ, n, v)  -- errors propagate to eval()'s pcall
         return cont(v)
       end))
     end))
@@ -666,31 +666,36 @@ local function eval(expr, opts)
   local outer = _ctx:snapshot()
   local top_cont = function(...) return nil, ... end
   _ctx:restore({ break_stack = {}, error_handler = nil, exit_cont = TR(top_cont), var_env = {}, trace = opts and opts.trace or false, opts = opts })
-  -- Install a bottom-level error handler that enriches messages with rule
-  -- identity and source text before re-raising as a plain Lua error.
-  -- This is the default handler; TRY blocks push on top and intercept first.
-  -- rterror() and THROW() route through this, giving all runtime errors
-  -- consistent context in logs.
-  _ctx:pushErrorHandler(TR(function(msg)
-    local enriched = tostring(msg)
-    -- Append source cursor if we have a source position, otherwise the full source text.
+  -- TRY blocks push handlers on top of this; for unhandled errors the bottom
+  -- handler just re-raises so the pcall below can do enrichment in one place.
+  _ctx:pushErrorHandler(TR(function(msg) error(msg, 0) end))
+  if opts and opts.vars then
+    _ctx:pushVarsFrame(opts.vars)
+  end
+
+  -- Single pcall catches everything: raw Lua errors (7/nil), rterror(),
+  -- THROW(), and user error() calls — all with the last _curpos intact.
+  local packed = table.pack(pcall(function()
+    return trampoline(expr(top_cont))
+  end))
+  local ok = table.remove(packed, 1); packed.n = packed.n - 1
+
+  local curpos = _ctx:getCurpos()  -- read before restore wipes it
+  _ctx:restore(outer)
+
+  if not ok then
+    local enriched = tostring(packed[1])
     local src = opts and (opts.src or (opts.rule and opts.rule.src))
     if src then
-      local sp = _ctx:getCurpos()
-      if sp then
-        enriched = enriched .. ER.sourceMarker(src, sp.pos, sp.len)
+      if curpos then
+        enriched = enriched .. ER.sourceMarker(src, curpos.pos, curpos.len)
       else
         enriched = enriched .. "\n  source: " .. src
       end
     end
     error(enriched, 0)
-  end))
-  if opts and opts.vars then
-    _ctx:pushVarsFrame(opts.vars)
   end
-  local result = table.pack(trampoline(expr(top_cont)))
-  _ctx:restore(outer)
-  return table.unpack(result, 1, result.n)
+  return table.unpack(packed, 1, packed.n)
 end
 
 local function resume(token, ...)
