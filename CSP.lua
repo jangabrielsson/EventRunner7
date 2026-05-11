@@ -25,10 +25,13 @@ do
   local _global_env = {}   -- { [name] = {v} }  (boxed, same as locals)
   local _trace = false
   local _opts = nil
+  local _curpos = nil   -- current source position {pos,len}; set by instrumented closures
 
   function _ctx:getTrace()   return _trace end
   function _ctx:setTrace(on) _trace = on end
   function _ctx:getOpts()    return _opts end
+  function _ctx:getCurpos()  return _curpos end
+  function _ctx:setCurpos(p) _curpos = p end
 
   function _ctx:setExitCont(c) _exit_cont = c end
   function _ctx:getExitCont()  return _exit_cont end
@@ -124,6 +127,7 @@ do
       var_env       = chain_to_list(_var_env),
       trace         = _trace,
       opts          = _opts,
+      curpos        = _curpos,
     }
   end
 
@@ -134,6 +138,7 @@ do
     _var_env       = list_to_chain(snap.var_env)
     _trace         = snap.trace or false
     _opts          = snap.opts or nil
+    _curpos        = snap.curpos or nil
   end
 end
 
@@ -400,10 +405,11 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
         end
         trace("CALL", tostring(f), ...)
         ER._ctx = _ctx  -- make current context available to the called function
-        local rets = {f(...)}
+        local rets = table.pack(pcall(f, ...))
         ER._ctx = nil
-        trace("CALL->", table.unpack(rets))
-        return cont(table.unpack(rets))
+        if not rets[1] then return rterror(rets[2]) end
+        trace("CALL->", table.unpack(rets, 2, rets.n))
+        return cont(table.unpack(rets, 2, rets.n))
       end))
     end))
   end
@@ -667,10 +673,15 @@ local function eval(expr, opts)
   -- consistent context in logs.
   _ctx:pushErrorHandler(TR(function(msg)
     local enriched = tostring(msg)
-    -- Append source text only; rule identity is added by the caller (logRule).
+    -- Append source cursor if we have a source position, otherwise the full source text.
     local src = opts and (opts.src or (opts.rule and opts.rule.src))
     if src then
-      enriched = enriched .. "\n  source: " .. src
+      local sp = _ctx:getCurpos()
+      if sp then
+        enriched = enriched .. ER.sourceMarker(src, sp.pos, sp.len)
+      else
+        enriched = enriched .. "\n  source: " .. src
+      end
     end
     error(enriched, 0)
   end))
@@ -756,6 +767,27 @@ end
 -- Table args are compiled recursively as sub-expressions.
 -- Exception: {"CONST", v} always treats v as a literal (even a table).
 -- Exception: SET, GET, DEFGLOBAL, LET treat their first arg as a raw name.
+
+-- _cspsrcmap: set by vm.compile(tree, srcmap); maps CSP instruction table
+-- references to {pos,len} source positions.  nil during normal compile().
+local _cspsrcmap = nil
+
+-- After building a closure f from instruction table t, if a srcmap is
+-- active and t has a position entry, wrap f to update _ctx._curpos first.
+local function maybeWrap(f, t)
+  if _cspsrcmap and type(t) == 'table' then
+    local sp = _cspsrcmap[t]
+    if sp then
+      local inner = f
+      return function(cont)
+        _ctx:setCurpos(sp)
+        return inner(cont)
+      end
+    end
+  end
+  return f
+end
+
 local function compile(t)
   local tv = type(t)
   if tv == "number" or tv == "string" or tv == "boolean" or tv == "function" then
@@ -782,44 +814,53 @@ local function compile(t)
     return cargs
   end
 
+  local f
   -- ops where the first arg is a raw name string
-  if     op == "CONST"     then return CONST(t[2])
-  elseif op == "GET"       then return GET(t[2])
-  elseif op == "SET"       then return SET(t[2], ca(t[3]))
-  elseif op == "GETVAR"    then return GETVAR(t[2], ca(t[3]))
-  elseif op == "SETVAR"    then return SETVAR(t[2], ca(t[3]), ca(t[4]))
-  elseif op == "SETFIELD"  then return SETFIELD(ca(t[2]), t[3], ca(t[4]))
-  elseif op == 'INCVAR'    then return INCVAR(t[2], t[3], ca(t[4]))
-  elseif op == "DEFGLOBAL" then return DEFGLOBAL(t[2], ca(t[3]))
-  elseif op == "LET"       then return LET(t[2], ca(t[3]), ca(t[4]))
-  elseif op == "LETS"      then return LETS(t[2], cal(t[3]), ca(t[4]))
-  elseif op == "GETPROP"   then return GETPROP(ca(t[2]), t[3])   -- t[3] is raw key string
-  elseif op == "SETPROP"   then return SETPROP(ca(t[2]), t[3], ca(t[4]))  -- t[3] is raw key string
+  if     op == "CONST"     then f = CONST(t[2])
+  elseif op == "GET"       then f = GET(t[2])
+  elseif op == "SET"       then f = SET(t[2], ca(t[3]))
+  elseif op == "GETVAR"    then f = GETVAR(t[2], ca(t[3]))
+  elseif op == "SETVAR"    then f = SETVAR(t[2], ca(t[3]), ca(t[4]))
+  elseif op == "SETFIELD"  then f = SETFIELD(ca(t[2]), t[3], ca(t[4]))
+  elseif op == 'INCVAR'    then f = INCVAR(t[2], t[3], ca(t[4]))
+  elseif op == "DEFGLOBAL" then f = DEFGLOBAL(t[2], ca(t[3]))
+  elseif op == "LET"       then f = LET(t[2], ca(t[3]), ca(t[4]))
+  elseif op == "LETS"      then f = LETS(t[2], cal(t[3]), ca(t[4]))
+  elseif op == "GETPROP"   then f = GETPROP(ca(t[2]), t[3])   -- t[3] is raw key string
+  elseif op == "SETPROP"   then f = SETPROP(ca(t[2]), t[3], ca(t[4]))  -- t[3] is raw key string
   elseif op == "CALL"      then
     -- all args including the function are compiled (scalars auto-wrapped in CONST)
     local cargs = cal(t, 2)
-    return CALL(table.unpack(cargs))
+    f = CALL(table.unpack(cargs))
   elseif op == "TRY"       then
-    return TRY(ca(t[2]), t[3])   -- t[3] is raw Lua handler_fn
+    f = TRY(ca(t[2]), t[3])   -- t[3] is raw Lua handler_fn
   elseif op == "CFUN"      then
     -- t[2] is a raw Lua function; t[3..n] are compiled as expressions
     local cargs = cal(t, 3)
-    return CFUN(t[2], table.unpack(cargs))
+    f = CFUN(t[2], table.unpack(cargs))
   elseif op == "PROGN"      then
     checkProgn(t)
     local cargs = cal(t, 2)
-    return PROGN(table.unpack(cargs))
+    f = PROGN(table.unpack(cargs))
   else
     local cargs = cal(t, 2)
-    return expr[op](table.unpack(cargs))
+    f = expr[op](table.unpack(cargs))
   end
+  return maybeWrap(f, t)
 end
 
 local vm = {
   eval      = eval,
   resume    = resume,
-  compile   = compile,
+  compile   = function(tree, srcmap)
+    _cspsrcmap = srcmap or nil
+    local ok, result = pcall(compile, tree)
+    _cspsrcmap = nil
+    if not ok then error(result, 2) end
+    return result
+  end,
   expr      = expr,
+  rterror   = rterror,
   defGlobal = function(name, v) _ctx:defGlobal(name, v) end,
   getGlobal = function(name)    return (_ctx:getGlobal(name)) end,
   setGlobal = function(name, v) return _ctx:setGlobal(name, v) end,

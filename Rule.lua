@@ -1,7 +1,9 @@
 fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local vm = ER.csp
-fibaro.EventRunnerVersion = "0.1.0"
+
+local _VERSION = "0.1.0"
+fibaro.EventRunnerVersion = _VERSION
 
 local fmt = string.format
 local catchValue = math.huge
@@ -57,6 +59,7 @@ local function logRule(rule, minLevel, prefix, ...)
   if rule ~= nil then
     if not shouldLog(rule, minLevel) then return end
     if prefix == rule.opts.errorPrefix and rule.src then
+      local a = {...}
       print(prefix, tostring(rule)..":", ..., "\n  rule: "..rule.src)
     else
       print(prefix, tostring(rule)..":", ...)
@@ -106,7 +109,7 @@ local function compRule(r)
   
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
   scanHead(head, trs)             -- scanHead may modify ast...
-  local fun  = ER.csp.compile(r)  -- compile rule action into CSP
+  local fun  = ER.csp.compile(r, r._srcmap)  -- compile rule action into CSP (with srcmap if available)
   rule.fun = fun
   rule.timers = {}
   
@@ -581,8 +584,8 @@ local function eval(src,opts)
   local result
   
   local ok, err = pcall(function()
-    local tree = ER.compileAST(ast)
-    local code = ER.csp.compile(tree)
+    local tree, srcmap = ER.compileASTWithMap(ast)
+    local code = ER.csp.compile(tree, srcmap)
     --print(json.encode(tree))
     ER._ruleSrc = src
     ER._ruleCmp = tree
@@ -650,12 +653,14 @@ function fibaro.EventRunner(cb)
   er.sourceTrigger = sourceTrigger  
   er.globals = ER.globals
   er.defglobals = ER.defglobals
-  er.variables = er.defglobals
+  er.variables = er.defglobals -- backward compatibility, will be removed in future
   
   midnightLoop()
   
   er.definePropClass = ER.definePropClass
   er.PropObject = ER.PropObject
+  er.addStdProp = ER.addStdProp
+  er.propertyFuns = ER.propertyFuns
   er.loadSimDevice = ER.loadSimDevice
   er.createSimGlobal = ER.defineSimGlobalVariable
   er.loadPluaDevice = ER.loadPluaDevice
@@ -669,6 +674,9 @@ function fibaro.EventRunner(cb)
   
   ER.deviceManager()
 
+  setmetatable(er,{
+    __tostring = function() return fmt("EventRunner6 v%s",_VERSION) end,
+  })
   setTimeout(function() 
     sourceTrigger:run()
     cb(er) 

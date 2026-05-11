@@ -11,29 +11,14 @@
 -- Scratch pad for testing new feature. Actual test suite to go into
 -- eventrunner_test.lua once we have a stable set of features to test.
 
-fibaro.plua.lib.loadQAString([[
-  function publish(pevent)
-    pevent._from = plugin.mainDeviceId
-    pevent._published = true
-    fibaro.setGlobalVariable("ER_subscription", json.encode(pevent))
-  end
-
-    function QuickApp:onInit()
-      self:debug("MyDevice class loaded")
-      setTimeout(function()
-        print("Publish")
-        publish({type='foppa', value=42})
-      end, 2000)
-    end
-  ]])
-
 
 local function main(er) ER = er
   local rule, test = er.eval, er.test
   local function loadDevice(name) return er.loadSimDevice(name) end
 
-  rule("subscribe(#foppa)")
-  rule("#foppa => log('FOPPA!')")
+  rule("post(#device{property='centralSceneEvent',id=99,value={keyId=3,keyAttribute='Pressed'}})")
+  function foo() error("err") end
+  rule("#device => foo('err'); log('Event %s',event)")
 end
 
 function QuickApp:onInit()

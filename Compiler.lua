@@ -288,6 +288,10 @@ end
 
 -- ── Dispatch table ────────────────────────────────────────────────────────
 
+-- _srcmap: when non-nil, maps CSP instruction table refs → {pos,len}.
+-- Declared here (before comp.RULE) so all comp.* functions close over it.
+local _srcmap = nil
+
 local comp = {}
 
 comp.NUMBER = compNumber
@@ -331,6 +335,9 @@ function comp.RULE(ast)
   -- {'RULE', condition, block}
   local cond = {"CALL", {'NAME','_ruleCondition'}, ast[2]}
   local rule = compile({'IF',cond,ast[3],{},{'RETURN',{'STRING',ER.ruleFail}}}) -- if condition matches, run block; else return failure string
+  -- Stash the current srcmap reference on the CSP rule tree so that
+  -- compRule() can pass it to ER.csp.compile() for cursor-enabled errors.
+  if _srcmap then rule._srcmap = _srcmap end
   return {"CALL",{"GET",'_compRule'}, {"CONST",rule}}
 end
 
@@ -404,8 +411,25 @@ compile = function(ast)
   if not fn then
     error("Compiler: unknown AST node '" .. tostring(ast[1]) .. "'")
   end
-  return fn(ast)
+  local result = fn(ast)
+  -- Record source position for instrumented CSP instruction tables.
+  if _srcmap and ast._pos and type(result) == 'table' then
+    _srcmap[result] = {pos = ast._pos, len = ast._len or 1}
+  end
+  return result
 end
 
 ER.compileAST  = compile
 ER.intrinsics  = intrinsics  -- mutable: callers may add entries directly
+
+-- compileASTWithMap: like compileAST but also returns a srcmap table
+-- (CSP instruction table reference → {pos, len}).  The srcmap is consumed
+-- by csp.compile() and then garbage-collected; it never lives past eval().
+function ER.compileASTWithMap(ast)
+  _srcmap = {}
+  local ok, result = pcall(compile, ast)
+  local m = _srcmap
+  _srcmap = nil
+  if not ok then error(result, 2) end
+  return result, m
+end

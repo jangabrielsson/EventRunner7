@@ -306,7 +306,7 @@ local function dateTest(dateStr0)
   end
 end
 
-ER.eventFormatter = {}
+ER.eventFormatter = ER.eventFormatter or {}
 --------------- Event engine -------------------
 local EventMT = { 
   __tostring = function(ev)
@@ -940,8 +940,11 @@ end
     end
   end
   
-  ER.sourceTrigger.eventEngine.registerCallback(lastHandler)
-  
+  ER.onInitHooks = ER.onInitHooks or {}
+  ER.onInitHooks[#ER.onInitHooks+1] = function()
+    ER.sourceTrigger.eventEngine.registerCallback(lastHandler)
+  end
+
   function QuickApp:lastManual(id)
     local last = lastID[id]
     if not last then return -1 end

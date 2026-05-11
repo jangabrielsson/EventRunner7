@@ -13,6 +13,12 @@ local function makeParser(src)
   local savePos    = ts.savePos
   local restorePos = ts.restorePos
 
+  -- Tag an AST node with source position from a token.
+  local function P(node, tok)
+    if tok then node._pos = tok.pos; node._len = tok.len end
+    return node
+  end
+
   local function parseError(msg)
     local t = peek(1)
     error(msg .. (ts.sourceAt(t) or " at end of input"), 2)
@@ -111,9 +117,9 @@ local function makeParser(src)
     if t and t.type == 'identifier' then
       next()
       if t.value == 'now' then return {'NOW'}
-      else return {'NAME', t.value} end
+      else return P({'NAME', t.value}, t) end
     elseif t and t.type == 'number' then
-      next(); return {'NUMBER', t.value}    -- e.g. 88:value
+      next(); return P({'NUMBER', t.value}, t)    -- e.g. 88:value
     elseif t and t.type == 'gv' then
       next(); return {'GV', expect('identifier').value}
     elseif t and t.type == 'qv' then
@@ -142,10 +148,10 @@ local function makeParser(src)
       if not t then break end
       if t.type == 'lsqb' then
         -- '[' exp ']'
-        next()
+        local lsqb = next()
         local idx = parseExp()
         expect('rsqb')
-        base = {'INDEX', base, idx}
+        base = P({'INDEX', base, idx}, lsqb)
         isCall = false
       elseif t.type == 'dot' then
         -- '.' Name
@@ -155,20 +161,21 @@ local function makeParser(src)
       elseif t.type == 'colon' then
         -- ':' Name args  OR  ':' Name  (getprop)
         next()
-        local name = expect('identifier').value
+        local nametok = expect('identifier')
+        local name = nametok.value
         local t2 = peek(1)
         if t2 and (t2.type == 'lpar' or t2.type == 'lbra' or t2.type == 'string') then
           local args = parseArgs()
-          base = {'METHODCALL', base, name, table.unpack(args)}
+          base = P({'METHODCALL', base, name, table.unpack(args)}, nametok)
           isCall = true
         else
-          base = {'GETPROP', base, name}
+          base = P({'GETPROP', base, name}, nametok)
           isCall = false
         end
       elseif t.type == 'lpar' or t.type == 'lbra' or t.type == 'string' then
         -- args
         local args = parseArgs()
-        base = {'CALL', base, table.unpack(args)}
+        base = P({'CALL', base, table.unpack(args)}, t)
         isCall = true
       else
         break
@@ -194,7 +201,7 @@ local function makeParser(src)
     elseif ty == 'false' then
       next(); return {'BOOL', false}
     elseif ty == 'string' then
-      next(); return {'STRING', t.value}
+      next(); return P({'STRING', t.value}, t)
     elseif ty == 'function' then
       next(); return parseFuncbody()
     elseif ty == 'event' then
@@ -248,7 +255,7 @@ local function makeParser(src)
     while true do
       local t = peek(1)
       if t and t.type == 'op' and mulops[t.value] then
-        left = {mulops[next().value], left, parseUnaryexp()}
+        local op = next(); left = P({mulops[op.value], left, parseUnaryexp()}, op)
       else break end
     end
     return left
@@ -262,7 +269,7 @@ local function makeParser(src)
     while true do
       local t = peek(1)
       if t and t.type == 'op' and addops[t.value] then
-        left = {addops[next().value], left, parseMulexp()}
+        local op = next(); left = P({addops[op.value], left, parseMulexp()}, op)
       else break end
     end
     return left
@@ -275,9 +282,9 @@ local function makeParser(src)
     while true do
       local t = peek(1)
       if t and (t.type == 'betw' or t.type == 'conc') then
-        next()
-        left = t.type == 'betw' and {'BETW', left, parseAddexp()}
-                                 or {'CONCAT', left, parseAddexp()}
+        local op = next()
+        left = P(op.type == 'betw' and {'BETW', left, parseAddexp()}
+                                    or {'CONCAT', left, parseAddexp()}, op)
       else break end
     end
     return left
@@ -294,7 +301,7 @@ local function makeParser(src)
     local left = parseConcatexp()
     local t = peek(1)
     if t and t.type == 'op' and relops[t.value] then
-      left = {relops[next().value], left, parseConcatexp()}
+      local op = next(); left = P({relops[op.value], left, parseConcatexp()}, op)
     end
     return left
   end
@@ -303,8 +310,8 @@ local function makeParser(src)
   local function parseNilcoexp()
     local left = parseRelexp()
     while peek(1) and peek(1).type == 'op' and peek(1).value == 'nilco' do
-      next()
-      left = {'NILCO', left, parseRelexp()}
+      local op = next()
+      left = P({'NILCO', left, parseRelexp()}, op)
     end
     return left
   end
@@ -313,8 +320,8 @@ local function makeParser(src)
   local function parseAndexp()
     local left = parseNilcoexp()
     while peek(1) and peek(1).type == 'op' and peek(1).value == 'and' do
-      next()
-      left = {'AND', left, parseNilcoexp()}
+      local op = next()
+      left = P({'AND', left, parseNilcoexp()}, op)
     end
     return left
   end
@@ -323,8 +330,8 @@ local function makeParser(src)
   local function parseOrexp()
     local left = parseAndexp()
     while peek(1) and peek(1).type == 'op' and peek(1).value == 'or' do
-      next()
-      left = {'OR', left, parseAndexp()}
+      local op = next()
+      left = P({'OR', left, parseAndexp()}, op)
     end
     return left
   end
@@ -462,7 +469,7 @@ local function makeParser(src)
       -- setprop: GETPROP followed by '='
       if inner[1] == 'GETPROP' and peek(1) and peek(1).type == 'assign' then
         next()  -- consume '='
-        return {'SETPROP', inner[2], inner[3], parseExp()}
+        return P({'SETPROP', inner[2], inner[3], parseExp()}, inner)
       end
 
       -- getprop as statement: expr:tag  (no '=' follows; acts as a function call)

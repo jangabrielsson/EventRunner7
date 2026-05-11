@@ -18,16 +18,17 @@ A **plain expression** (no `=>`) runs immediately and returns its value.
 
 ```lua
 local er  -- EventRunner instance passed to main(er)
+local rule = er.eval -- alias for er.eval, better name
 
 -- Rule form: registers the rule, logs ✅ RULE<n> with triggers, returns rule object
-local rule = er.eval("tvar == 5 => return tvar * 2")
+local r = rule("tvar == 5 => return tvar * 2")
 
 -- Synchronous expression: runs now, logs 📋 result, returns value(s)
-local v = er.eval("return 3 + 4")   -- v == 7
+local v = rule("return 3 + 4")   -- v == 7
 
 -- Asynchronous expression: contains wait(); logs 💤, returns nil immediately;
 -- logs 📋 result when done
-local v = er.eval("wait(100); return 7")  -- v == nil immediately, 📋 7 after 100ms
+local v = rule("wait(100); return 7")  -- v == nil immediately, logs 📋 7 after 100ms
 ```
 
 | Input | `eval()` returns | Logs immediately | Logs later |
@@ -41,16 +42,16 @@ local v = er.eval("wait(100); return 7")  -- v == nil immediately, 📋 7 after 
 ## Rule object
 
 ```lua
-local rule = er.eval("cond => action")
+local r = rule("cond => action")
 
-rule.id          -- integer, assigned at registration time
-rule.verbosity   -- "silent" | "normal" (default) | "verbose"
-rule.onDone      -- optional hook function: called with action return values on completion
+r.id          -- integer, assigned at registration time
+r.verbosity   -- "silent" | "normal" (default) | "verbose"
+r.onDone      -- optional hook function: called with action return values on completion
 
 tostring(rule)   -- "RULE1", "RULE2", ...
 
-rule:run()       -- fire the rule manually, regardless of event state
-rule:dumpTriggers()  -- print registered trigger/daily list to console
+r.start()       -- fire the rule manually, regardless of event state
+r.dumpTriggers()  -- print registered trigger/daily list to console
 ```
 
 ---

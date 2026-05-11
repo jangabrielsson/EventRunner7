@@ -73,6 +73,10 @@ local keyMT = { __tostring =
   end 
 }
 
+local propertyFuns = { 
+  set = set, get = get, central = centralScene, partition = partition, armState = armState, setAlarm = setAlarm, tryArm = tryArm, BN = BN, GETPROP = GETPROP, CALL = CALL, keyMT = keyMT 
+}
+
 local propertyTable = {
   value = {
     trigger = {type='device', property='value'},
@@ -107,12 +111,12 @@ local propertyTable = {
   },
   isAllOn = {
     trigger = {type='device', property='value'},
-    get = "isOn.get",
+    get = function(pd,id) return BN(get(pd,id))>0 end,
     reduce = table.mapAnd
   },
   isAnyOff = {
     trigger = {type='device', property='value'},
-    get = "isOff.get",
+    get = function(pd,id) return BN(get(pd,id))==0 end,
     reduce = table.mapOr
   },
   last = {
@@ -183,12 +187,12 @@ local propertyTable = {
   unsecure = CALL("unsecure", table.mapF),
   isSecure = {
     trigger = {type='device', property='secured'},
-    get = "isOn.get",
+    get = function(pd,id) return BN(get(pd,id))>0 end,
     reduce = table.mapAnd,
   },
   isUnsecure = {
     trigger = {type='device', property='secured'},
-    get = "isOff.get",
+    get = function(pd,id) return BN(get(pd,id))==0 end,
     reduce = table.mapOr,
   },
   name = {
@@ -497,9 +501,30 @@ for alias,def in pairs(aliases) do
   propertyTable[alias] = propertyTable[def] 
 end
 
+-- er.addStdProp("<myprop>",{ 
+--    trigger = {type=..., property=...}, get = function, set = function, 
+--   reduce = function/table.mapF, setCmd = "optional alternative set command name" 
+--}
+local function addStdProp(name,def)
+  propertyTable[name] = def
+  def.property = name
+end
+
+local deviceFormatter = {}
+function deviceFormatter.centralSceneEvent(ev) 
+  local val = ev.value or {}
+  return fmt("#key{id:%s,%s:%s}", ev.id,val.keyId or "*", val.keyAttribute or "*")
+end
+ER.eventFormatter = ER.eventFormatter or {}
+function ER.eventFormatter.device(ev)
+  if deviceFormatter[ev.property] then return deviceFormatter[ev.property](ev) end
+  return false
+end
 ----------------- Exports -----------------------
 
 ER.propFilters = filters
 ER.resolvePropObject = resolvePropObject
 ER.PropObject = PropObject
 ER.definePropClass = definePropClass
+ER.addStdProp = addStdProp
+ER.propertyFuns = propertyFuns
