@@ -337,14 +337,8 @@ comp.FOR_NUM = compFor
 comp.FOR_IN = compForIn
 comp.CALL   = compCall
 
-function comp.RULE(ast)
-  -- {'RULE', condition, block}
-  local cond = {"CALL", {'NAME','_ruleCondition'}, ast[2]}
-  local rule = compile({'IF',cond,ast[3],{},{'RETURN',{'STRING',ER.ruleFail}}}) -- if condition matches, run block; else return failure string
-  -- Stash the current srcmap reference on the CSP rule tree so that
-  -- compRule() can pass it to ER.csp.compile() for cursor-enabled errors.
-  if _srcmap then rule._srcmap = _srcmap end
-  return {"CALL",{"GET",'_compRule'}, {"CONST",rule}}
+function comp.RULE()
+  error("Compiler: use ER.compileRuleBody() for RULE nodes — compileAST() does not support them")
 end
 
 -- TABLE: {[k]=v, name=v, v, ...}  →  MAKETABLE(k1,v1, k2,v2, ...)
@@ -438,4 +432,21 @@ function ER.compileASTWithMap(ast)
   _srcmap = nil
   if not ok then error(result, 2) end
   return result, m
+end
+
+-- compileRuleBody: compile a RULE ast node directly into the CSP IF-table
+-- that compRule() expects.  Bypasses the _compRule runtime indirection.
+-- Returns (rule_csp) with rule_csp._srcmap already set.
+function ER.compileRuleBody(ast)
+  -- ast = {'RULE', condition_ast, action_ast}
+  _srcmap = {}
+  local result
+  local ok, err = pcall(function()
+    local cond = {"CALL", {'NAME','_ruleCondition'}, ast[2]}
+    result = compile({'IF', cond, ast[3], {}, {'RETURN', {'STRING', ER.ruleFail}}})
+    if _srcmap then result._srcmap = _srcmap end
+  end)
+  _srcmap = nil
+  if not ok then error(err, 2) end
+  return result
 end

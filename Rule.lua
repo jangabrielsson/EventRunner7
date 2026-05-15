@@ -95,13 +95,12 @@ local function midnightLoop(er)
 end
 
 ---------------------- Create rule ---------------------------------
-local function compRule(r)
+local function compRule(r, opts, src)
   local head = r[2]               -- the condition part (scan for triggers)
-  local _,opts = ER._ctx:getVar('_opts')
   opts = opts or {}
-  
+
   RULEIDX = RULEIDX + 1
-  local rule = { type='RULE', id = RULEIDX, verbosity = opts.verbosity or "normal", src = ER._ruleSrc, opts = opts }
+  local rule = { type='RULE', id = RULEIDX, verbosity = opts.verbosity or "normal", src = src, opts = opts }
   rules[RULEIDX] = rule
   setmetatable(rule, {
     __tostring = function(self) return "RULE" .. tostring(self.id) end
@@ -588,12 +587,14 @@ local function eval(src,opts)
   local result
   
   local ok, err = pcall(function()
-    local tree, srcmap = ER.compileASTWithMap(ast)
-    local code = ER.csp.compile(tree, srcmap)
-    --print(json.encode(tree))
-    ER._ruleSrc = src
-    ER._ruleCmp = tree
-    result = table.pack(ruleRunner(code,nil,opts))  -- rule=nil → bare eval
+    if isRule then
+      local rule_csp = ER.compileRuleBody(ast)
+      result = table.pack(compRule(rule_csp, opts, src))
+    else
+      local tree, srcmap = ER.compileASTWithMap(ast)
+      local code = ER.csp.compile(tree, srcmap)
+      result = table.pack(ruleRunner(code, nil, opts))
+    end
   end)
   
   if not ok then
@@ -627,7 +628,6 @@ end
 function fibaro.EventRunner(cb)
   local er = {eval = eval, now = ER.now}
 
-  vm.defGlobal("_compRule", compRule)
   vm.defGlobal("_ruleCondition", ruleGuard)
   vm.defGlobal('catch', catchValue)
   
