@@ -448,9 +448,9 @@ local Props
 NumberProp = {}
 
 class 'NumberProp'(PropObject)
-function NumberProp:__init(num)  
+function NumberProp:__init(id)  
   PropObject.__init(self) 
-  self.id = num 
+  self.id = id 
   self.__str = tostring(self.id)
 end
 function NumberProp:_getProp(prop, event)

@@ -26,6 +26,7 @@ end
 
 local loadedDeviceClasses = {}
 local loadedDevices = {}
+ER.loadedSimDevices = loadedDevices
 local idCounter = 10000
 
 local oldCall,oldGet = fibaro.call,fibaro.get
