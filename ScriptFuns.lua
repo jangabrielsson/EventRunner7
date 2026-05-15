@@ -10,20 +10,20 @@ local function getProp(obj, key, ctx)
     return ER.propFilters[key](obj)
   end
   if type(obj) == 'table' then
-    assert(obj[1], "invalid property access on table without objects :"..tostring(key))
+    assert(obj[1], "#invalid property access on table without objects :"..tostring(key))
     local fobj = ER.resolvePropObject(obj[1])
-    if not fobj:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
+    if not fobj:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
     local reduce = fobj:hasReduce(key)
     if not reduce then 
       return table.map(function(o) 
         o = ER.resolvePropObject(o)
-        if not o:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
+        if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
         return o:_getProp(key, event)
       end, obj)
     end
     return reduce(function(o) 
         o = ER.resolvePropObject(o)
-        if not o:hasGetProp(key) then error("no such property :"..tostring(key).." (get)") end
+        if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
         return o:_getProp(key, event)
       end, obj)
   end

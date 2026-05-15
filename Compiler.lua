@@ -79,8 +79,12 @@ local function compIncvar(ast)
   local var = ast[2]
   local exp = compile(ast[3])
   local op = ast[4]
-  --return compileTarget(var, {IncOpMap[op], {'GET', var[2]}, exp})
-  return {'INCVAR', var[2], IncOpMap[op], exp}  -- handled as a special case in the VM for efficiency
+  local result = {'INCVAR', var[2], IncOpMap[op], exp}
+  -- Propagate source position from lvalue to the CSP instruction table.
+  if _srcmap and var._pos and type(result) == 'table' then
+    _srcmap[result] = {pos = var._pos, len = var._len or 1}
+  end
+  return result
 end
 
 -- ── Statement-list compiler (handles LOCAL hoisting) ──────────────────────

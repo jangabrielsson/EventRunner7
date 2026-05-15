@@ -332,7 +332,7 @@ local function INDEX(obj_expr, key_expr)
       return key_expr(TR(function(key)
         trace("INDEX", tostring(obj), "[", tostring(key), "]")
         if type(obj) ~= 'table' then
-          return rterror("Attempt to index a non-table value: " .. tostring(obj).. " with key '"..tostring(key).."'" )
+          return rterror("#Attempt to index a non-table value: " .. tostring(obj).. " with key '"..tostring(key).."'" )
         end
         return cont(obj[key])
       end))
@@ -346,6 +346,9 @@ local function SETINDEX(obj_expr, key_expr, val_expr)
       return key_expr(TR(function(key)
         return val_expr(TR(function(val)
           trace("SETINDEX", tostring(obj), "[", tostring(key), "] =", tostring(val))
+          if type(obj) ~= 'table' then
+            return rterror("#Attempt to index a non-table value: " .. tostring(obj).. " with key '"..tostring(key).."'" )
+          end
           obj[key] = val
           return cont(val)
         end))
@@ -359,6 +362,9 @@ local function SETFIELD(obj_expr, field, val_expr)
     return obj_expr(TR(function(obj)
       return val_expr(TR(function(val)
         trace("SETFIELD", tostring(obj), ".", field, "=", tostring(val))
+        if type(obj) ~= 'table' then
+          return rterror("#Attempt to set a non-table value: " .. tostring(obj).. " with key '"..tostring(field).."'" )
+        end
         obj[field] = val
         return cont(val)
       end))
@@ -407,7 +413,9 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
         ER._ctx = _ctx  -- make current context available to the called function
         local rets = table.pack(pcall(f, ...))
         ER._ctx = nil
-        if not rets[1] then error(rets[2], 0) end  -- re-raise; eval()'s pcall enriches
+        if not rets[1] then 
+          error(rets[2], 0) -- re-raise; eval()'s pcall enriches
+        end  
         trace("CALL->", table.unpack(rets, 2, rets.n))
         return cont(table.unpack(rets, 2, rets.n))
       end))
@@ -545,7 +553,7 @@ local function GET(name)
   return function(cont)
     local found, v = _ctx:getVar(name)
     if found then return cont(v) end
-    return rterror("Undefined variable: '" .. tostring(name) .. "'")
+    return rterror("#Undefined variable: '" .. tostring(name) .. "'")
   end
 end
 
@@ -559,7 +567,7 @@ local function SET(name, val_expr)
         trace("SET trigger var", name, "=", v)
       end
       if found then return cont(v) end
-      return rterror("Undefined variable: '" .. tostring(name) .. "'")
+      return rterror("#Undefined variable: '" .. tostring(name) .. "'")
     end))
   end
 end
@@ -569,7 +577,7 @@ local function INCVAR(name, op, val_expr)
   return function(cont)
     return val_expr(TR(function(v)
       local found, currVal = _ctx:getVar(name)
-      if not found then return rterror("Undefined variable: '" .. tostring(name) .. "'") end
+      if not found then return rterror("#Undefined variable: '" .. tostring(name) .. "'") end
       local result = OPS[op](currVal, v)
       _ctx:setVar(name, result)
       if ER._triggerVars and ER._triggerVars[name] then
@@ -662,6 +670,11 @@ local function trampoline(f, ...)
   return 'ok', table.unpack(args, 1, args.n)
 end
 
+local taggableErrors = {
+  --"attempt to perform arithmetic on a",
+  "attempt to",
+}
+
 local function eval(expr, opts)
   local outer = _ctx:snapshot()
   local top_cont = function(...) return nil, ... end
@@ -691,6 +704,13 @@ local function eval(expr, opts)
         enriched = enriched .. ER.sourceMarker(src, curpos.pos, curpos.len)
       else
         enriched = enriched .. "\n  source: " .. src
+      end
+    end
+    -- Could we tag some error messages here?
+    for _,p in ipairs(taggableErrors) do
+      if enriched:find(p) then
+        enriched = "#"..(enriched:match(".*:%d+: (.*)") or enriched)
+        break
       end
     end
     error(enriched, 0)

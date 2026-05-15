@@ -277,7 +277,7 @@ local propertyTable = {
   },
   simKey = {
     set = function(pd,id,value) 
-      if type(value) ~= 'table' or not value.keyId or not value.keyAttribute then error("simKey expects a table with keyId and keyAttribute") end
+      if type(value) ~= 'table' or not value.keyId or not value.keyAttribute then error("#simKey expects a table with keyId and keyAttribute") end
       ER.sourceTrigger:post({type='device', id=id, property='centralSceneEvent', value={keyId=value.keyId,keyAttribute=value.keyAttribute}})
       return value
     end
@@ -456,14 +456,14 @@ end
 function NumberProp:_getProp(prop, event)
   local gp = self:hasGetProp(prop)
   if not gp then 
-    error("Unknown property: "..tostring(prop))
+    error("#Unknown property: "..tostring(self.id)..":"..tostring(prop))
   end
   return gp.get(gp, self.id, event)
 end
 function NumberProp:_setProp(prop,value, event)
   local sp = self:hasGetProp(prop)
   if not sp then
-    error("Unknown property: "..tostring(prop))
+    error("#Unknown property: "..tostring(self.id)..":"..tostring(prop))
   end
   return sp.set(sp, self.id, value, event)
 end
@@ -490,9 +490,15 @@ local numObjects = {}
 local function resolvePropObject(obj)
   if type(obj) == 'userdata' and obj._isPropObject then return obj
   elseif type(obj) == 'number' then -- Create a PropObject for this device id, or return the existing one if we've already created it
-    local po = numObjects[obj] or NumberProp(obj)
-    numObjects[obj] = po
-    return po
+    if numObjects[obj] then return numObjects[obj]
+    else
+      if not ER.devices:isDevice(obj) then 
+        error("#No such device: "..tostring(obj)) 
+      end
+      local po = NumberProp(obj)
+      numObjects[obj] = po
+      return po
+    end
   else return nil end
 end
 
