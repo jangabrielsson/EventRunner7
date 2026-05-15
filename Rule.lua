@@ -60,7 +60,7 @@ local function trimErr(str)
   return str:match("^#(.+)") or str:match("%d+: #(.*)$") or str
 end
 
-ER.D2024 = os.time({year=2024, month=1, day=1})
+ER.D2024 = os.time({year=2024, month=1, day=1}) -- Date before which all daily times are assumed to be (i.e. their date part is ignored and they are scheduled for the next occurrence of that time)
 
 local function setupGlobalVariables()
   local var = ER.defglobals
