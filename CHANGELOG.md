@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.3] - 2026-05-21
+
+## Changes in v0.1.3
+
+- ✨ **Feature**: chore: remove unused file reference and add release v0.1.2 forum post
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.2] - 2026-05-21
 
 ## Changes in v0.1.2
