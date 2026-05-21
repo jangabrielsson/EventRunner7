@@ -689,7 +689,7 @@ local function bootEventRunner(cb)
     table.sort(preModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
     table.sort(afterModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
 
-    print(color('orange',"=========== Loading rules ================"))
+    print(color('green',"=========== Loading rules ================"))
 
     local loadTime = os.clock()
     for i,m in ipairs(preModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
@@ -697,7 +697,7 @@ local function bootEventRunner(cb)
     for i,m in ipairs(afterModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
     loadTime = os.clock() - loadTime
 
-    print(color('orange', fmt("=========== Load time: %.3fs ============", loadTime)))
+    print(color('green', fmt("=========== Load time: %.3fs ============", loadTime)))
 
   end, 500)
 end

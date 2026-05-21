@@ -69,7 +69,8 @@ local function setupFuns()
   builtin.api = api
   builtin.quickApp = quickApp
   
-  local function detag(str) 
+  local function detag(str)
+    local color
     str = str:gsub("(#C:)(.-)(#)",function(_,c) color=c return "" end)
     if color then str=string.format("<font color='%s'>%s</font>",color,str) end
     return str

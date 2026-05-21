@@ -16,7 +16,7 @@ end
 
 function QuickApp:onInit()
   local str = "EventRunner 7, v"..fibaro.EventRunnerVersion
-  self:debug(string.format("<font color='orange'>%s</font>",str))
+  self:debug(string.format("<font color='green'>%s</font>",str))
   self:updateView('info','text',str)
   fibaro.EventRunner(main)
 end
