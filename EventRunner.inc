@@ -6,3 +6,4 @@
 --%%file:Compiler.lua,compiler
 --%%file:ScriptFuns.lua,scriptfuns
 --%%file:Rule.lua,rule
+--%%uid:f1e8b22e2-3c4b-4d6a-9f6a-778c2360e1f2c

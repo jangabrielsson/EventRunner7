@@ -1,0 +1,1103 @@
+{
+  "communities": {
+    "0": [
+      "csp_lua",
+      "lcc_csp_add",
+      "lcc_csp_and",
+      "lcc_csp_betw",
+      "lcc_csp_binop",
+      "lcc_csp_break",
+      "lcc_csp_call",
+      "lcc_csp_cfun",
+      "lcc_csp_chain_to_list",
+      "lcc_csp_concat",
+      "lcc_csp_const",
+      "lcc_csp_ctx_defglobal",
+      "lcc_csp_ctx_getcurpos",
+      "lcc_csp_ctx_geterrorhandler",
+      "lcc_csp_ctx_getexitcont",
+      "lcc_csp_ctx_getglobal",
+      "lcc_csp_ctx_getopts",
+      "lcc_csp_ctx_gettrace",
+      "lcc_csp_ctx_getvar",
+      "lcc_csp_ctx_poperrorhandler",
+      "lcc_csp_ctx_poploopstack",
+      "lcc_csp_ctx_popvarframe",
+      "lcc_csp_ctx_pusherrorhandler",
+      "lcc_csp_ctx_pushloopstack",
+      "lcc_csp_ctx_pushvarframe",
+      "lcc_csp_ctx_pushvarsframe",
+      "lcc_csp_ctx_restore",
+      "lcc_csp_ctx_setcurpos",
+      "lcc_csp_ctx_setexitcont",
+      "lcc_csp_ctx_setglobal",
+      "lcc_csp_ctx_settrace",
+      "lcc_csp_ctx_setvar",
+      "lcc_csp_ctx_snapshot",
+      "lcc_csp_daily",
+      "lcc_csp_defglobal",
+      "lcc_csp_div",
+      "lcc_csp_eq",
+      "lcc_csp_eval",
+      "lcc_csp_evalargs",
+      "lcc_csp_get",
+      "lcc_csp_getprop",
+      "lcc_csp_getvar",
+      "lcc_csp_gt",
+      "lcc_csp_gte",
+      "lcc_csp_if",
+      "lcc_csp_incvar",
+      "lcc_csp_index",
+      "lcc_csp_interv",
+      "lcc_csp_let",
+      "lcc_csp_lets",
+      "lcc_csp_list_to_chain",
+      "lcc_csp_loop",
+      "lcc_csp_lt",
+      "lcc_csp_lte",
+      "lcc_csp_maketable",
+      "lcc_csp_mod",
+      "lcc_csp_mul",
+      "lcc_csp_neg",
+      "lcc_csp_nilco",
+      "lcc_csp_not",
+      "lcc_csp_or",
+      "lcc_csp_pow",
+      "lcc_csp_progn",
+      "lcc_csp_resume",
+      "lcc_csp_return",
+      "lcc_csp_rterror",
+      "lcc_csp_set",
+      "lcc_csp_setfield",
+      "lcc_csp_setindex",
+      "lcc_csp_setprop",
+      "lcc_csp_setvar",
+      "lcc_csp_sub",
+      "lcc_csp_throw",
+      "lcc_csp_tr",
+      "lcc_csp_trace",
+      "lcc_csp_trampoline",
+      "lcc_csp_try",
+      "lcc_csp_yield"
+    ],
+    "1": [
+      "lcc_props_addstdprop",
+      "lcc_props_arm",
+      "lcc_props_armstate",
+      "lcc_props_bn",
+      "lcc_props_call",
+      "lcc_props_centralscene",
+      "lcc_props_collect",
+      "lcc_props_definepropclass",
+      "lcc_props_deviceformatter_centralsceneevent",
+      "lcc_props_er_eventformatter_device",
+      "lcc_props_filters_allfalse",
+      "lcc_props_filters_alltrue",
+      "lcc_props_filters_average",
+      "lcc_props_filters_bin",
+      "lcc_props_filters_id",
+      "lcc_props_filters_leaf",
+      "lcc_props_filters_mostlyfalse",
+      "lcc_props_filters_mostlytrue",
+      "lcc_props_filters_somefalse",
+      "lcc_props_filters_sometrue",
+      "lcc_props_filters_sum",
+      "lcc_props_get",
+      "lcc_props_getprop",
+      "lcc_props_mapand",
+      "lcc_props_mapor",
+      "lcc_props_nb",
+      "lcc_props_numberprop_getprop",
+      "lcc_props_numberprop_gettrigger",
+      "lcc_props_numberprop_hasgetprop",
+      "lcc_props_numberprop_hasreduce",
+      "lcc_props_numberprop_hassetprop",
+      "lcc_props_numberprop_init",
+      "lcc_props_numberprop_istrigger",
+      "lcc_props_numberprop_setprop",
+      "lcc_props_partition",
+      "lcc_props_propobject_getprop",
+      "lcc_props_propobject_gettrigger",
+      "lcc_props_propobject_hasgetprop",
+      "lcc_props_propobject_hasreduce",
+      "lcc_props_propobject_hassetprop",
+      "lcc_props_propobject_init",
+      "lcc_props_propobject_istrigger",
+      "lcc_props_propobject_setprop",
+      "lcc_props_propobject_tostring",
+      "lcc_props_resolvepropobject",
+      "lcc_props_set",
+      "lcc_props_setalarm",
+      "lcc_props_tryarm",
+      "lcc_utils_fibaro_call",
+      "props_lua"
+    ],
+    "2": [
+      "eventrunner7_lua",
+      "github_skills_quickapp_types_templates_numeric_sensor_lua",
+      "github_skills_quickapp_types_templates_weather_lua",
+      "lcc_eventrunner7_main",
+      "lcc_eventrunner7_quickapp_oninit",
+      "lcc_parser_makeparser",
+      "lcc_parser_parse",
+      "lcc_rule_fibaro_eventrunner",
+      "lcc_rule_midnightloop",
+      "lcc_rule_setupglobalvariables",
+      "lcc_sim_er_loadsimdevice",
+      "lcc_utils_settimeout",
+      "parser_lua",
+      "templates_numeric_sensor_quickapp_oninit",
+      "templates_numeric_sensor_quickapp_poll",
+      "templates_weather_quickapp_oninit",
+      "templates_weather_quickapp_poll",
+      "templates_weather_quickapp_setcondition",
+      "tests_case_test_lua",
+      "tests_case_test_run",
+      "tests_case_test_test",
+      "tests_error_test_lua",
+      "tests_error_test_main",
+      "tests_error_test_quickapp_oninit",
+      "tests_eventrunner_plua_test2_lua",
+      "tests_eventrunner_plua_test2_main",
+      "tests_eventrunner_plua_test2_quickapp_oninit",
+      "tests_eventrunner_plua_test_lua",
+      "tests_eventrunner_plua_test_main",
+      "tests_eventrunner_plua_test_quickapp_oninit",
+      "tests_eventrunner_test_lua",
+      "tests_eventrunner_test_main",
+      "tests_eventrunner_test_quickapp_oninit",
+      "tests_eventrunner_testground2_lua",
+      "tests_eventrunner_testground2_main",
+      "tests_eventrunner_testground2_quickapp_oninit",
+      "tests_eventrunner_testground_lua",
+      "tests_eventrunner_testground_main",
+      "tests_eventrunner_testground_quickapp_oninit",
+      "tests_expr_test_lua",
+      "tests_expr_test_main",
+      "tests_expr_test_quickapp_oninit",
+      "tests_rule_test_check",
+      "tests_rule_test_lua",
+      "tests_rule_test_main",
+      "tests_rule_test_quickapp_oninit",
+      "tests_rule_test_testasync",
+      "tests_rule_test_testexpr",
+      "tests_rule_test_testrule"
+    ],
+    "3": [
+      "lcc_utils_alarmfuns_armpartition",
+      "lcc_utils_alarmfuns_tryarmpartition",
+      "lcc_utils_alarmfuns_unarmpartition",
+      "lcc_utils_base64encode",
+      "lcc_utils_betw",
+      "lcc_utils_cleartimeout2",
+      "lcc_utils_copy",
+      "lcc_utils_copyshallow",
+      "lcc_utils_datetest",
+      "lcc_utils_devicemanager",
+      "lcc_utils_getweeknumber",
+      "lcc_utils_keycompare",
+      "lcc_utils_lasthandler",
+      "lcc_utils_prettyjsonflat",
+      "lcc_utils_quickapp_lastmanual",
+      "lcc_utils_quote",
+      "lcc_utils_sourcetrigger_cancel",
+      "lcc_utils_sourcetrigger_disablesubscription",
+      "lcc_utils_sourcetrigger_enablesubscription",
+      "lcc_utils_sourcetrigger_post",
+      "lcc_utils_sourcetrigger_postremote",
+      "lcc_utils_sourcetrigger_registercallback",
+      "lcc_utils_sourcetrigger_run",
+      "lcc_utils_sourcetrigger_subscribe",
+      "lcc_utils_sourcetrigger_unsubscribe",
+      "lcc_utils_string_split",
+      "lcc_utils_table_mapk",
+      "lcc_utils_table_mapkl",
+      "lcc_utils_table_mapkv",
+      "lcc_utils_table_reduce",
+      "lcc_utils_table_size",
+      "lcc_utils_time2str",
+      "lcc_utils_timestr",
+      "utils_lua"
+    ],
+    "4": [
+      "stdqas_stdqas_mybinaryswitch_init",
+      "stdqas_stdqas_mybinaryswitch_turnoff",
+      "stdqas_stdqas_mybinaryswitch_turnon",
+      "stdqas_stdqas_quickapp_arm",
+      "stdqas_stdqas_quickapp_breached",
+      "stdqas_stdqas_quickapp_createchild",
+      "stdqas_stdqas_quickapp_disarm",
+      "stdqas_stdqas_quickapp_emitcentralsceneevent",
+      "stdqas_stdqas_quickapp_init",
+      "stdqas_stdqas_quickapp_next",
+      "stdqas_stdqas_quickapp_oninit",
+      "stdqas_stdqas_quickapp_pause",
+      "stdqas_stdqas_quickapp_play",
+      "stdqas_stdqas_quickapp_prev",
+      "stdqas_stdqas_quickapp_setcolor",
+      "stdqas_stdqas_quickapp_setcolorcomponents",
+      "stdqas_stdqas_quickapp_setcondition",
+      "stdqas_stdqas_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_stdqas_quickapp_setheatingthermostatsetpoint",
+      "stdqas_stdqas_quickapp_setmute",
+      "stdqas_stdqas_quickapp_setthermostatmode",
+      "stdqas_stdqas_quickapp_setvalue",
+      "stdqas_stdqas_quickapp_setvolume",
+      "stdqas_stdqas_quickapp_stop",
+      "stdqas_stdqas_quickapp_turnoff",
+      "stdqas_stdqas_quickapp_turnon",
+      "stdqas_stdqas_quickapp_updateenergy",
+      "stdqas_stdqas_quickapp_updaterainvalue",
+      "stdqas_stdqas_quickapp_updateratetype",
+      "stdqas_stdqas_quickapp_updatetemperature",
+      "stdqas_stdqas_quickapp_updatevalue",
+      "stdqas_stdqas_quickapp_updatewind",
+      "tests_stdqas_stdqas_lua"
+    ],
+    "5": [
+      "compiler_lua",
+      "lcc_compiler_comp_gv",
+      "lcc_compiler_comp_pv",
+      "lcc_compiler_comp_qv",
+      "lcc_compiler_comp_rule",
+      "lcc_compiler_compassign",
+      "lcc_compiler_compbinop",
+      "lcc_compiler_compblock",
+      "lcc_compiler_compbool",
+      "lcc_compiler_compcall",
+      "lcc_compiler_compdo",
+      "lcc_compiler_compfor",
+      "lcc_compiler_compforin",
+      "lcc_compiler_compif",
+      "lcc_compiler_compilestatlist",
+      "lcc_compiler_compiletarget",
+      "lcc_compiler_compincvar",
+      "lcc_compiler_compname",
+      "lcc_compiler_compneg",
+      "lcc_compiler_compneq",
+      "lcc_compiler_compnil",
+      "lcc_compiler_compnot",
+      "lcc_compiler_compnumber",
+      "lcc_compiler_compparen",
+      "lcc_compiler_comprepeat",
+      "lcc_compiler_compstring",
+      "lcc_compiler_compunarywrap",
+      "lcc_compiler_compwhile",
+      "lcc_compiler_er_compilerulebody",
+      "lcc_csp_compile",
+      "lcc_csp_maybewrap"
+    ],
+    "6": [
+      "github_skills_code_tour_scripts_validate_tour_py",
+      "lcc_csp_checkprogn",
+      "lcc_csp_print",
+      "scripts_validate_tour_file_content",
+      "scripts_validate_tour_line_count",
+      "scripts_validate_tour_main",
+      "scripts_validate_tour_print_report",
+      "scripts_validate_tour_validate_tour",
+      "tests_parser_test_check",
+      "tests_parser_test_checkerr",
+      "tests_parser_test_eq",
+      "tests_parser_test_lua",
+      "tests_parser_test_pp",
+      "tests_parser_test_section",
+      "tests_parser_test_unwrap",
+      "tests_test_lua",
+      "tests_test_main",
+      "tests_test_multi",
+      "tests_test_print2",
+      "tests_test_quickapp_oninit",
+      "tests_test_result",
+      "tests_test_resumerunner",
+      "tests_test_run",
+      "tests_testfuns_checkdone",
+      "tests_testfuns_lua",
+      "tests_testfuns_test",
+      "tests_testfuns_testexpr",
+      "tests_testfuns_testrule"
+    ],
+    "7": [
+      "concept_csp_vm",
+      "concept_eventrunner7",
+      "concept_eventscript",
+      "concept_fibaro_hc3",
+      "concept_plua",
+      "concept_quickapp",
+      "concept_rule_system",
+      "copilot_instructions",
+      "doc_csp_readme",
+      "doc_eventscript",
+      "doc_grammar",
+      "doc_property_cmd",
+      "doc_recipes",
+      "doc_rules",
+      "doc_todo",
+      "doc_tutorial",
+      "eventrunner_inc",
+      "html_eventscript_rules",
+      "qa_dev_instructions",
+      "src_compiler",
+      "src_csp",
+      "src_parser",
+      "src_props",
+      "src_rule",
+      "src_scriptfuns",
+      "src_tokenizer",
+      "src_utils"
+    ],
+    "8": [
+      "lcc_compiler_er_compileastwithmap",
+      "lcc_rule_beautifyargs",
+      "lcc_rule_comprule",
+      "lcc_rule_eval",
+      "lcc_rule_exprfun",
+      "lcc_rule_getrule",
+      "lcc_rule_hops_betw",
+      "lcc_rule_hops_daily",
+      "lcc_rule_hops_get",
+      "lcc_rule_hops_getprop",
+      "lcc_rule_hops_getvar",
+      "lcc_rule_hops_index",
+      "lcc_rule_hops_interv",
+      "lcc_rule_hops_maketable",
+      "lcc_rule_isrule",
+      "lcc_rule_makeexprctx",
+      "lcc_rule_resumerunner",
+      "lcc_rule_ruleguard",
+      "lcc_rule_rulerunner",
+      "lcc_rule_scanhead",
+      "lcc_rule_stdscan",
+      "lcc_rule_trimerr",
+      "rule_lua"
+    ],
+    "9": [
+      "vscode_settings_chat_tools_terminal_autoapprove",
+      "vscode_settings_chat_tools_terminal_autoapprove_plua",
+      "vscode_settings_git_confirmsync",
+      "vscode_settings_git_enablesmartcommit",
+      "vscode_settings_git_inputvalidation",
+      "vscode_settings_git_inputvalidationlength",
+      "vscode_settings_git_inputvalidationsubjectlength",
+      "vscode_settings_git_useeditorascommitinput",
+      "vscode_settings_git_verbosecommit",
+      "vscode_settings_github_copilot_enable",
+      "vscode_settings_github_copilot_enable_scm",
+      "vscode_settings_json",
+      "vscode_settings_lua_diagnostics_globals",
+      "vscode_settings_lua_workspace_ignoredir",
+      "vscode_settings_lua_workspace_library",
+      "vscode_settings_scm_experimental_showcommitinput",
+      "vscode_settings_scm_inputfontfamily"
+    ],
+    "10": [
+      "lcc_sim_er_definesimglobalvariable",
+      "lcc_sim_er_loadpluadevice",
+      "lcc_sim_fibaro_get_global_variable",
+      "lcc_sim_fibaro_getglobalvariable",
+      "lcc_sim_fibaro_setglobalvariable",
+      "lcc_sim_simquickapp_debug",
+      "lcc_sim_simquickapp_init",
+      "lcc_sim_simquickapp_setvalue",
+      "lcc_sim_simquickapp_updateproperty",
+      "lcc_utils_between",
+      "lcc_utils_er_getvar",
+      "lcc_utils_er_setvar",
+      "lcc_utils_marshallfrom",
+      "lcc_utils_toseconds",
+      "sim_lua"
+    ],
+    "11": [
+      "github_skills_code_tour_scripts_generate_from_docs_py",
+      "scripts_generate_from_docs_extract_external_links",
+      "scripts_generate_from_docs_extract_paths_from_text",
+      "scripts_generate_from_docs_generate_skeleton",
+      "scripts_generate_from_docs_is_structure_section",
+      "scripts_generate_from_docs_main",
+      "scripts_generate_from_docs_make_content_step",
+      "scripts_generate_from_docs_make_dir_step",
+      "scripts_generate_from_docs_make_file_step",
+      "scripts_generate_from_docs_make_uri_step",
+      "scripts_generate_from_docs_rationale_50",
+      "scripts_generate_from_docs_rationale_67",
+      "scripts_generate_from_docs_rationale_79",
+      "scripts_generate_from_docs_split_into_sections"
+    ],
+    "12": [
+      "references_codetour_schema_directory_description",
+      "references_codetour_schema_directory_type",
+      "references_codetour_schema_file_description",
+      "references_codetour_schema_file_type",
+      "references_codetour_schema_items_properties",
+      "references_codetour_schema_line_description",
+      "references_codetour_schema_line_type",
+      "references_codetour_schema_properties_directory",
+      "references_codetour_schema_properties_file",
+      "references_codetour_schema_properties_line",
+      "references_codetour_schema_properties_uri",
+      "references_codetour_schema_uri_description",
+      "references_codetour_schema_uri_type"
+    ],
+    "13": [
+      "github_skills_code_tour_references_codetour_schema_json",
+      "references_codetour_schema_nexttour_description",
+      "references_codetour_schema_nexttour_type",
+      "references_codetour_schema_properties",
+      "references_codetour_schema_properties_nexttour",
+      "references_codetour_schema_properties_when",
+      "references_codetour_schema_required",
+      "references_codetour_schema_schema",
+      "references_codetour_schema_title",
+      "references_codetour_schema_type",
+      "references_codetour_schema_when_description",
+      "references_codetour_schema_when_type"
+    ],
+    "14": [
+      "claude_plugin_plugin_author",
+      "claude_plugin_plugin_author_name",
+      "claude_plugin_plugin_author_url",
+      "claude_plugin_plugin_description",
+      "claude_plugin_plugin_homepage",
+      "claude_plugin_plugin_keywords",
+      "claude_plugin_plugin_license",
+      "claude_plugin_plugin_name",
+      "claude_plugin_plugin_repository",
+      "claude_plugin_plugin_version",
+      "github_skills_frontend_slides_plugins_frontend_slides_claude_plugin_plugin_json"
+    ],
+    "15": [
+      "stdqas_player_quickapp_init",
+      "stdqas_player_quickapp_next",
+      "stdqas_player_quickapp_oninit",
+      "stdqas_player_quickapp_pause",
+      "stdqas_player_quickapp_play",
+      "stdqas_player_quickapp_prev",
+      "stdqas_player_quickapp_setmute",
+      "stdqas_player_quickapp_setvolume",
+      "stdqas_player_quickapp_stop",
+      "tests_stdqas_player_lua"
+    ],
+    "16": [
+      "github_skills_quickapp_types_templates_player_lua",
+      "templates_player_quickapp_next",
+      "templates_player_quickapp_oninit",
+      "templates_player_quickapp_pause",
+      "templates_player_quickapp_play",
+      "templates_player_quickapp_prev",
+      "templates_player_quickapp_setmute",
+      "templates_player_quickapp_setvolume",
+      "templates_player_quickapp_stop"
+    ],
+    "17": [
+      "lcc_scriptfuns_getprop",
+      "lcc_scriptfuns_setprop",
+      "lcc_scriptfuns_setupfuns",
+      "lcc_utils_table_map",
+      "lcc_utils_table_mapand",
+      "lcc_utils_table_mapf",
+      "lcc_utils_table_mapor",
+      "lcc_utils_table_maxn",
+      "scriptfuns_lua"
+    ],
+    "18": [
+      "claude_plugin_marketplace_description",
+      "claude_plugin_marketplace_name",
+      "claude_plugin_marketplace_owner",
+      "claude_plugin_marketplace_owner_name",
+      "claude_plugin_marketplace_owner_url",
+      "claude_plugin_marketplace_plugins",
+      "claude_plugin_marketplace_schema",
+      "github_skills_frontend_slides_claude_plugin_marketplace_json"
+    ],
+    "19": [
+      "stdqas_colorcontroller_quickapp_init",
+      "stdqas_colorcontroller_quickapp_oninit",
+      "stdqas_colorcontroller_quickapp_setcolor",
+      "stdqas_colorcontroller_quickapp_setcolorcomponents",
+      "stdqas_colorcontroller_quickapp_setvalue",
+      "stdqas_colorcontroller_quickapp_turnoff",
+      "stdqas_colorcontroller_quickapp_turnon",
+      "tests_stdqas_colorcontroller_lua"
+    ],
+    "20": [
+      "references_codetour_schema_commands_default",
+      "references_codetour_schema_commands_description",
+      "references_codetour_schema_commands_examples",
+      "references_codetour_schema_commands_items",
+      "references_codetour_schema_commands_type",
+      "references_codetour_schema_items_type",
+      "references_codetour_schema_properties_commands"
+    ],
+    "21": [
+      "references_codetour_schema_properties_end",
+      "references_codetour_schema_properties_selection",
+      "references_codetour_schema_properties_start",
+      "references_codetour_schema_selection_description",
+      "references_codetour_schema_selection_properties",
+      "references_codetour_schema_selection_required",
+      "references_codetour_schema_selection_type"
+    ],
+    "22": [
+      "stdqas_devicecontroller_mybinaryswitch_init",
+      "stdqas_devicecontroller_mybinaryswitch_turnoff",
+      "stdqas_devicecontroller_mybinaryswitch_turnon",
+      "stdqas_devicecontroller_quickapp_createchild",
+      "stdqas_devicecontroller_quickapp_init",
+      "stdqas_devicecontroller_quickapp_oninit",
+      "tests_stdqas_devicecontroller_lua"
+    ],
+    "23": [
+      "stdqas_thermostat_quickapp_init",
+      "stdqas_thermostat_quickapp_oninit",
+      "stdqas_thermostat_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_thermostat_quickapp_setheatingthermostatsetpoint",
+      "stdqas_thermostat_quickapp_setthermostatmode",
+      "stdqas_thermostat_quickapp_updatetemperature",
+      "tests_stdqas_thermostat_lua"
+    ],
+    "24": [
+      "lcc_utils_gettimezone",
+      "lcc_utils_hm2sec",
+      "lcc_utils_midnight",
+      "lcc_utils_now",
+      "lcc_utils_suncalc",
+      "lcc_utils_sunturntime",
+      "lcc_utils_totime"
+    ],
+    "25": [
+      "github_skills_frontend_slides_plugins_frontend_slides_skills_frontend_slides_scripts_deploy_sh",
+      "github_skills_frontend_slides_scripts_deploy_sh",
+      "scripts_deploy_err",
+      "scripts_deploy_info",
+      "scripts_deploy_ok",
+      "scripts_deploy_warn"
+    ],
+    "26": [
+      "github_skills_frontend_slides_plugins_frontend_slides_skills_frontend_slides_scripts_export_pdf_sh",
+      "github_skills_frontend_slides_scripts_export_pdf_sh",
+      "scripts_export_pdf_err",
+      "scripts_export_pdf_info",
+      "scripts_export_pdf_ok",
+      "scripts_export_pdf_warn"
+    ],
+    "27": [
+      "github_skills_quickapp_types_templates_color_controller_lua",
+      "templates_color_controller_quickapp_oninit",
+      "templates_color_controller_quickapp_setcolor",
+      "templates_color_controller_quickapp_setvalue",
+      "templates_color_controller_quickapp_turnoff",
+      "templates_color_controller_quickapp_turnon"
+    ],
+    "28": [
+      "github_skills_quickapp_types_templates_multilevel_switch_lua",
+      "templates_multilevel_switch_quickapp_oninit",
+      "templates_multilevel_switch_quickapp_setlevel",
+      "templates_multilevel_switch_quickapp_setvalue",
+      "templates_multilevel_switch_quickapp_turnoff",
+      "templates_multilevel_switch_quickapp_turnon"
+    ],
+    "29": [
+      "github_skills_quickapp_types_templates_thermostat_heatcool_lua",
+      "templates_thermostat_heatcool_quickapp_oninit",
+      "templates_thermostat_heatcool_quickapp_setcoolingthermostatsetpoint",
+      "templates_thermostat_heatcool_quickapp_setheatingthermostatsetpoint",
+      "templates_thermostat_heatcool_quickapp_setthermostatmode",
+      "templates_thermostat_heatcool_quickapp_updatetemperature"
+    ],
+    "30": [
+      "github_skills_quickapp_types_templates_window_covering_lua",
+      "templates_window_covering_quickapp_close",
+      "templates_window_covering_quickapp_oninit",
+      "templates_window_covering_quickapp_open",
+      "templates_window_covering_quickapp_setvalue",
+      "templates_window_covering_quickapp_stop"
+    ],
+    "31": [
+      "lcc_tokenizer_kwhandler",
+      "lcc_tokenizer_lookuptktype",
+      "lcc_tokenizer_sourcemarker",
+      "lcc_tokenizer_tokenizer",
+      "lcc_tokenizer_tokenstream",
+      "tokenizer_lua"
+    ],
+    "32": [
+      "references_codetour_schema_items_required",
+      "references_codetour_schema_properties_steps",
+      "references_codetour_schema_steps_default",
+      "references_codetour_schema_steps_description",
+      "references_codetour_schema_steps_items",
+      "references_codetour_schema_steps_type"
+    ],
+    "33": [
+      "stdqas_multilevelswitch_quickapp_init",
+      "stdqas_multilevelswitch_quickapp_oninit",
+      "stdqas_multilevelswitch_quickapp_setvalue",
+      "stdqas_multilevelswitch_quickapp_turnoff",
+      "stdqas_multilevelswitch_quickapp_turnon",
+      "tests_stdqas_multilevelswitch_lua"
+    ],
+    "34": [
+      "stdqas_alarmpartition_quickapp_arm",
+      "stdqas_alarmpartition_quickapp_breached",
+      "stdqas_alarmpartition_quickapp_disarm",
+      "stdqas_alarmpartition_quickapp_init",
+      "stdqas_alarmpartition_quickapp_oninit",
+      "tests_stdqas_alarmpartition_lua"
+    ],
+    "35": [
+      "stdqas_thermostatheatcool_quickapp_oninit",
+      "stdqas_thermostatheatcool_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_thermostatheatcool_quickapp_setheatingthermostatsetpoint",
+      "stdqas_thermostatheatcool_quickapp_setthermostatmode",
+      "stdqas_thermostatheatcool_quickapp_updatetemperature",
+      "tests_stdqas_thermostatheatcool_lua"
+    ],
+    "36": [
+      "github_skills_quickapp_types_templates_alarm_partition_lua",
+      "templates_alarm_partition_quickapp_arm",
+      "templates_alarm_partition_quickapp_disarm",
+      "templates_alarm_partition_quickapp_oninit",
+      "templates_alarm_partition_quickapp_setbreached"
+    ],
+    "37": [
+      "github_skills_quickapp_types_templates_thermostat_heat_lua",
+      "templates_thermostat_heat_quickapp_oninit",
+      "templates_thermostat_heat_quickapp_setheatingthermostatsetpoint",
+      "templates_thermostat_heat_quickapp_setthermostatmode",
+      "templates_thermostat_heat_quickapp_updatetemperature"
+    ],
+    "38": [
+      "github_skills_quickapp_types_templates_thermostat_lua",
+      "templates_thermostat_quickapp_oninit",
+      "templates_thermostat_quickapp_poll",
+      "templates_thermostat_quickapp_setmode",
+      "templates_thermostat_quickapp_setsetpoint"
+    ],
+    "39": [
+      "stdqas_hvacsystemheatcool_quickapp_oninit",
+      "stdqas_hvacsystemheatcool_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_hvacsystemheatcool_quickapp_setheatingthermostatsetpoint",
+      "stdqas_hvacsystemheatcool_quickapp_setthermostatmode",
+      "tests_stdqas_hvacsystemheatcool_lua"
+    ],
+    "40": [
+      "stdqas_thermostatheat_quickapp_oninit",
+      "stdqas_thermostatheat_quickapp_setheatingthermostatsetpoint",
+      "stdqas_thermostatheat_quickapp_setthermostatmode",
+      "stdqas_thermostatheat_quickapp_updatetemperature",
+      "tests_stdqas_thermostatheat_lua"
+    ],
+    "41": [
+      "github_skills_quickapp_types_templates_thermostat_cool_lua",
+      "templates_thermostat_cool_quickapp_oninit",
+      "templates_thermostat_cool_quickapp_setcoolingthermostatsetpoint",
+      "templates_thermostat_cool_quickapp_setthermostatmode",
+      "templates_thermostat_cool_quickapp_updatetemperature"
+    ],
+    "42": [
+      "github_skills_quickapp_types_templates_thermostat_setpoint_heatcool_lua",
+      "templates_thermostat_setpoint_heatcool_quickapp_oninit",
+      "templates_thermostat_setpoint_heatcool_quickapp_setcoolingthermostatsetpoint",
+      "templates_thermostat_setpoint_heatcool_quickapp_setheatingthermostatsetpoint",
+      "templates_thermostat_setpoint_heatcool_quickapp_updatetemperature"
+    ],
+    "43": [
+      "stdqas_binaryswitch_quickapp_init",
+      "stdqas_binaryswitch_quickapp_oninit",
+      "stdqas_binaryswitch_quickapp_turnoff",
+      "stdqas_binaryswitch_quickapp_turnon",
+      "tests_stdqas_binaryswitch_lua"
+    ],
+    "44": [
+      "stdqas_hvacsystemauto_quickapp_oninit",
+      "stdqas_hvacsystemauto_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_hvacsystemauto_quickapp_setheatingthermostatsetpoint",
+      "stdqas_hvacsystemauto_quickapp_setthermostatmode",
+      "tests_stdqas_hvacsystemauto_lua"
+    ],
+    "45": [
+      "stdqas_powermeter_quickapp_init",
+      "stdqas_powermeter_quickapp_oninit",
+      "stdqas_powermeter_quickapp_updateratetype",
+      "stdqas_powermeter_quickapp_updatevalue",
+      "tests_stdqas_powermeter_lua"
+    ],
+    "46": [
+      "stdqas_thermostatcool_quickapp_oninit",
+      "stdqas_thermostatcool_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_thermostatcool_quickapp_setthermostatmode",
+      "stdqas_thermostatcool_quickapp_updatetemperature",
+      "tests_stdqas_thermostatcool_lua"
+    ],
+    "47": [
+      "stdqas_thermostatsetpoint_quickapp_oninit",
+      "stdqas_thermostatsetpoint_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_thermostatsetpoint_quickapp_setheatingthermostatsetpoint",
+      "stdqas_thermostatsetpoint_quickapp_updatetemperature",
+      "tests_stdqas_thermostatsetpoint_lua"
+    ],
+    "48": [
+      "stdqas_thermostatsetpointheatcool_quickapp_oninit",
+      "stdqas_thermostatsetpointheatcool_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_thermostatsetpointheatcool_quickapp_setheatingthermostatsetpoint",
+      "stdqas_thermostatsetpointheatcool_quickapp_updatetemperature",
+      "tests_stdqas_thermostatsetpointheatcool_lua"
+    ],
+    "49": [
+      "github_skills_quickapp_types_templates_binary_switch_lua",
+      "templates_binary_switch_quickapp_oninit",
+      "templates_binary_switch_quickapp_turnoff",
+      "templates_binary_switch_quickapp_turnon"
+    ],
+    "50": [
+      "github_skills_quickapp_types_templates_controller_lua",
+      "templates_controller_quickapp_oninit",
+      "templates_controller_quickapp_refresh",
+      "templates_controller_quickapp_refreshnow"
+    ],
+    "51": [
+      "github_skills_quickapp_types_templates_thermostat_setpoint_cool_lua",
+      "templates_thermostat_setpoint_cool_quickapp_oninit",
+      "templates_thermostat_setpoint_cool_quickapp_setcoolingthermostatsetpoint",
+      "templates_thermostat_setpoint_cool_quickapp_updatetemperature"
+    ],
+    "52": [
+      "github_skills_quickapp_types_templates_thermostat_setpoint_heat_lua",
+      "templates_thermostat_setpoint_heat_quickapp_oninit",
+      "templates_thermostat_setpoint_heat_quickapp_setheatingthermostatsetpoint",
+      "templates_thermostat_setpoint_heat_quickapp_updatetemperature"
+    ],
+    "53": [
+      "github_skills_frontend_slides_plugins_frontend_slides_skills_frontend_slides_scripts_extract_pptx_py",
+      "github_skills_frontend_slides_scripts_extract_pptx_py",
+      "scripts_extract_pptx_extract_pptx",
+      "scripts_extract_pptx_rationale_19"
+    ],
+    "54": [
+      "stdqas_floodsensor_quickapp_breached",
+      "stdqas_floodsensor_quickapp_init",
+      "stdqas_floodsensor_quickapp_oninit",
+      "tests_stdqas_floodsensor_lua"
+    ],
+    "55": [
+      "stdqas_rainsensor_quickapp_init",
+      "stdqas_rainsensor_quickapp_oninit",
+      "stdqas_rainsensor_quickapp_updaterainvalue",
+      "tests_stdqas_rainsensor_lua"
+    ],
+    "56": [
+      "stdqas_thermostatsetpointheat_quickapp_oninit",
+      "stdqas_thermostatsetpointheat_quickapp_setheatingthermostatsetpoint",
+      "stdqas_thermostatsetpointheat_quickapp_updatetemperature",
+      "tests_stdqas_thermostatsetpointheat_lua"
+    ],
+    "57": [
+      "github_skills_quickapp_types_templates_binary_sensor_lua",
+      "templates_binary_sensor_quickapp_oninit",
+      "templates_binary_sensor_quickapp_poll",
+      "templates_binary_sensor_quickapp_setstate"
+    ],
+    "58": [
+      "stdqas_binarysensor_quickapp_breached",
+      "stdqas_binarysensor_quickapp_init",
+      "stdqas_binarysensor_quickapp_oninit",
+      "tests_stdqas_binarysensor_lua"
+    ],
+    "59": [
+      "stdqas_codetector_quickapp_breached",
+      "stdqas_codetector_quickapp_init",
+      "stdqas_codetector_quickapp_oninit",
+      "tests_stdqas_codetector_lua"
+    ],
+    "60": [
+      "stdqas_doorsensor_quickapp_breached",
+      "stdqas_doorsensor_quickapp_init",
+      "stdqas_doorsensor_quickapp_oninit",
+      "tests_stdqas_doorsensor_lua"
+    ],
+    "61": [
+      "stdqas_energymeter_quickapp_init",
+      "stdqas_energymeter_quickapp_oninit",
+      "stdqas_energymeter_quickapp_updateenergy",
+      "tests_stdqas_energymeter_lua"
+    ],
+    "62": [
+      "stdqas_firedetector_quickapp_breached",
+      "stdqas_firedetector_quickapp_init",
+      "stdqas_firedetector_quickapp_oninit",
+      "tests_stdqas_firedetector_lua"
+    ],
+    "63": [
+      "stdqas_heatdetector_quickapp_breached",
+      "stdqas_heatdetector_quickapp_init",
+      "stdqas_heatdetector_quickapp_oninit",
+      "tests_stdqas_heatdetector_lua"
+    ],
+    "64": [
+      "stdqas_hvacsystemcool_quickapp_oninit",
+      "stdqas_hvacsystemcool_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_hvacsystemcool_quickapp_setthermostatmode",
+      "tests_stdqas_hvacsystemcool_lua"
+    ],
+    "65": [
+      "stdqas_hvacsystemheat_quickapp_oninit",
+      "stdqas_hvacsystemheat_quickapp_setheatingthermostatsetpoint",
+      "stdqas_hvacsystemheat_quickapp_setthermostatmode",
+      "tests_stdqas_hvacsystemheat_lua"
+    ],
+    "66": [
+      "stdqas_raindetector_quickapp_breached",
+      "stdqas_raindetector_quickapp_init",
+      "stdqas_raindetector_quickapp_oninit",
+      "tests_stdqas_raindetector_lua"
+    ],
+    "67": [
+      "stdqas_remotecontroller_quickapp_emitcentralsceneevent",
+      "stdqas_remotecontroller_quickapp_init",
+      "stdqas_remotecontroller_quickapp_oninit",
+      "tests_stdqas_remotecontroller_lua"
+    ],
+    "68": [
+      "stdqas_thermostatsetpointcool_quickapp_oninit",
+      "stdqas_thermostatsetpointcool_quickapp_setcoolingthermostatsetpoint",
+      "stdqas_thermostatsetpointcool_quickapp_updatetemperature",
+      "tests_stdqas_thermostatsetpointcool_lua"
+    ],
+    "69": [
+      "stdqas_weather_quickapp_init",
+      "stdqas_weather_quickapp_oninit",
+      "stdqas_weather_quickapp_setcondition",
+      "tests_stdqas_weather_lua"
+    ],
+    "70": [
+      "stdqas_windowsensor_quickapp_breached",
+      "stdqas_windowsensor_quickapp_init",
+      "stdqas_windowsensor_quickapp_oninit",
+      "tests_stdqas_windowsensor_lua"
+    ],
+    "71": [
+      "stdqas_windsensor_quickapp_init",
+      "stdqas_windsensor_quickapp_oninit",
+      "stdqas_windsensor_quickapp_updatewind",
+      "tests_stdqas_windsensor_lua"
+    ],
+    "72": [
+      "github_skills_quickapp_types_templates_remote_controller_lua",
+      "templates_remote_controller_quickapp_emitcentralsceneevent",
+      "templates_remote_controller_quickapp_oninit"
+    ],
+    "73": [
+      "references_codetour_schema_description_description",
+      "references_codetour_schema_description_type",
+      "references_codetour_schema_properties_description"
+    ],
+    "74": [
+      "references_codetour_schema_isprimary_description",
+      "references_codetour_schema_isprimary_type",
+      "references_codetour_schema_properties_isprimary"
+    ],
+    "75": [
+      "references_codetour_schema_pattern_description",
+      "references_codetour_schema_pattern_type",
+      "references_codetour_schema_properties_pattern"
+    ],
+    "76": [
+      "references_codetour_schema_properties_stepmarker",
+      "references_codetour_schema_stepmarker_description",
+      "references_codetour_schema_stepmarker_type"
+    ],
+    "77": [
+      "references_codetour_schema_properties_title",
+      "references_codetour_schema_title_description",
+      "references_codetour_schema_title_type"
+    ],
+    "78": [
+      "references_codetour_schema_properties_view",
+      "references_codetour_schema_view_description",
+      "references_codetour_schema_view_type"
+    ],
+    "79": [
+      "references_codetour_schema_properties_ref",
+      "references_codetour_schema_ref_description",
+      "references_codetour_schema_ref_type"
+    ],
+    "80": [
+      "stdqas_genericdevice_quickapp_init",
+      "stdqas_genericdevice_quickapp_oninit",
+      "tests_stdqas_genericdevice_lua"
+    ],
+    "81": [
+      "stdqas_motionsensor_quickapp_init",
+      "stdqas_motionsensor_quickapp_oninit",
+      "tests_stdqas_motionsensor_lua"
+    ],
+    "82": [
+      "stdqas_multilevelsensor_quickapp_init",
+      "stdqas_multilevelsensor_quickapp_oninit",
+      "tests_stdqas_multilevelsensor_lua"
+    ],
+    "83": [
+      "stdqas_smokesensor_quickapp_init",
+      "stdqas_smokesensor_quickapp_oninit",
+      "tests_stdqas_smokesensor_lua"
+    ],
+    "84": [
+      "stdqas_waterleaksensor_quickapp_init",
+      "stdqas_waterleaksensor_quickapp_oninit",
+      "tests_stdqas_waterleaksensor_lua"
+    ],
+    "85": [
+      "stdqas_humiditysensor_quickapp_init",
+      "stdqas_humiditysensor_quickapp_oninit",
+      "tests_stdqas_humiditysensor_lua"
+    ],
+    "86": [
+      "stdqas_lightsensor_quickapp_init",
+      "stdqas_lightsensor_quickapp_oninit",
+      "tests_stdqas_lightsensor_lua"
+    ],
+    "87": [
+      "stdqas_temperaturesensor_quickapp_init",
+      "stdqas_temperaturesensor_quickapp_oninit",
+      "tests_stdqas_temperaturesensor_lua"
+    ],
+    "88": [
+      "stdqas_windowcovering_quickapp_init",
+      "stdqas_windowcovering_quickapp_oninit",
+      "tests_stdqas_windowcovering_lua"
+    ],
+    "89": [
+      "vscode_launch_configurations",
+      "vscode_launch_json",
+      "vscode_launch_version"
+    ],
+    "90": [
+      "github_skills_quickapp_types_templates_generic_device_lua",
+      "templates_generic_device_quickapp_oninit"
+    ],
+    "91": [
+      "lcc_utils_createeventengine",
+      "lcc_utils_sourcetrigger_init"
+    ],
+    "92": [
+      "lcc_utils_equal",
+      "lcc_utils_quickvarevent"
+    ],
+    "93": [
+      "scripts_merge_stdqas_sh"
+    ],
+    "94": [
+      "dev_forin_lua"
+    ]
+  },
+  "cohesion": {},
+  "god_nodes": [
+    {
+      "id": "lcc_csp_compile",
+      "label": "compile()",
+      "degree": 38
+    },
+    {
+      "id": "lcc_csp_tr",
+      "label": "TR()",
+      "degree": 35
+    },
+    {
+      "id": "lcc_csp_print",
+      "label": "PRINT()",
+      "degree": 22
+    },
+    {
+      "id": "lcc_csp_trace",
+      "label": "trace()",
+      "degree": 19
+    },
+    {
+      "id": "lcc_csp_binop",
+      "label": "BINOP()",
+      "degree": 15
+    },
+    {
+      "id": "lcc_rule_fibaro_eventrunner",
+      "label": "fibaro.EventRunner()",
+      "degree": 13
+    },
+    {
+      "id": "lcc_csp_evalargs",
+      "label": "evalArgs()",
+      "degree": 11
+    },
+    {
+      "id": "scripts_generate_from_docs_generate_skeleton",
+      "label": "generate_skeleton()",
+      "degree": 10
+    },
+    {
+      "id": "lcc_rule_eval",
+      "label": "eval()",
+      "degree": 9
+    },
+    {
+      "id": "eventrunner_inc",
+      "label": "EventRunner.inc (Module Bundle Header)",
+      "degree": 9
+    }
+  ],
+  "surprises": [
+    {
+      "source": "test()",
+      "target": "PRINT()",
+      "source_files": [
+        "tests/case_test.lua",
+        "CSP.lua"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; peripheral node `test()` unexpectedly reaches hub `PRINT()`"
+    },
+    {
+      "source": "eval()",
+      "target": "ER.compileRuleBody()",
+      "source_files": [
+        "Rule.lua",
+        "Compiler.lua"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "eval()",
+      "target": "ER.compileASTWithMap()",
+      "source_files": [
+        "Rule.lua",
+        "Compiler.lua"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `ER.compileASTWithMap()` unexpectedly reaches hub `eval()`"
+    },
+    {
+      "source": "eval()",
+      "target": "PRINT()",
+      "source_files": [
+        "Rule.lua",
+        "CSP.lua"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "QuickApp:onInit()",
+      "target": "fibaro.EventRunner()",
+      "source_files": [
+        "EventRunner7.lua",
+        "Rule.lua"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `QuickApp:onInit()` unexpectedly reaches hub `fibaro.EventRunner()`"
+    }
+  ]
+}

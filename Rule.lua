@@ -622,6 +622,7 @@ local function ruleGuard(success)
 end
 
 local function bootEventRunner(cb)
+  local color = ER.color
   local er = {eval = eval, now = ER.now}
 
   vm.defGlobal("_ruleCondition", ruleGuard)
@@ -688,12 +689,16 @@ local function bootEventRunner(cb)
     table.sort(preModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
     table.sort(afterModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
 
+    print(color('orange',"=========== Loading rules ================"))
+
     local loadTime = os.clock()
     for i,m in ipairs(preModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
     cb(er) 
     for i,m in ipairs(afterModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
     loadTime = os.clock() - loadTime
-    print(fmt("<font color='green'>Rules loaded in %.2f second</font>",loadTime))
+
+    print(color('orange', fmt("=========== Load time: %.3fs ============", loadTime)))
+
   end, 500)
 end
 

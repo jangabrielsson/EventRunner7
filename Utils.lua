@@ -951,6 +951,13 @@ end
     return last.script and -1 or os.time()-last.time
   end
 
+  function horizontal(color,len)
+    return fmt("<font color='%s'>%s</font>",color or "white",string.rep("-",len))
+  end
+
+  function color(color,text)
+    return fmt("<font color='%s'>%s</font>",color or "white",text)
+  end
 -------------------------------------------------
 ER.alarmFuns = alarmFuns
 ER.toSeconds = toSeconds
@@ -967,3 +974,5 @@ ER.dateTest = dateTest
 ER.marshallFrom = marshallFrom
 ER.base64encode = base64encode
 ER.deviceManager = deviceManager
+ER.horizontal = horizontal
+ER.color = color
