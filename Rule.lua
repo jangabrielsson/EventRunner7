@@ -7,6 +7,7 @@ fibaro.EventRunnerVersion = _VERSION
 
 local fmt = string.format
 local catchValue = math.huge
+MODULE = MODULE or {}
 
 ER.ruleFail = 'fibaro.ER.conditionFail' -- special value returned by rules when condition is not met; not an error
 local ruleRunner, resumeRunner, sourceTrigger
@@ -678,7 +679,21 @@ local function bootEventRunner(cb)
   })
   setTimeout(function() 
     sourceTrigger:run()
+
+    local preModules,afterModules = {},{} -- Modules with negative prio are loaded before the main callback, others after. This allows modules to patch ER before rules are loaded.
+    for _,m in ipairs(MODULE) do 
+      local prio = m.prio or 0
+      if prio < 0 then table.insert(preModules, m) else table.insert(afterModules, m) end
+    end
+    table.sort(preModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
+    table.sort(afterModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
+
+    local loadTime = os.clock()
+    for i,m in ipairs(preModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
     cb(er) 
+    for i,m in ipairs(afterModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
+    loadTime = os.clock() - loadTime
+    print(fmt("<font color='green'>Rules loaded in %.2f second</font>",loadTime))
   end, 500)
 end
 
