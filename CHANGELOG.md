@@ -1,0 +1,125 @@
+# Changelog
+
+## [v0.1.1] - 2026-05-21
+
+## Changes in v0.1.1
+
+- ✨ **Feature**: Refactor code structure for improved readability and maintainability
+- ♻️ **Refactor**: comment out unused rule and initialize MODULE for better module management
+- ✨ **Feature**: implement profiling functionality and enhance EventRunner initialization
+- 📚 **Docs**: add clarification comment for ER.D2024 date handling
+- ✨ **Feature**: enhance error messages with tagging for better debugging context
+- ✨ **Feature**: implement ER.compileRuleBody for direct RULE node compilation
+- ♻️ **Refactor**: rename parameter in NumberProp constructor for clarity feat: add ER.loadedSimDevices to track loaded simulation devices docs: add comprehensive documentation for the EventScript Rule System
+- ✨ **Feature**: feat(tour): add scripts for generating and validating CodeTour skeletons
+  - Introduced `generate_from_docs.py` to create a tour skeleton from documentation files (README, CONTRIBUTING, etc.), extracting relevant paths, sections, and links.
+  - Added `validate_tour.py` to validate .tour files for JSON structure, required fields, existing file paths, and narrative consistency.
+  - Created a new example tour file `external-contributor.tour` for external contributors, detailing the architecture and key components of the EventRunner7 codebase.
+  - Updated `Rule.lua` and `Sim.lua` for improved logging and functionality.
+  - Added comprehensive error handling tests in `error_test.lua` to ensure robust error reporting and cursor placement.
+  - Modified `eventrunner_testground2.lua` to simplify test cases.
+- ♻️ **Refactor**: improve variable handling and error propagation in CSP and Compiler modules
+- ✨ **Feature**: enhance error handling and source position tracking in CSP compilation and parsing
+- ✨ **Feature**: Refactor event handling and rule management
+  - Updated the `comp.RULE` function to utilize a separate condition function for improved readability and maintainability.
+  - Enhanced the `Props.lua` file by adding reduce functions for `isOn` and `isOff` properties.
+  - Introduced new utility functions in `Rule.lua` for better rule management, including options for logging and rule state management.
+  - Implemented subscription and publishing capabilities in `ScriptFuns.lua` for remote event handling.
+  - Added a new documentation file detailing property and command references for better developer guidance.
+  - Created a test ground script to facilitate testing of new features and event handling.
+- ♻️ **Refactor**: remove unused setupProps function assignment in ScriptFuns.lua
+- ✨ **Feature**: Add Props.lua and update EventRunner.inc to include it; refactor Rule.lua and ScriptFuns.lua for improved property handling
+  - Introduced Props.lua to manage device properties and interactions.
+  - Updated EventRunner.inc to include Props.lua.
+  - Refactored Rule.lua to enhance the GETPROP functionality and trigger handling.
+  - Cleaned up ScriptFuns.lua by removing redundant property setup functions and integrating property resolution.
+  - Modified eventrunner_testground.lua to demonstrate the new property handling with MyDevice.
+- ✨ **Feature**: chore: remove unused style preview files for EventRunner
+- ✨ **Feature**: Add EventRunnerTest for integration testing of EventScript with devices
+  - Created a new test file `eventrunner_plua_test2.lua` to validate the integration of EventScript with various device types in a real-time environment.
+  - Set up a HomeTable with multiple devices including switches, sensors, and controllers.
+  - Implemented checks to verify the functionality of rules triggered by device state changes.
+  - Modified `eventrunner_testground.lua` to comment out a JSON encoding rule for clarity.
+- ✨ **Feature**: enhance EventRunner with new property handling and filters; add temperature sensor support in tests
+- ✨ **Feature**: implement 'case' statement syntax and corresponding parser updates; add smoke tests for case functionality
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: Refactor tests and enhance functionality
+  - Added new tests for the null coalescing operator (??) in eventrunner_test.lua.
+  - Updated conditions in tests to check for table types before accessing fields in eventrunner_test.lua.
+  - Changed wait duration in eventrunner_test.lua from 4000ms to 4s for consistency.
+  - Modified rule definition in eventrunner_testground.lua for clarity.
+  - Improved test structure in expr_test.lua by consolidating test harness functions and ensuring consistent formatting.
+  - Added missing tests for various expressions and control structures in expr_test.lua.
+  - Updated parser_test.lua to reflect changes in the handling of time-related expressions.
+  - Adjusted test.lua to reference the correct CSP module from the fibaro.ER namespace.
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: Enhance eventrunner_plua_test.lua with additional device tests and improved rule checks
+  - Updated comments for clarity and consistency.
+  - Added new devices including motion sensors, lamps, and various sensors in the home structure.
+  - Implemented comprehensive tests for device properties and actions, including binary switches, multilevel switches, and various sensor types.
+  - Introduced checks for rule triggers and added logging for successful test cases.
+  - Enhanced the testing of global variables and conditions using trueFor.
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: enhance global variable handling in CSP and Parser; update EventRunner tests for improved syntax
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: Add merge script and new test files for EventRunner
+  - Introduced `merge_stdqas.sh` script to consolidate Lua files in the `tests/stdQAs` directory into a single `stdQAs.lua` file, stripping comments and organizing content.
+  - Added `eventrunner_plua_test.lua` to test EventScript integration with simulated devices, focusing on real-time execution.
+  - Updated `eventrunner_test.lua` to utilize simulated devices and improve testing of time-based features.
+  - Created `eventrunner_testground.lua` as a scratch pad for testing new features before integration into the main test suite.
+  - Added `stdQAs.lua` containing definitions for various simulated devices, enhancing the testing framework.
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: enhance EventRunner with catch value handling; update test cases for daily triggers and logging
+- ✨ **Feature**: enhance rule management with enable/disable functionality; improve daily trigger handling and add new test cases
+- ✨ **Feature**: add simulation for global variables; enhance test coverage for variable assignments and triggers
+- ✨ **Feature**: enhance variable handling in MAKETABLE and compile functions; add mret for multiple value returns in tests
+- ✨ **Feature**: introduce LETS function for scoped variable binding; optimize rule compilation and enhance test coverage
+- ✨ **Feature**: enhance async function handling; add 'once' method and improve for-in loop example
+- ✨ **Feature**: add SETINDEX and SETFIELD functions; enhance compiler and event handling capabilities
+- ✨ **Feature**: refactor event handling and improve test coverage; add new test ground for event triggers
+- ✨ **Feature**: enhance device simulation and testing; improve error handling and logging in rules
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: enhance async function handling and testing; improve test utilities for better clarity and coverage
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: enhance async function handling and logging; update test utilities for improved clarity
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: Add QuickApps for HVAC systems, sensors, and devices
+  - Implemented QuickApps for various HVAC systems including auto, cool, heat, and heat/cool modes with appropriate properties and actions.
+  - Created QuickApps for light, motion, multilevel, rain, smoke, temperature, and wind sensors, each with initialization and property update methods.
+  - Added QuickApps for player, power meter, remote controller, and weather, including methods for handling specific actions and updating properties.
+  - Enhanced test functions to improve test reporting and handling of multiple test cases.
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: enhance logging functionality and verbosity handling; update tests for improved coverage
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: Add EventRunner7 test and utility functions for evaluation
+  - Created a new test file `eventrunner_test.lua` to implement tests for EventRunner7.
+  - Added a main function to handle the evaluation of rules and tests.
+  - Introduced a new utility file `testfuns.lua` containing a testing function to validate rule outputs.
+  - Integrated the testing function into the EventRunner environment for easier test execution.
+  - Co-authored-by: Copilot <copilot@github.com>
+- ✨ **Feature**: enhance rule handling and logging; add test device support and unit tests
+- ✨ **Feature**: add GETVAR and SETVAR functions; enhance variable handling in CSP and Compiler
+- ✨ **Feature**: Refactor Tokenizer and Utils; Add unit tests for expression and parser
+  - Updated Tokenizer.lua to improve token handling and organization.
+  - Refactored Utils.lua to enhance functionality and added timeStr utility.
+  - Introduced rulecode.lua for testing rule evaluation and device simulation.
+  - Added comprehensive unit tests for expression compilation in expr_test.lua.
+  - Created parser_test.lua to validate parsing logic and AST generation.
+  - Implemented rule_test.lua to verify rule execution and event handling.
+  - Developed continuation test in test.lua to assess coroutine behavior and yield handling.
+- ✨ **Feature**: implement DAILY and INTERV event descriptors, BETW function, and related parser updates
+- ✨ **Feature**: Add unit tests for expression compiler and parser
+  - Created `expr_test.lua` to test various expressions including literals, arithmetic operations, comparisons, logical operations, string concatenation, local variables, control flow, function calls, field access, and property access.
+  - Implemented `parser_test.lua` to validate the parsing of literals, arithmetic operations, comparisons, function calls, assignments, local declarations, control flow, and error cases.
+  - Updated `test.lua` to reference the new CSP file for continuity tests.
+- ✨ **Feature**: add commit message examples and guidelines for HueV2 project
+- ✨ **Feature**: create launch configuration for Lua debugging in VSCode
+  - chore: add VSCode settings for Lua workspace and Git commit validation
+- 📚 **Docs**: add README for cont.lua with detailed usage and expression reference
+- ✨ **Feature**: implement continuation-passing VM in cont.lua for expression evaluation
+- ♻️ **Refactor**: move item functions to old stuff/items.lua for organization
+- 🧪 **Test**: add test script for continuation VM functionality and yield handling
+
+
+*Generated automatically from git commits*
+
