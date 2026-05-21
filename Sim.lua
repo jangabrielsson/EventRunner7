@@ -24,9 +24,11 @@ function SimQuickApp:debug(...)
   fibaro.debug(self.tag,...)
 end
 
+
+ER.simDevices = ER.simDevices or {}
+local simDevices = ER.simDevices
 local loadedDeviceClasses = {}
 local loadedDevices = {}
-ER.loadedSimDevices = loadedDevices
 local idCounter = 10000
 
 local oldCall,oldGet = fibaro.call,fibaro.get
@@ -92,6 +94,7 @@ function ER.loadSimDevice(name,id)
   end
   local device = _G["Sim_"..name](id)
   loadedDevices[id] = device
+  simDevices[id] = device
   assert(device, "Failed to load device "..name)
   return device.id
 end
@@ -101,5 +104,6 @@ function ER.loadPluaDevice(path)
   local code = fibaro.plua.lib.readFile(p..path..".lua")
   local d = fibaro.plua.lib.loadQAString(code,{headers={"desktop:false"}})
   assert(d)
+  simDevices[d.device.id] = d.device
   return d.device.id
 end

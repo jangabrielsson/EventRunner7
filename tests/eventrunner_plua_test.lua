@@ -258,6 +258,13 @@ local function main(er) ER = er
 end
 
 function QuickApp:onInit()
+  local profile = require("tests/profile")
+  profile.start()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-    fibaro.EventRunner(main)
+  fibaro.EventRunner(main)
+  setTimeout(function() 
+    profile.stop()
+    -- report for the top 10 functions, sorted by execution time
+    print(profile.report(20))
+  end, 20*1000) -- stop the test after 20 seconds of real time, which should be enough for all the rules to have triggered
 end

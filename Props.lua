@@ -487,12 +487,15 @@ end
 
 local numObjects = {}
 
+ER.simDevices = ER.simDevices or {}
+local simDevices = ER.simDevices
+
 local function resolvePropObject(obj)
   if type(obj) == 'userdata' and obj._isPropObject then return obj
   elseif type(obj) == 'number' then -- Create a PropObject for this device id, or return the existing one if we've already created it
     if numObjects[obj] then return numObjects[obj]
     else
-      if not ER.devices:isDevice(obj) then 
+      if not (ER.devices:isDevice(obj) or simDevices[obj]) then 
         error("#No such device: "..tostring(obj)) 
       end
       local po = NumberProp(obj)

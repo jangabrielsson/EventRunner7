@@ -220,14 +220,14 @@ local function setupFuns()
   end
 
   function async.once(cb,expr)
-    local once = cb.rule.once
+    local once = cb.ctx.once
     if expr then
       if not once then 
-        cb.rule.once = true
+        cb.ctx.once = true
         cb(true)
       else cb(false) 
       end
-    else  cb.rule.once = nil; cb(false) end
+    else  cb.ctx.once = nil; cb(false) end
     return -1 -- not async
   end
 
@@ -240,7 +240,7 @@ local function setupFuns()
       if trueFor.again == nil then trueFor.again,trueFor.againN = n,n end-- reset
       trueFor.again = trueFor.again - 1
       if trueFor.trigger and  trueFor.again > 0 then 
-        env.setTimeout[1](function() cb.rule:run(trueFor.trigger) end, 0)
+        env.setTimeout[1](function() cb.ctx:run(trueFor.trigger) end, 0)
         cb(trueFor.againN - trueFor.again)
       else trueFor.again = nil cb(trueFor.againN) end
     else cb(0) end

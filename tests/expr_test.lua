@@ -9,6 +9,7 @@
 --%%file:Compiler.lua,compiler
 --%%file:ScriptFuns.lua,scriptfuns
 --%%file:Rule.lua,rule
+--%%file:$fibaro.lib.speed,speed
 --%%file:Sim.lua,sim
 
 local ER         = fibaro.ER
@@ -336,5 +337,13 @@ local function main()
   end
   
 function QuickApp:onInit()
-  fibaro.EventRunner(main)
+  self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
+  local profile = require("tests/profile")
+  profile.start()
+  fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
+    fibaro.EventRunner(main)
+  end)
+  profile.stop()
+  -- report for the top 10 functions, sorted by execution time
+  print(profile.report(20))
 end

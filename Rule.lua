@@ -620,7 +620,7 @@ local function ruleGuard(success)
   return success
 end
 
-function fibaro.EventRunner(cb)
+local function bootEventRunner(cb)
   local er = {eval = eval, now = ER.now}
 
   vm.defGlobal("_ruleCondition", ruleGuard)
@@ -674,10 +674,19 @@ function fibaro.EventRunner(cb)
   ER.devices = ER.deviceManager()
 
   setmetatable(er,{
-    __tostring = function() return fmt("EventRunner6 v%s",_VERSION) end,
+    __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
   })
   setTimeout(function() 
     sourceTrigger:run()
     cb(er) 
   end, 500)
+end
+
+function fibaro.EventRunner(cb)
+  if type(cb)=='function' then bootEventRunner(cb) -- new style
+  else
+    return setmetatable({start = function() bootEventRunner(function(er) cb:main(er) end) end}, { -- Backward comp. with ER6
+      __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
+    })
+  end
 end

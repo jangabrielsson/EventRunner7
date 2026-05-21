@@ -4,6 +4,7 @@
 -- %%offline:true
 -- %%save:dist/EventRunner7.fqa
 --%%file:$fibaro.lib.speed,speed
+--%%u:{label='info', text='EventRunnner 6'}
 
 local function main(er)
   local rule,var = er.eval,er.variables
@@ -20,6 +21,8 @@ end
 
 
 function QuickApp:onInit()
-  self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
+  local str = "EventRunner 7, v"..fibaro.EventRunnerVersion
+  self:debug(str)
+  self:updateView('info','text',str)
   fibaro.EventRunner(main)
 end
