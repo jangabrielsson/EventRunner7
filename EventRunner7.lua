@@ -3,7 +3,6 @@
 --%%headers:EventRunner.inc
 -- %%offline:true
 --%%save:dist/EventRunner7.fqa
---%%file:$fibaro.lib.speed,speed
 --%%u:{label='info', text='EventRunnner 7'}
 
 local function main(er)
