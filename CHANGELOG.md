@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.1.2] - 2026-05-21
+
+## Changes in v0.1.2
+
+- ♻️ **Refactor**: change debug and print colors from orange to green for consistency
+- ✨ **Feature**: add automated release creation and forum post generation scripts
+  - Implemented create-release.sh for automated GitHub releases, including version bumping, changelog updates, and artifact generation.
+  - Added forum-post-generator.sh to create HTML forum posts for release announcements.
+  - Introduced project-config.sh for project-specific settings and configurations.
+  - Developed setversion.sh to update version numbers in multiple files.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.1] - 2026-05-21
 
 ## Changes in v0.1.1
