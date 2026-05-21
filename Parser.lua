@@ -239,10 +239,6 @@ local function makeParser(src)
       next(); return {'NEXTTIME', parseUnaryexp()}
     elseif t and t.type == 'plustime' then
       next(); return {'PLUSTIME', parseUnaryexp()}
-    elseif t and t.type == 'daily' then
-      next(); return {'DAILY', parseUnaryexp()}
-    elseif t and t.type == 'interv' then
-      next(); return {'INTERV', parseUnaryexp()}
     end
     return parsePrimaryexp()
   end
@@ -275,16 +271,30 @@ local function makeParser(src)
     return left
   end
 
-  -- concatexp ::= addexp {('..' | '++') addexp}
+  -- dailyexp ::= '@' addexp | '@@' addexp | addexp
+  -- '@' and '@@' have lower priority than arithmetic so the operand is
+  -- fully evaluated before the daily/interval operator is applied.
+  -- e.g.  @sunset-01:00  =>  @(sunset - 01:00)
+  local function parseDailyexp()
+    local t = peek(1)
+    if t and t.type == 'daily' then
+      next(); return {'DAILY', parseAddexp()}
+    elseif t and t.type == 'interv' then
+      next(); return {'INTERV', parseAddexp()}
+    end
+    return parseAddexp()
+  end
+
+  -- concatexp ::= dailyexp {('..' | '++') dailyexp}
   -- '..' => betw token, '++' => conc token
   local function parseConcatexp()
-    local left = parseAddexp()
+    local left = parseDailyexp()
     while true do
       local t = peek(1)
       if t and (t.type == 'betw' or t.type == 'conc') then
         local op = next()
-        left = P(op.type == 'betw' and {'BETW', left, parseAddexp()}
-                                    or {'CONCAT', left, parseAddexp()}, op)
+        left = P(op.type == 'betw' and {'BETW', left, parseDailyexp()}
+                                    or {'CONCAT', left, parseDailyexp()}, op)
       else break end
     end
     return left

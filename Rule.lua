@@ -43,6 +43,10 @@ local dfltPrefix = { -- This is the defaults opts table. A mix of flags and log 
   waitedPrefix = "⏰",
 }
 
+local cfg = { -- internal config, not user customizable
+  ruleLen = 50,
+}
+
 -- ── Logging helpers ───────────────────────────────────────────────────────
 -- Verbosity levels: silent (0) < normal (1) < verbose (2).
 -- Every execution context (rule or expression) exposes ctx:log(level, prefix, ...)
@@ -283,7 +287,7 @@ local function compRule(r, opts, src)
   end
 
   if opts.defined then
-    rule:log("normal", rule.opts.ruleDefPrefix, "registered:")
+    rule:log("normal", rule.opts.ruleDefPrefix, "registered:", rule.src // cfg.ruleLen)
     if opts.triggers and (VERBOSITY[rule.verbosity or "normal"] or 1) >= 1 then
       rule:dumpTriggers("- ")
     end
