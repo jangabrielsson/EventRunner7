@@ -609,7 +609,7 @@ preview_release() {
     info "  • Git tag with release notes"
     info "  • GitHub release page with artifacts"
     info "  • Automatic source code archives (zip/tar.gz)"
-    info "  • EventRunner6.fqa and ERUpdater.fqa attachments"
+    info "  • EventRunner7.fqa and ERUpdater.fqa attachments"
 }
 
 # Main function

@@ -1,6 +1,6 @@
 # EventScript Tutorial: Home Automation for Beginners
 
-Welcome to EventScript! This tutorial will teach you how to create powerful home automation rules using EventRunner6's intuitive rule-based language. We'll start with the basics and work our way up to advanced automation scenarios.
+Welcome to EventScript! This tutorial will teach you how to create powerful home automation rules using EventRunner7's intuitive rule-based language. We'll start with the basics and work our way up to advanced automation scenarios.
 
 ## Table of Contents
 
@@ -108,7 +108,7 @@ rule("@sunset-00:30 => blinds:close")
 
 ## Getting Started
 
-All your rules are defined inside the `main` function of your EventRunner6 QuickApp:
+All your rules are defined inside the `main` function of your EventRunner7 QuickApp:
 
 ```lua
 function QuickApp:main(er)
@@ -611,7 +611,7 @@ end
 
 ### Working with remotes
 
-Remote controls emit `centralSceneEvent` signals when buttons are pressed. EventRunner6 provides convenient properties to handle these events:
+Remote controls emit `centralSceneEvent` signals when buttons are pressed. EventRunner7 provides convenient properties to handle these events:
 
 ```lua
 function QuickApp:main(er)
@@ -657,7 +657,7 @@ rule([[allRemotes:id:key == '1:Pressed' =>
 
 ### Working with alarms
 
-The HC3 alarm system uses partitions to organize security zones. EventRunner6 provides comprehensive alarm properties:
+The HC3 alarm system uses partitions to organize security zones. EventRunner7 provides comprehensive alarm properties:
 
 ```lua
 function QuickApp:main(er)
