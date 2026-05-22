@@ -511,7 +511,7 @@ for alias,def in pairs(aliases) do
 end
 
 -- er.addStdProp("<myprop>",{ 
---    trigger = {type=..., property=...}, get = function, set = function, 
+--   trigger = {type=..., property=...}, get = function, set = function, 
 --   reduce = function/table.mapF, setCmd = "optional alternative set command name" 
 --}
 local function addStdProp(name,def)

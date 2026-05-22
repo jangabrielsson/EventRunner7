@@ -10,14 +10,14 @@ local catchValue = math.huge
 MODULE = MODULE or {}
 
 ER.ruleFail = 'fibaro.ER.conditionFail' -- special value returned by rules when condition is not met; not an error
-local ruleRunner, resumeRunner, sourceTrigger
+local ruleRunner, resumeRunner, sourceTrigger, scanHead
 local RULEIDX = 0
 local DAILYID = 1
 local rules = {}
 ER._triggerVars = {}
 
 local function isRule(obj) return type(obj) == 'table' and obj.type == 'RULE' end
-local function getRule(rule) 
+local function getRule(rule)
   return isRule(rule) and rule or rules[tonumber(rule) or 0]
 end
 
@@ -53,16 +53,25 @@ local cfg = { -- internal config, not user customizable
 -- so callers never need to branch on "is this a rule or an expression?".
 local VERBOSITY = { silent = 0, normal = 1, verbose = 2 }
 
--- makeExprCtx: wraps a plain opts table as a context for bare expression eval.
--- Expressions are always fully logged (no verbosity gate) and have no rule prefix.
-local function makeExprCtx(opts)
-  local ctx = { isRule = false, opts = opts, onDone = opts.onDone }
-  function ctx:log(_level, prefix, ...) print(prefix, ...) end
-  return ctx
-end
-
 local function trimErr(str)
   return str:match("^#(.+)") or str:match("%d+: #(.*)$") or str
+end
+
+-- makeExprCtx: wraps a plain opts table as a context for bare expression eval.
+local function makeExprCtx(opts)
+  local ctx = { isRule = false, opts = opts, onDone = opts.onDone }
+  function ctx:log(minLevel, prefix, a1, ...)
+    local level = VERBOSITY[self.opts.verbosity or "normal"] or 1
+    local min   = VERBOSITY[minLevel] or 1
+    if level < min then return end
+    if prefix == self.opts.errorPrefix and self.opts.src then
+      a1 = trimErr(a1 or "")
+      print(prefix, a1, ..., "</br>  src: "..self.opts.src)
+    else
+      print(prefix, a1, ...)
+    end
+  end
+  return ctx
 end
 
 ER.D2024 = os.time({year=2024, month=1, day=1}) -- Date before which all daily times are assumed to be (i.e. their date part is ignored and they are scheduled for the next occurrence of that time)
@@ -74,7 +83,7 @@ local function setupGlobalVariables()
 end
 
 local function midnightLoop(er)
-  local dt = os.date("*t") 
+  local dt = os.date("*t")
   local midnight = os.time{year=dt.year, month=dt.month, day=dt.day+1, hour=0, min=0, sec=0}
   local function loop()
     setupGlobalVariables()
@@ -111,14 +120,14 @@ local function compRule(r, opts, src)
       print(prefix, tostring(self)..":", a1,...)
     end
   end
-  
+
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
   scanHead(head, trs)             -- scanHead may modify ast...
   local fun  = ER.csp.compile(r, r._srcmap)  -- compile rule action into CSP (with srcmap if available)
   rule.fun = fun
   rule.timers = {}
-  
-  function postR(ev,time)
+
+  local function postR(ev,time)
     local ref,t
     ref,t = sourceTrigger:post(ev,time,nil,function(ref)
       rule.timers[ref] = nil
@@ -126,25 +135,25 @@ local function compRule(r, opts, src)
     if ref then rule.timers[ref] = t end
     return ref
   end
-  function setTimeoutR(fun,time)
+  local function setTimeoutR(fun,time)
     local ref
-    ref = setTimeout(function() 
+    ref = setTimeout(function()
       rule.timers[ref] = nil
       fun()
     end, time)
     rule.timers[ref] = time
     return ref
   end
-  function cancelR(ref)
+  local function cancelR(ref)
     rule.timers[ref]=nil
     return sourceTrigger:cancel(ref)
   end
-  
+
   local function mkEvVars(key,ev)
     local vars = {
-      event = {ev.event and setmetatable(ev.event, ER.EventMT) or nil}, 
-      _evKey = {key}, 
-      post = {postR}, 
+      event = {ev.event and setmetatable(ev.event, ER.EventMT) or nil},
+      _evKey = {key},
+      post = {postR},
       cancel = {cancelR},
       setTimeout = {setTimeoutR},
       enable = {function(id) rule.enable(id) end},
@@ -153,7 +162,7 @@ local function compRule(r, opts, src)
     for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
   end
-  
+
   -- All triggers are subscribed to
   for key, event in pairs(trs.triggers) do
     setmetatable(event, ER.EventMT)
@@ -161,7 +170,7 @@ local function compRule(r, opts, src)
     event._recalc = nil
     sourceTrigger:subscribe(event, function(ev)
       if rule._disabled then return end
-      if recalcDaily then 
+      if recalcDaily then
         rule:log("silent", opts.dailyListPrefix, "Recalculating Daily timers")
         for _,r in pairs(rules) do r:setupDaily() end
         return
@@ -172,8 +181,8 @@ local function compRule(r, opts, src)
       end
     )
   end
-  
-  
+
+
   local skipDailys = false
   local intervalTimer
   local intervalEvent = {type='INTERVAL', id=rule.id}
@@ -186,7 +195,7 @@ local function compRule(r, opts, src)
     )
     skipDailys = true
   end
-  
+
   function rule:setupInterval()
     if intervalTimer then cancelR(intervalTimer); intervalTimer = nil end
     if trs.interval then
@@ -204,12 +213,12 @@ local function compRule(r, opts, src)
     end
   end
   rule:setupInterval()
-  
+
   rule.dailys = {}
   if not skipDailys then
     local dailys = trs.dailys -- @daily inhibits between
     if next(trs.dailys) == nil then dailys = trs.between end
-    
+
     for _, t in ipairs(dailys) do
       local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
       DAILYID = DAILYID + 1
@@ -223,7 +232,7 @@ local function compRule(r, opts, src)
       rule.dailys[t] = subev
     end
   end
-  
+
   local dtimers = {}
   function rule:setupDaily(catch)
     if next(rule.dailys) == nil then return end
@@ -244,9 +253,9 @@ local function compRule(r, opts, src)
       end
     end
   end
-  
+
   rule:setupDaily(trs.hasCatch and true)
-  
+
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run(event)
     self:log("verbose", self.opts.startPrefix, "(manual)")
@@ -264,23 +273,23 @@ local function compRule(r, opts, src)
   end
 
   function rule.start(event) rule:run(event) return rule end
-  function rule.disable(id) 
-    if id == nil then rule._disabled = true 
-    else 
+  function rule.disable(id)
+    if id == nil then rule._disabled = true
+    else
       local r = getRule(id)
       if r then r.disable() end
     end
     return rule
   end
-  function rule.enable(id) 
-    if id == nil then rule._disabled = nil 
-    else 
+  function rule.enable(id)
+    if id == nil then rule._disabled = nil
+    else
       local r = getRule(id)
       if r then r.enable() end
     end
     return rule
   end
-  function rule.info() 
+  function rule.info()
     print(tostring(rule)..":", rule.src)
     rule:dumpTriggers("  ")
     return rule
@@ -301,7 +310,7 @@ local function exprFun(csp)
   return function()
     local code   = ER.csp.compile(csp)
     local status, val = ER.csp.eval(code)
-    if status == 'ok' then 
+    if status == 'ok' then
       return val,function() return select(2,ER.csp.eval(code)) end
     else error("eval error: " .. tostring(val)) end
   end
@@ -313,7 +322,7 @@ end
 
 -- Std Head Ops: just scan their children
 local stdHOPS = {
-  "RETURN", "NOT", "AND", "OR", "CALL","ADD", 
+  "RETURN", "NOT", "AND", "OR", "CALL","ADD",
   "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW"
 }
 local HOPS = {}
@@ -349,7 +358,7 @@ end
 function HOPS.DAILY(ast,trs)
   local times = ast[2]
   trs._recalc = true
-  if type(times) == 'table' and times[1] == 'MAKETABLE' then 
+  if type(times) == 'table' and times[1] == 'MAKETABLE' then
     times = {}
     for i=3,#ast[2],2 do times[#times+1] = ast[2][i] scanHead(ast[2][i], trs) end
   else scanHead(times, trs) times = {times} end
@@ -512,7 +521,7 @@ end
 
 local function beautifyArgs(args, res) -- recursively convert args to more readable forms for logging
   res = res or {}
-  for i=1,args.n or #args do 
+  for i=1,args.n or #args do
     local obj = args[i]
     local tstr = (getmetatable(obj) or {}).__tostring
     if tstr then res[i] = (type(tstr) == 'function') and tstr(obj) or tstr -- honor __tostring if it exists
@@ -538,7 +547,9 @@ function ruleRunner(f, ctx, perInvokeOpts)
     if ctx.onDone then ctx.onDone(...) end
     if synced then
       -- completed asynchronously after ruleRunner already returned nil
-      ctx:log("verbose", evalOpts.successPrefix, ...)
+      if ctx.opts.result then
+        ctx:log("normal", evalOpts.resultPrefix, ...)
+      end
     else
       syncVals = table.pack(...)
     end
@@ -583,7 +594,7 @@ local function eval(src,opts)
   local ast    = ER.parse(src)           -- parse error propagates immediately
   local isRule = (ast[1] == 'RULE')
   local result
-  
+
   local ok, err = pcall(function()
     if isRule then
       local rule_csp = ER.compileRuleBody(ast)
@@ -594,21 +605,21 @@ local function eval(src,opts)
       result = table.pack(ruleRunner(code, makeExprCtx(opts)))
     end
   end)
-  
+
   if not ok then
     print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
     --error(err) -- we already printed this... re-throwing would cause double printing if eval is called from another eval's pcall, so just return nil on error.
   end
-  
+
   -- For bare expressions: log the sync result if we got one.
   -- Async (nil return) was already logged 💤 by ruleRunner.
   -- Rule form: compRule already logged ✅ with trigger list.
   if not isRule and result and result[1] ~= nil then
-    if not (opts.verbosity == "silent") and opts.result then 
+    if not (opts.verbosity == "silent") and opts.result then
       print(opts.resultPrefix, table.unpack(beautifyArgs(result), 1, result.n))
     end
   end
-  
+
   return result and table.unpack(result, 1, result.n)
 end
 
@@ -631,37 +642,42 @@ local function bootEventRunner(cb)
 
   vm.defGlobal("_ruleCondition", ruleGuard)
   vm.defGlobal('catch', catchValue)
-  
+
   er.triggerVars = setmetatable({}, {
     __index = function(t, k) return vm.getGlobal(k) end,
-    __newindex = function(t, k, v) 
-      ER._triggerVars[k] = true 
+    __newindex = function(t, k, v)
+      ER._triggerVars[k] = true
       vm.defGlobal(k, v)
     end
   })
-  
+
   ER.ASYNCFUNS = ER.ASYNCFUNS or {}
+  function er.createAsyncFun(fun)
+    ER.ASYNCFUNS[fun] = true
+    return fun
+  end
+
   er.async = setmetatable({}, {
-    __newindex = function(t, k, v) 
+    __newindex = function(t, k, v)
       assert(type(v) == 'fun'..'ction', "Only func".."tions can be assigned to async")
-      ER.ASYNCFUNS[v] = true
+      er.createAsyncFun(v)
       vm.defGlobal(k,v)
     end
   })
   ER.async = er.async
-  
+
   ER.setupFuns()
   setupGlobalVariables()
-  
+
   sourceTrigger = SourceTrigger()
   ER.sourceTrigger = sourceTrigger
-  er.sourceTrigger = sourceTrigger  
+  er.sourceTrigger = sourceTrigger
   er.globals = ER.globals
   er.defglobals = ER.defglobals
   er.variables = er.defglobals -- backward compatibility, will be removed in future
-  
+
   midnightLoop()
-  
+
   er.definePropClass = ER.definePropClass
   er.PropObject = ER.PropObject
   er.addStdProp = ER.addStdProp
@@ -669,6 +685,7 @@ local function bootEventRunner(cb)
   er.loadSimDevice = ER.loadSimDevice
   er.createSimGlobal = ER.defineSimGlobalVariable
   er.loadPluaDevice = ER.loadPluaDevice
+  er.base64encode = ER.base64encode
   ER.isRule = isRule
   ER.getRule = getRule
 
@@ -676,17 +693,17 @@ local function bootEventRunner(cb)
   ER.er = er
 
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
-  
+
   ER.devices = ER.deviceManager()
 
   setmetatable(er,{
     __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
   })
-  setTimeout(function() 
+  setTimeout(function()
     sourceTrigger:run()
 
     local preModules,afterModules = {},{} -- Modules with negative prio are loaded before the main callback, others after. This allows modules to patch ER before rules are loaded.
-    for _,m in ipairs(MODULE) do 
+    for _,m in ipairs(MODULE) do
       local prio = m.prio or 0
       if prio < 0 then table.insert(preModules, m) else table.insert(afterModules, m) end
     end
@@ -696,9 +713,9 @@ local function bootEventRunner(cb)
     print(color('green',"=========== Loading rules ================"))
 
     local loadTime = os.clock()
-    for i,m in ipairs(preModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
+    for i,m in ipairs(preModules) do m.code(er) if m.name==nil or m.name:sub(1,1) ~= "_" then print(fmt("Loaded module %s", m.name or i)) end end
     cb(er) -- User's main callback, where they typically define their rules, runs between preModules and afterModules to allow preModules to patch ER before rules are loaded, and afterModules to patch ER after rules are loaded.
-    for i,m in ipairs(afterModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
+    for i,m in ipairs(afterModules) do m.code(er) if m.name==nil or m.name:sub(1,1) ~= "_" then print(fmt("Loaded module %s", m.name or i)) end end
     loadTime = os.clock() - loadTime
 
     print(color('green', fmt("=========== Load time: %.3fs ============", loadTime)))
