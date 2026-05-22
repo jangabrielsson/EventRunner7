@@ -1,6 +1,7 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
 --%%headers:EventRunner.inc
+--%%file:StdRules.lua,std
 -- %%offline:true
 --%%save:dist/EventRunner7.fqa
 --%%u:{label='info', text='EventRunnner 7'}
@@ -9,7 +10,9 @@ local function main(er)
   local rule,var = er.eval,er.variables
   er.opts = { started = true, check = true, result = false, triggers=true}
 
-  rule("@@00:00:05 => log('tick')",{check=false})
+  --rule("@@00:00:05 => log('tick')",{check=false})
+
+  rule("@foo => log()")
 end
 
 

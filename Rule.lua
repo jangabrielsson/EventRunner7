@@ -106,7 +106,7 @@ local function compRule(r, opts, src)
     if level < min then return end
     if prefix == self.opts.errorPrefix and self.src then
       a1 = trimErr(a1 or "")
-      print(prefix, tostring(self)..":", a1,..., "\n  src: "..self.src)
+      print(prefix, tostring(self)..":", a1,..., "</br>  src: "..self.src)
     else
       print(prefix, tostring(self)..":", a1,...)
     end
@@ -596,7 +596,7 @@ local function eval(src,opts)
   end)
   
   if not ok then
-    print(opts.errorPrefix, trimErr(err))
+    print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
     --error(err) -- we already printed this... re-throwing would cause double printing if eval is called from another eval's pcall, so just return nil on error.
   end
   
@@ -697,7 +697,7 @@ local function bootEventRunner(cb)
 
     local loadTime = os.clock()
     for i,m in ipairs(preModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
-    cb(er) 
+    cb(er) -- User's main callback, where they typically define their rules, runs between preModules and afterModules to allow preModules to patch ER before rules are loaded, and afterModules to patch ER after rules are loaded.
     for i,m in ipairs(afterModules) do m.code(er) print(fmt("Loaded module %s", m.name or i)) end
     loadTime = os.clock() - loadTime
 

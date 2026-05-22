@@ -703,7 +703,7 @@ local function eval(expr, opts)
       if curpos then
         enriched = enriched .. ER.sourceMarker(src, curpos.pos, curpos.len)
       else
-        enriched = enriched .. "\n  source: " .. src
+        enriched = enriched .. "</br>  source: " .. src
       end
     end
     -- Could we tag some error messages here?

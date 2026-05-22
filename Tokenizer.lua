@@ -186,8 +186,8 @@ local function sourceMarker(str, pos, len)
       -- Clamp marker to end of line
       local markLen = math.min(len or 1, #line - col + 1)
       if markLen < 1 then markLen = 1 end
-      local marker = string.rep(" ", col - 1) .. string.rep("^", markLen)
-      return "\n" .. line .. "\n" .. marker
+      local marker = string.rep("&nbsp;", col - 1) .. string.rep("^", markLen)
+      return "</br>" .. line .. "</br>" .. marker
     end
     tot = tot + #line + 1  -- +1 for the newline character
   end
