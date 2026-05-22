@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.6] - 2026-05-22
+
+## Changes in v0.1.6
+
+- ✨ **Feature**: chore: clean up empty code change sections in the changes log
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.5] - 2026-05-21
 
 ## Changes in v0.1.5
