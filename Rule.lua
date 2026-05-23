@@ -678,6 +678,8 @@ local function bootEventRunner(cb)
 
   midnightLoop()
 
+  er.post = function(...) return sourceTrigger:post(...) end
+  er.cancel = function(...) return sourceTrigger:cancel(...) end
   er.definePropClass = ER.definePropClass
   er.PropObject = ER.PropObject
   er.addStdProp = ER.addStdProp
