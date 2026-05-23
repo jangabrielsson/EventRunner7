@@ -4,35 +4,42 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Writing EventScript Rules</title>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600&f[]=satoshi@400,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 
 /* ===========================================
-   CSS CUSTOM PROPERTIES — NOTEBOOK TABS THEME
+   CSS CUSTOM PROPERTIES — NEON CYBER THEME
    =========================================== */
 :root {
-  --bg-outer:      #2d2d2d;
-  --bg-page:       #f8f6f1;
-  --bg-holes:      #e8e4dc;
-  --bg-code:       #eeebe4;
-  --text-primary:  #1a1a1a;
-  --text-secondary:#555;
-  --text-muted:    #999;
-  --text-eyebrow:  #888;
+  /* Backgrounds */
+  --bg-outer:      #0a0f1c;
+  --bg-page:       #0f1628;
+  --bg-holes:      #080d18;
+  --bg-code:       #060b16;
 
-  /* Section tabs */
-  --tab-1: #98d4bb;   /* Mint     — Basics   */
-  --tab-2: #c7b8ea;   /* Lavender — Triggers */
-  --tab-3: #f4b8c5;   /* Pink     — Variables */
-  --tab-4: #a8d8ea;   /* Sky      — Events    */
-  --tab-5: #ffe6a7;   /* Cream    — Patterns  */
+  /* Text */
+  --text-primary:   #e8f4f8;
+  --text-secondary: rgba(232,244,248,0.65);
+  --text-muted:     rgba(232,244,248,0.30);
+  --text-eyebrow:   rgba(232,244,248,0.38);
+
+  /* Section accent neons */
+  --tab-1: #00ffcc;   /* Cyan    — Basics    */
+  --tab-2: #ff00aa;   /* Magenta — Triggers  */
+  --tab-3: #ffe600;   /* Yellow  — Variables */
+  --tab-4: #4080ff;   /* Blue    — Events    */
+  --tab-5: #ff8800;   /* Orange  — Patterns  */
+
+  /* Border */
+  --border: rgba(0,255,204,0.12);
 
   /* Code syntax */
-  --code-keyword: #5a3a8a;
-  --code-string:  #2e7a38;
-  --code-comment: #999;
-  --code-number:  #1a5fa0;
-  --code-call:    #c0391e;
+  --code-keyword: #ff7b72;
+  --code-string:  #a5d6ff;
+  --code-comment: #4a6080;
+  --code-number:  #79c0ff;
+  --code-call:    #d2a8ff;
 
   /* Layout */
   --holes-w:  36px;
@@ -41,8 +48,8 @@
   --card-h:   min(82vh, 620px);
 
   /* Typography — all clamp() */
-  --font-display: 'Bodoni Moda', Georgia, serif;
-  --font-body:    'DM Sans', sans-serif;
+  --font-display: 'Clash Display', 'Archivo Black', sans-serif;
+  --font-body:    'Satoshi', 'Space Grotesk', sans-serif;
   --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
 
   --title-size:   clamp(1.8rem, 5vw, 3.8rem);
@@ -147,37 +154,54 @@ img, .image-container {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* ===========================================
-   SLIDE LAYOUT — DARK OUTER
+   SLIDE LAYOUT — NEON NAVY OUTER
    =========================================== */
 .slide {
   background: var(--bg-outer);
   align-items: center;
   justify-content: center;
+  position: relative;
 }
+/* Grid-line atmosphere */
+.slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,204,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,204,0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+  z-index: 0;
+}
+.slide > * { position: relative; z-index: 1; }
 
 /* ===========================================
-   PAPER CARD — FLOATING NOTEBOOK PAGE
+   PAPER CARD — NEON BORDERED PANEL
    =========================================== */
 .paper {
   position: relative;
   width: var(--card-w);
   height: var(--card-h);
   background: var(--bg-page);
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
   box-shadow:
-    0 24px 72px rgba(0,0,0,0.5),
-    0 4px 16px rgba(0,0,0,0.25),
-    inset 0 0 0 1px rgba(255,255,255,0.08);
+    0 0 0 1px rgba(0,255,204,0.05),
+    0 0 40px rgba(0,255,204,0.06),
+    0 24px 80px rgba(0,0,0,0.75),
+    inset 0 0 0 1px rgba(0,255,204,0.02);
   display: flex;
   overflow: hidden;
+  z-index: 1;
 }
 
-/* === HOLE PUNCH COLUMN === */
+/* === LED INDICATOR COLUMN === */
 .holes {
   flex-shrink: 0;
   width: var(--holes-w);
   background: var(--bg-holes);
-  border-right: 1px solid #d4cfc6;
+  border-right: 1px solid rgba(0,255,204,0.08);
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
@@ -186,11 +210,12 @@ img, .image-container {
   padding: clamp(1rem, 2vh, 1.8rem) 0;
 }
 .hole {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--bg-outer);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.45);
+  background: transparent;
+  border: 1px solid rgba(0,255,204,0.35);
+  box-shadow: 0 0 6px rgba(0,255,204,0.2), inset 0 0 4px rgba(0,255,204,0.1);
   flex-shrink: 0;
 }
 
@@ -205,7 +230,7 @@ img, .image-container {
   min-width: 0;
 }
 
-/* === SECTION TABS === */
+/* === NEON SECTION TABS === */
 .tabs {
   flex-shrink: 0;
   width: var(--tabs-w);
@@ -214,23 +239,24 @@ img, .image-container {
   justify-content: flex-start;
   align-items: stretch;
   padding-top: clamp(1rem, 2vh, 2rem);
-  gap: 6px;
+  gap: 5px;
   z-index: 3;
+  border-left: 1px solid rgba(0,255,204,0.07);
 }
 .tab {
   writing-mode: vertical-rl;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-body);
-  font-size: var(--eyebrow-size);
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: clamp(0.45rem, 0.85vh, 0.6rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-primary);
+  color: #0a0f1c;
   padding: clamp(8px,1.5vh,14px) 0;
   border-radius: 0 3px 3px 0;
-  opacity: 0.35;
+  opacity: 0.18;
   transform: translateX(0);
   transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -247,17 +273,17 @@ img, .image-container {
 .paper[data-section="3"] .tab:nth-child(4),
 .paper[data-section="4"] .tab:nth-child(5) {
   opacity: 1;
-  transform: translateX(5px);
-  box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+  transform: translateX(6px);
+  box-shadow: -3px 0 14px rgba(0,0,0,0.4), 3px 0 10px rgba(255,255,255,0.06);
 }
 
 /* ===========================================
    TYPOGRAPHY
    =========================================== */
 .eyebrow {
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
   font-size: var(--eyebrow-size);
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-eyebrow);
@@ -265,52 +291,68 @@ img, .image-container {
 }
 .section-tag {
   display: inline-block;
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
   font-size: var(--eyebrow-size);
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 3px 10px;
   border-radius: 2px;
   margin-bottom: var(--content-gap);
+  border: 1px solid;
 }
-.section-tag.basics   { background: var(--tab-1); color: #1a5040; }
-.section-tag.triggers { background: var(--tab-2); color: #3a2560; }
-.section-tag.vars     { background: var(--tab-3); color: #60202c; }
-.section-tag.events   { background: var(--tab-4); color: #1a4560; }
-.section-tag.patterns { background: var(--tab-5); color: #604a10; }
+.section-tag.basics   { border-color: var(--tab-1); color: var(--tab-1); background: rgba(0,255,204,0.07); }
+.section-tag.triggers { border-color: var(--tab-2); color: var(--tab-2); background: rgba(255,0,170,0.07); }
+.section-tag.vars     { border-color: var(--tab-3); color: var(--tab-3); background: rgba(255,230,0,0.07); }
+.section-tag.events   { border-color: var(--tab-4); color: var(--tab-4); background: rgba(64,128,255,0.07); }
+.section-tag.patterns { border-color: var(--tab-5); color: var(--tab-5); background: rgba(255,136,0,0.07); }
 
 h1.slide-title {
   font-family: var(--font-display);
   font-size: var(--title-size);
   font-weight: 700;
-  line-height: 1.08;
+  line-height: 1.05;
   color: var(--text-primary);
   margin-bottom: var(--content-gap);
+  letter-spacing: -0.02em;
 }
-h1.slide-title em { font-style: italic; font-weight: 400; }
+h1.slide-title em {
+  font-style: normal;
+  color: var(--tab-1);
+  text-shadow: 0 0 20px rgba(0,255,204,0.45), 0 0 40px rgba(0,255,204,0.2);
+}
 
 h2.slide-heading {
   font-family: var(--font-display);
   font-size: var(--h2-size);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.12;
   color: var(--text-primary);
   margin-bottom: var(--content-gap);
+  letter-spacing: -0.01em;
 }
-h2.slide-heading em { font-style: italic; font-weight: 400; }
+h2.slide-heading em {
+  font-style: normal;
+  color: var(--tab-1);
+  text-shadow: 0 0 14px rgba(0,255,204,0.4);
+}
+/* Per-section heading accent colors */
+.paper[data-section="1"] h2.slide-heading em { color: var(--tab-2); text-shadow: 0 0 14px rgba(255,0,170,0.4); }
+.paper[data-section="2"] h2.slide-heading em { color: var(--tab-3); text-shadow: 0 0 14px rgba(255,230,0,0.4); }
+.paper[data-section="3"] h2.slide-heading em { color: var(--tab-4); text-shadow: 0 0 14px rgba(64,128,255,0.4); }
+.paper[data-section="4"] h2.slide-heading em { color: var(--tab-5); text-shadow: 0 0 14px rgba(255,136,0,0.4); }
 
 .rule-accent {
   width: clamp(36px, 5vw, 52px);
-  height: 3px;
-  border-radius: 2px;
+  height: 2px;
+  border-radius: 1px;
   margin-bottom: var(--content-gap);
 }
-.rule-accent.mint     { background: var(--tab-1); }
-.rule-accent.lavender { background: var(--tab-2); }
-.rule-accent.pink     { background: var(--tab-3); }
-.rule-accent.sky      { background: var(--tab-4); }
-.rule-accent.cream    { background: var(--tab-5); }
+.rule-accent.mint     { background: var(--tab-1); box-shadow: 0 0 8px rgba(0,255,204,0.7); }
+.rule-accent.lavender { background: var(--tab-2); box-shadow: 0 0 8px rgba(255,0,170,0.7); }
+.rule-accent.pink     { background: var(--tab-3); box-shadow: 0 0 8px rgba(255,230,0,0.7); }
+.rule-accent.sky      { background: var(--tab-4); box-shadow: 0 0 8px rgba(64,128,255,0.7); }
+.rule-accent.cream    { background: var(--tab-5); box-shadow: 0 0 8px rgba(255,136,0,0.7); }
 
 .slide-body {
   font-family: var(--font-body);
@@ -322,11 +364,10 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
 .slide-body strong { color: var(--text-primary); font-weight: 600; }
 
 .slide-subtitle {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: clamp(0.85rem, 1.8vw, 1.25rem);
-  font-style: italic;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* ===========================================
@@ -349,21 +390,22 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
   gap: 10px;
 }
 .bullet-list li::before {
-  content: '→';
+  content: '▸';
   font-family: var(--font-mono);
-  color: var(--text-muted);
+  color: var(--tab-1);
   flex-shrink: 0;
   margin-top: 0.05em;
+  font-size: 0.75em;
 }
 .bullet-list li strong { color: var(--text-primary); font-weight: 600; }
 .bullet-list li code {
   font-family: var(--font-mono);
-  font-size: calc(var(--body-size) * 0.9);
-  background: var(--bg-code);
-  border: 1px solid #d8d3ca;
-  padding: 0 5px;
+  font-size: calc(var(--body-size) * 0.88);
+  background: rgba(0,255,204,0.06);
+  border: 1px solid rgba(0,255,204,0.2);
+  padding: 1px 5px;
   border-radius: 3px;
-  color: var(--code-call);
+  color: var(--tab-1);
 }
 
 /* ===========================================
@@ -371,22 +413,23 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
    =========================================== */
 .code-block {
   background: var(--bg-code);
-  border: 1px solid #d8d3ca;
-  border-left: 3px solid var(--tab-1);
+  border: 1px solid rgba(0,255,204,0.1);
+  border-left: 2px solid var(--tab-1);
   border-radius: 4px;
   padding: clamp(0.7rem, 1.5vh, 1.2rem) clamp(0.8rem, 2vw, 1.4rem);
   margin-top: clamp(0.4rem, 1vh, 0.8rem);
   overflow: hidden;
+  box-shadow: 0 0 14px rgba(0,255,204,0.04), inset 0 0 0 1px rgba(0,255,204,0.03);
 }
-.code-block.lavender-accent { border-left-color: var(--tab-2); }
-.code-block.pink-accent     { border-left-color: var(--tab-3); }
-.code-block.sky-accent      { border-left-color: var(--tab-4); }
-.code-block.cream-accent    { border-left-color: var(--tab-5); }
+.code-block.lavender-accent { border-left-color: var(--tab-2); border-color: rgba(255,0,170,0.1); box-shadow: 0 0 14px rgba(255,0,170,0.04); }
+.code-block.pink-accent     { border-left-color: var(--tab-3); border-color: rgba(255,230,0,0.1); box-shadow: 0 0 14px rgba(255,230,0,0.04); }
+.code-block.sky-accent      { border-left-color: var(--tab-4); border-color: rgba(64,128,255,0.1); box-shadow: 0 0 14px rgba(64,128,255,0.04); }
+.code-block.cream-accent    { border-left-color: var(--tab-5); border-color: rgba(255,136,0,0.1); box-shadow: 0 0 14px rgba(255,136,0,0.04); }
 
 .code-block pre {
   font-family: var(--font-mono);
   font-size: var(--code-size);
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text-primary);
   white-space: pre;
   overflow: hidden;
@@ -402,10 +445,11 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
 .inline-code {
   font-family: var(--font-mono);
   font-size: calc(var(--body-size) * 0.88);
-  background: var(--bg-code);
-  border: 1px solid #d8d3ca;
+  background: rgba(0,255,204,0.06);
+  border: 1px solid rgba(0,255,204,0.2);
   padding: 1px 6px;
   border-radius: 3px;
+  color: var(--tab-1);
 }
 
 /* ===========================================
@@ -419,7 +463,7 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
 }
 .feature-card {
   background: var(--bg-code);
-  border: 1px solid #d8d3ca;
+  border: 1px solid rgba(0,255,204,0.1);
   border-radius: 4px;
   padding: clamp(0.6rem, 1.5vh, 1.1rem) clamp(0.7rem, 1.5vw, 1.2rem);
   display: flex;
@@ -431,7 +475,7 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
   font-size: var(--eyebrow-size);
   font-weight: 500;
   letter-spacing: 0.1em;
-  color: var(--text-muted);
+  color: var(--tab-1);
   text-transform: uppercase;
 }
 .feature-card .fc-title {
@@ -464,14 +508,14 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
 }
 .anatomy-box {
   background: var(--bg-code);
-  border: 1px solid #d8d3ca;
+  border: 1px solid rgba(0,255,204,0.1);
   border-radius: 4px;
   padding: clamp(0.5rem, 1.2vh, 0.9rem) clamp(0.6rem, 1.5vw, 1.1rem);
   text-align: center;
   flex: 1;
 }
 .anatomy-box .ab-label {
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
   font-size: var(--eyebrow-size);
   color: var(--text-muted);
   text-transform: uppercase;
@@ -487,12 +531,14 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
 .anatomy-arrow {
   font-family: var(--font-mono);
   font-size: clamp(1rem, 2.5vw, 1.8rem);
-  color: var(--text-muted);
+  color: var(--tab-1);
   flex-shrink: 0;
+  text-shadow: 0 0 8px rgba(0,255,204,0.5);
 }
 .anatomy-box.active {
   border-color: var(--tab-1);
-  background: #edf6f2;
+  background: rgba(0,255,204,0.05);
+  box-shadow: 0 0 12px rgba(0,255,204,0.08);
 }
 
 /* ===========================================
@@ -503,6 +549,7 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
   top: 0; left: 0;
   height: 2px;
   background: var(--tab-1);
+  box-shadow: 0 0 8px rgba(0,255,204,0.7);
   width: 0%;
   transition: width 0.3s ease;
   z-index: 100;
@@ -518,22 +565,24 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 7px;
+  gap: 6px;
   z-index: 100;
 }
 .nav-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  border: none;
+  background: rgba(0,255,204,0.2);
+  border: 1px solid rgba(0,255,204,0.25);
   cursor: pointer;
   padding: 0;
-  transition: background 0.25s ease, transform 0.25s ease;
+  transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 .nav-dot.active {
-  background: rgba(255,255,255,0.75);
-  transform: scale(1.3);
+  background: var(--tab-1);
+  border-color: var(--tab-1);
+  box-shadow: 0 0 6px rgba(0,255,204,0.7);
+  transform: scale(1.35);
 }
 
 /* ===========================================
@@ -543,9 +592,9 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
   position: fixed;
   bottom: clamp(0.6rem, 1.5vh, 1.2rem);
   right: clamp(0.8rem, 2vw, 1.5rem);
-  font-family: var(--font-body);
-  font-size: clamp(0.5rem, 0.8vw, 0.65rem);
-  color: rgba(255,255,255,0.25);
+  font-family: var(--font-mono);
+  font-size: clamp(0.48rem, 0.78vw, 0.62rem);
+  color: rgba(0,255,204,0.2);
   letter-spacing: 0.08em;
   z-index: 100;
 }
@@ -559,7 +608,8 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
   left: calc(var(--holes-w) + clamp(1rem, 2.5vw, 2rem));
   font-family: var(--font-mono);
   font-size: var(--eyebrow-size);
-  color: var(--text-muted);
+  color: rgba(0,255,204,0.25);
+  letter-spacing: 0.06em;
 }
 
 /* ===========================================
@@ -575,23 +625,23 @@ h2.slide-heading em { font-style: italic; font-weight: 400; }
 #edit-toggle {
   position: fixed;
   top: 12px; left: 12px;
-  font-family: var(--font-body);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: var(--tab-1);
-  color: #1a5040;
-  border: none;
+  background: transparent;
+  color: var(--tab-1);
+  border: 1px solid var(--tab-1);
   border-radius: 3px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   cursor: pointer;
   z-index: 201;
   display: none;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-#edit-toggle:hover { background: #7ec9a8; }
-#edit-toggle.active { background: var(--tab-3); color: #60202c; }
+#edit-toggle:hover { background: rgba(0,255,204,0.1); }
+#edit-toggle.active { background: rgba(255,0,170,0.1); border-color: var(--tab-2); color: var(--tab-2); }
 
 body.edit-mode h1,
 body.edit-mode h2,
@@ -600,7 +650,7 @@ body.edit-mode li,
 body.edit-mode .ab-code,
 body.edit-mode .fc-title,
 body.edit-mode .fc-body {
-  outline: 1px dashed #c7b8ea;
+  outline: 1px dashed rgba(0,255,204,0.4);
   border-radius: 2px;
   min-width: 1em;
 }
@@ -785,7 +835,7 @@ rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
           <div class="fc-code">er.eval("wait(100); return 7")</div>
         </div>
       </div>
-      <div class="slide-num">04 / 16</div>
+      <div class="slide-num">04 / 22</div>
     </div>
     <div class="tabs">
       <div class="tab">Basics</div><div class="tab">Triggers</div>
@@ -795,7 +845,82 @@ rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
 </section>
 
 <!-- =============================================
-     SLIDE 5 — TIME TRIGGERS
+     SLIDE 5 — FILE STRUCTURE
+     ============================================= -->
+<section class="slide" id="slide-structure">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag basics reveal">Basics</div>
+      <h2 class="slide-heading reveal">EventRunner <em>File Structure</em></h2>
+      <div class="rule-accent mint reveal"></div>
+      <div class="code-block reveal">
+        <pre><code data-lua>--%%name:MyRules
+--%%type:com.fibaro.deviceController
+
+local function main(er)
+  local rule, var = er.eval, er.variables  -- aliases
+  er.opts = { check=true, triggers=true }  -- global log flags
+
+  rule("@@00:05 => log('tick')")   -- your rules go here
+end
+
+function QuickApp:onInit()
+  fibaro.EventRunner(main)         -- boot the engine
+end</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>main(er)</code> is your rule-setup callback — called once at boot with the <code>er</code> API object</li>
+        <li>Alias <code>er.eval</code> → <code>rule</code> and <code>er.variables</code> → <code>var</code> for cleaner code</li>
+        <li><code>fibaro.EventRunner(main)</code> starts the engine and calls <code>main</code> after initialization</li>
+      </ul>
+      <div class="slide-num">05 / 24</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 6 — er.opts LOGGING FLAGS
+     ============================================= -->
+<section class="slide" id="slide-opts">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag basics reveal">Basics</div>
+      <h2 class="slide-heading reveal"><em>er.opts</em> — Logging Flags</h2>
+      <div class="rule-accent mint reveal"></div>
+      <div class="code-block reveal">
+        <pre><code data-lua>er.opts = {
+  defined  = true,  -- ✅ log "RULE&lt;n&gt; defined" on registration
+  triggers = true,  -- ⚡ list triggers when rule is defined
+  check    = true,  -- log condition true/false on each firing
+  started  = false, -- 🎬 log when a rule fires (trigger + env)
+  result   = false, -- 📋 log action return value
+  waiting  = false, -- 💤 log when wait() suspends
+  waited   = false, -- ⏰ log when wait() resumes
+}</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Set globally on <code>er.opts</code> — all rules inherit these defaults</li>
+        <li>Override per rule: <code>rule("...", {check=false})</code> silences that rule only</li>
+        <li>Any flag can be a <strong>function</strong> for custom logging: <code>check = function(rule, env, ok) ... end</code></li>
+        <li>Turn everything off in production; enable selectively when debugging</li>
+      </ul>
+      <div class="slide-num">06 / 24</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 7 — TIME TRIGGERS
      ============================================= -->
 <section class="slide" id="slide-5">
   <div class="paper" data-section="1">
@@ -1161,9 +1286,213 @@ rule([[#autoOff =&gt;
 </section>
 
 <!-- =============================================
-     SLIDE 16 — BEST PRACTICES
+     SLIDE 16 — PREDEFINED VARIABLES
      ============================================= -->
 <section class="slide" id="slide-16">
+  <div class="paper" data-section="2">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag vars reveal">Variables</div>
+      <h2 class="slide-heading reveal">Predefined <em>Variables</em></h2>
+      <div class="rule-accent pink reveal"></div>
+      <div class="code-block pink-accent reveal">
+        <pre><code data-lua>-- Available in every rule, no declaration needed:
+-- uptime        (number) — HC3 seconds since last boot
+-- uptimeStr     (string) — "1 days, 3 hours, 12 minutes"
+-- uptimeMinutes (number) — uptime ÷ 60
+
+rule("@06:00 &amp; uptimeMinutes &lt; 5 =&gt;
+  log('Fresh boot: %s', uptimeStr)")
+rule("@06:00 &amp; uptimeMinutes &gt;= 5 =&gt;
+  morningRoutine:start")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Set by the Setup module from HC3 server status at load time</li>
+        <li>Distinguish a real HC3 reboot from a plain QuickApp restart</li>
+      </ul>
+      <div class="slide-num">16 / 22</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 17 — STARTUP EVENT
+     ============================================= -->
+<section class="slide" id="slide-17">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Startup <em>Event</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Posted once when HC3 itself just booted (uptime &lt; 3 min)
+rule("#se-start =&gt;
+  log('HC3 booted, uptime: %d seconds', event.uptime)")
+rule("#se-start =&gt; $mode = 'home'; allLights:off")
+
+-- Not posted on QuickApp restart — use uptimeMinutes to guard
+-- daily rules instead of relying on se-start alone
+rule("@06:00 &amp; uptimeMinutes &gt;= 5 =&gt; morningLight:on")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Fields: <code>type='se-start'</code>, <code>value=true</code>, <code>uptime=&lt;seconds&gt;</code></li>
+        <li>Safe for one-time boot logic — silent on normal QA restarts</li>
+      </ul>
+      <div class="slide-num">17 / 22</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 18 — DIM LIGHT
+     ============================================= -->
+<section class="slide" id="slide-18">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Dim <em>Light</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Fade out when motion clears
+rule("motion:safe =&gt; floorLamp:dim = {30, 'down'}")
+
+-- Sunrise: 0 → 80 % over 2 min with expo easing
+rule("@07:00 =&gt; bedroomLight:dim = {120,'up',1,'inOutExpo',0,80}")
+
+-- Signature: {sec, dir, step, curve, start, stop}
+-- dir:   'up' | 'down'
+-- curve: linear  inQuad  inOutQuad  inExpo  outExpo  inOutExpo</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Assign <code>device:dim = {sec, dir, step, curve, start, stop}</code> to start</li>
+        <li>Stops automatically if the device level is changed externally during the ramp</li>
+      </ul>
+      <div class="slide-num">18 / 22</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 19 — WEATHER OBJECT
+     ============================================= -->
+<section class="slide" id="slide-19">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Weather <em>Object</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Trigger on HC3 weather updates
+rule("weather:temp &lt; 0 =&gt; carHeater:on")
+rule("weather:condition =&gt;
+  log('Weather: %s', weather:condition)")
+rule("weather:temp &gt; 28 &amp; @14:00 =&gt; blinds:close")
+
+-- Available properties:
+-- weather:temp   weather:humidity
+-- weather:wind   weather:condition</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Predefined <code>weather</code> object — reads from HC3's weather service</li>
+        <li>Triggers on HC3 weather events just like any device property</li>
+      </ul>
+      <div class="slide-num">19 / 22</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 20 — HTTP FUNCTIONS
+     ============================================= -->
+<section class="slide" id="slide-20">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">HTTP <em>Functions</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Rule suspends during request, resumes with result
+rule("@08:00 =&gt;
+  local data, status = http.get('http://api.local/status')
+  if status == 200 then log('State: %s', data.state) end")
+
+rule("sensor:temp =&gt;
+  http.post('http://logger/data',
+    {user='admin', pwd='secret'},
+    {id=sensor:id, temp=sensor:temp})")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>http.get / put / post / delete(url, opts, data, default)</code> → <code>result, status</code></li>
+        <li><code>opts</code>: <code>timeout</code>, <code>user</code>, <code>pwd</code>, <code>headers</code> — other rules keep running during the await</li>
+      </ul>
+      <div class="slide-num">20 / 22</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 21 — CUSTOM PROPERTY CLASSES
+     ============================================= -->
+<section class="slide" id="slide-21">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Custom <em>Properties</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>er.definePropClass("AirQuality")
+function AirQuality:__init() PropObject.__init(self) end
+function AirQuality.getProp.co2(prop, env)
+  return api.get('/devices/999').properties.co2
+end
+function AirQuality.trigger.co2(prop)
+  return {type='device', property='co2', id=999}
+end
+var.air = AirQuality()
+rule("air:co2 &gt; 800 =&gt; ventilation:on")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>er.definePropClass(name)</code> — wrap any data source as a first-class <code>obj:prop</code></li>
+        <li><code>er.addStdProp(name, def)</code> — add a new property accessible on all device IDs</li>
+      </ul>
+      <div class="slide-num">21 / 22</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 22 — BEST PRACTICES
+     ============================================= -->
+<section class="slide" id="slide-22">
   <div class="paper" data-section="4">
     <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
     <div class="page-content">
@@ -1178,7 +1507,7 @@ rule([[#autoOff =&gt;
         <li><strong>Use verbosity</strong> — set <code>rule.verbosity = "verbose"</code> while debugging, then revert</li>
         <li><strong>Cancel before post</strong> — always <code>cancel(timer)</code> before rescheduling to avoid duplicates</li>
       </ul>
-      <div class="slide-num">16 / 16</div>
+      <div class="slide-num">22 / 22</div>
     </div>
     <div class="tabs">
       <div class="tab">Basics</div><div class="tab">Triggers</div>
@@ -1330,7 +1659,7 @@ function highlightLua(text) {
   // We process in pass to avoid re-matching inside already-tagged spans.
   // Strategy: replace with placeholder tokens, then restore.
   const placeholders = [];
-  function stash(s) { placeholders.push(s); return `\x00${placeholders.length - 1}\x00`; }
+  function stash(s) { placeholders.push(s); return `\x00x${placeholders.length - 1}x\x00`; }
 
   // 1. Escape HTML entities (already done in source as &lt; etc.)
   // 2. Extract comments first (highest priority)
@@ -1346,8 +1675,13 @@ function highlightLua(text) {
   // Only color identifiers that are followed by ( (not : device syntax)
   text = text.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/g,
     (m, name) => stash(`<span class="fn">${name}</span>`));
-  // 7. Restore placeholders
-  text = text.replace(/\x00(\d+)\x00/g, (_, i) => placeholders[+i]);
+  // 7. Restore placeholders — iterate because inner stash tokens can be nested
+  // (e.g. 'single' stashed before "double containing 'single'" creates nested tokens)
+  let prev = null;
+  while (prev !== text) {
+    prev = text;
+    text = text.replace(/\x00x(\d+)x\x00/g, (_, i) => placeholders[+i]);
+  }
   return text;
 }
 
@@ -1441,6 +1775,14 @@ function editorSave() {
 /* ===========================================
    BOOT
    =========================================== */
+// Auto-update all slide-num labels to reflect current total
+(function() {
+  const allSlides = document.querySelectorAll('.slide');
+  const total = allSlides.length;
+  document.querySelectorAll('.slide-num').forEach((el, i) => {
+    el.textContent = String(i + 1).padStart(2, '0') + ' / ' + total;
+  });
+})();
 const presentation = new SlidePresentation();
 </script>
 </body>

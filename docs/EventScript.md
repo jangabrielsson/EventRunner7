@@ -38,6 +38,7 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Event Triggers](#event-triggers)
     - [Device Triggers](#device-triggers)
     - [Trigger Variables](#trigger-variables)
+    - [Startup Events](#startup-events)
   - [Functions](#functions)
     - [trueFor Function](#truefor-function)
     - [Date Functions](#date-functions)
@@ -49,6 +50,7 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Global Variable Functions](#global-variable-functions)
     - [Table Functions](#table-functions)
     - [Rule Functions](#rule-functions)
+    - [HTTP Functions](#http-functions)
   - [Property Functions](#property-functions)
     - [Device Properties](#device-properties)
     - [Device Control Actions](#device-control-actions)
@@ -58,6 +60,10 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Scene Properties](#scene-properties)
     - [Information Properties](#information-properties)
     - [List Operations](#list-operations)
+    - [Weather Object](#weather-object)
+  - [Extending the Property System](#extending-the-property-system)
+    - [Adding Custom Device Properties](#adding-custom-device-properties-eraddstdprop)
+    - [Defining Custom Property Classes](#defining-custom-property-classes-erdefinepropclass)
   - [Examples](#examples)
     - [Basic Device Control](#basic-device-control)
     - [Conditional Logic](#conditional-logic)
@@ -328,6 +334,9 @@ Note that long times can't be compared to short times. To convert a long time to
 | `now` | Short time | Current time (HH:MM:SS) |
 | `midnight` | Long time | Midnight timestamp, updates daily |
 | `wnum` | Number | Current week number |
+| `uptime` | Number | HC3 gateway uptime in seconds since last boot |
+| `uptimeStr` | String | HC3 uptime as human-readable string, e.g. `"1 days, 3 hours, 12 minutes"` |
+| `uptimeMinutes` | Number | HC3 gateway uptime in minutes |
 
 **Examples:**
 ```lua
@@ -502,6 +511,23 @@ Use custom variables as triggers:
 er.triggerVariables.x = 9    -- Define trigger variable
 rule("x => action")          -- Trigger when x changes
 rule("x = 42")              -- Change x to trigger above rule
+```
+
+### Startup Events
+
+If the HC3 gateway itself has just booted (uptime less than 3 minutes), EventRunner automatically posts a `se-start` event. Use this to run one-time initialization logic that should only happen after a real HC3 reboot — not after every QuickApp restart.
+
+| Field | Value | Description |
+|-------|-------|-------------|
+| `type` | `'se-start'` | Event type |
+| `property` | `'start'` | Event property |
+| `value` | `true` | Always true |
+| `uptime` | number | Gateway uptime in seconds at the time of posting |
+
+**Examples:**
+```lua
+rule("#se-start => log('HC3 just booted, uptime: %d seconds', event.uptime)")
+rule("#se-start => -- Reinitialize state after reboot\n  $mode = 'home'\n  allLights:off")
 ```
 
 ## Functions
@@ -739,9 +765,33 @@ Property functions use the syntax `<ID>:<property>` for reading and `<ID>:<prope
 | `interval = <val>` | Set interval value |
 | `mode = <val>` | Set device mode |
 | `mute = <bool>` | Set mute state |
-| `dim = <table>` | Set dimming parameters |
+| `dim = <table>` | Gradually dim a multilevel device (see [Dim Light Support](#dim-light-support) below) |
 | `msg = <text>` | Send push message |
 | `email = <text>` | Send email notification |
+
+#### Dim Light Support
+
+`device:dim = {sec, dir, step, curve, start, stop}` smoothly dims a multilevel device over time. The value is a positional table matching the parameters of `er.dimLight(id, sec, dir, step, curve, start, stop)`:
+
+| Position | Parameter | Default | Description |
+|----------|-----------|---------|-------------|
+| 1 | `sec` | required | Duration in seconds |
+| 2 | `dir` | `'up'` | Direction: `'up'` or `'down'` |
+| 3 | `step` | `1` | Step size per tick |
+| 4 | `curve` | `'linear'` | Easing curve: `'linear'`, `'inQuad'`, `'inOutQuad'`, `'inExpo'`, `'outExpo'`, `'inOutExpo'`, `'outInExpo'` |
+| 5 | `start` | `0` | Start brightness level (0–99) |
+| 6 | `stop` | `99` | End brightness level (0–99) |
+
+Dimming is stopped automatically if the device level is changed externally during the dim sequence.
+
+**Examples:**
+```lua
+rule("motionSensor:safe => floorLamp:dim = {30, 'down'}")
+-- Fade out over 30 seconds
+
+rule("@07:00 => bedroomLight:dim = {120, 'up', 1, 'inOutExpo', 0, 80}")
+-- Gentle sunrise fade to 80% over 2 minutes
+```
 
 ### Partition Properties
 
@@ -808,8 +858,119 @@ Property functions use the syntax `<ID>:<property>` for reading and `<ID>:<prope
 | `someFalse` | True if at least one value is false |
 | `mostlyTrue` | True if majority of values are true |
 | `mostlyFalse` | True if majority of values are false |
+
+### Weather Object
+
+A predefined `weather` object is available in scripts and rules for reading current weather data from the HC3. It supports both property reads and property-change triggers.
+
+| Property | Trigger event | Description |
+|----------|---------------|-------------|
+| `weather:temp` | `{type='weather', property='Temperature'}` | Outdoor temperature |
+| `weather:humidity` | `{type='weather', property='Humidity'}` | Outdoor humidity |
+| `weather:wind` | `{type='weather', property='Wind'}` | Wind speed |
+| `weather:condition` | `{type='weather', property='WeatherCondition'}` | Weather condition string |
+
+**Examples:**
+```lua
+rule("weather:temp < 0 & @06:00 => carHeater:on")
+rule("weather:condition => log('Weather changed to: %s', weather:condition)")
+rule("weather:humidity > 80 => log('High humidity: %d%%', weather:humidity)")
+```
 | `bin` | Convert to binary (1 for truthy, 0 for falsy) |
 | `leaf` | Extract leaf nodes from nested table |
+
+### HTTP Functions
+
+Asynchronous HTTP helper functions available inside rules and scripts. Each call suspends the current rule until the response arrives (similar to `wait()`) without blocking other rules.
+
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `http.get(url[, opts[, default]])` | `result, status` | HTTP GET |
+| `http.put(url[, opts[, data[, default]]])` | `result, status` | HTTP PUT |
+| `http.post(url[, opts[, data[, default]]])` | `result, status` | HTTP POST |
+| `http.delete(url[, opts[, default]])` | `result, status` | HTTP DELETE |
+
+`result` is the parsed JSON response body (or `default` on error). `status` is the HTTP status code (number).
+
+The optional `opts` table supports:
+| Key | Description |
+|-----|-------------|
+| `timeout` | Request timeout in seconds (default 30) |
+| `user` / `pwd` | HTTP Basic Auth credentials |
+| `headers` | Table of additional request headers |
+
+**Examples:**
+```lua
+rule("@08:00 =>\n  local data, status = http.get('http://192.168.1.100/api/status')\n  if status == 200 then log('Status: %s', data.state) end")
+
+rule("sensor:temp =>\n  http.post('http://my-logger/api/data',\n    {user='admin', pwd='secret'},\n    {sensor=sensor:id, value=sensor:temp})")
+```
+
+## Extending the Property System
+
+### Adding Custom Device Properties (`er.addStdProp`)
+
+`er.addStdProp(name, def)` registers a new property name that can then be used with the `device:name` syntax on any device.
+
+`def` is a table with the following fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `get` | no | `function(prop, id, event)` – returns the property value |
+| `set` | no | `function(prop, id, value, event)` – sets the property value |
+| `trigger` | no | `{type=..., property=...}` – HC3 event that triggers this property |
+| `reduce` | no | Function or `table.mapF` for list aggregation |
+| `setCmd` | no | Alternative fibaro action command name used by the default `set` handler |
+
+**Example:**
+```lua
+er.addStdProp("myProp", {
+  trigger = { type = 'device', property = 'myProp' },
+  get     = function(prop, id, event) return fibaro.getValue(id, "myProp") end,
+  set     = function(prop, id, value, event) fibaro.call(id, "setMyProp", value) end,
+})
+
+-- Use like any built-in property:
+rule("device:myProp > 50 => log('myProp is %d', device:myProp)")
+```
+
+### Defining Custom Property Classes (`er.definePropClass`)
+
+`er.definePropClass(name)` creates a new class derived from `PropObject` that can be used with the `obj:property` syntax just like device IDs. Use this to wrap non-device data sources (APIs, sensors, services) as first-class property objects.
+
+After calling `er.definePropClass("MyClass")`, the new class has four empty tables to fill in:
+
+| Table | Purpose |
+|-------|---------|
+| `MyClass.getProp[prop]` | `function(prop, env)` – getter called when reading `obj:prop` |
+| `MyClass.setProp[prop]` | `function(prop, env, value)` – setter called when assigning `obj:prop = value` |
+| `MyClass.trigger[prop]` | `function(prop)` – returns HC3 event `{type=..., property=...}` that triggers on `obj:prop` changes |
+| `MyClass.map[prop]` | Optional reduce/map function for list aggregation |
+
+**Example — defining a custom class (how the built-in `weather` object is created):**
+```lua
+er.definePropClass("Weather")
+function Weather:__init() PropObject.__init(self) end
+
+function Weather.getProp.temp(prop, env)      return api.get("/weather").Temperature end
+function Weather.getProp.humidity(prop, env)  return api.get("/weather").Humidity end
+function Weather.getProp.wind(prop, env)      return api.get("/weather").Wind end
+function Weather.getProp.condition(prop, env) return api.get("/weather").WeatherCondition end
+
+function Weather.trigger.temp(prop)      return {type='weather', property='Temperature'} end
+function Weather.trigger.humidity(prop)  return {type='weather', property='Humidity'} end
+function Weather.trigger.wind(prop)      return {type='weather', property='Wind'} end
+function Weather.trigger.condition(prop) return {type='weather', property='WeatherCondition'} end
+
+-- Expose as a script variable:
+var.weather = Weather()
+```
+
+Once defined, the object is used like a device:
+```lua
+rule("weather:temp < 0 => carHeater:on")
+rule("weather:condition => log('Weather: %s', weather:condition)")
+```
 
 ## Examples
 
