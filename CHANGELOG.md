@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.1.8] - 2026-05-24
+
+## Changes in v0.1.8
+
+- ✨ **Feature**: Add new features in v0.1.7: Rule Modifiers and Named Scenes
+  - Introduced Rule Modifiers to enhance rule expressiveness, allowing for conditions to specify when and how often actions fire.
+  - Added Named Scenes to group device property assignments, enabling easier management of device states.
+  - Updated documentation to reflect new features, including detailed explanations and examples for Rule Modifiers and Named Scenes.
+  - Created a new HTML page for a forum post preview to facilitate sharing of the new features with the community.
+  - Commented out legacy test code in `eventrunner_testground.lua` for clarity and focus on new functionality.
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.7 with new features and enhancements
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.7] - 2026-05-24
 
 ## Changes in v0.1.7
