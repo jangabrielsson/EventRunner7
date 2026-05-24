@@ -72,6 +72,7 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Advanced Scenarios](#advanced-scenarios)
   - [Rule Modifiers](#rule-modifiers)
   - [Named Scenes](#named-scenes)
+  - [Rule Groups](#rule-groups)
   - [Rule management functions](#rule-management-functions)
   - [Best Practices](#best-practices)
 
@@ -1128,17 +1129,40 @@ rule("weatherStation:temp < 0 & @06:00 => carHeater:on")
 
 ## Rule management functions
 
-Defining a rules returns a rule object, that has methods for managing and controling the rule
+Defining a rule returns a rule object with methods for managing and controlling the rule:
+
 ```lua
 local r = rule("triggerExpression => actions")
 
-r.disable() -- disables the rule and stops all timers started by the rule
+r.disable() -- disables the rule and cancels all its pending timers
+r.enable()  -- re-enables the rule (daily/interval rules resume)
+r.start()   -- trigger the rule manually, bypassing the condition
+r.info()    -- logs current state to console
+```
 
-r.enable() -- enables the rule. A daily or interval rule will start to run
+### Rule Groups
 
-r.start() -- trigger the rule manually
+Any rule can be assigned to a named group by passing `group` in the opts table:
 
-r.info() -- logs info about the rule
+```lua
+rule("motion:breached => light:on",  {group="bedroom"})
+rule("@23:00 => light:off",          {group="bedroom"})
+rule("door:isOpen => alarm:on",      {group="security"})
+```
+
+All rules in a group can then be enabled or disabled together — either from outside, using the rule object returned by `er.eval`, or from inside a rule action using the built-in `enable`/`disable` functions:
+
+```lua
+-- From outside (Lua scope):
+for _, r in ipairs(er.getGroup("bedroom")) do r.disable() end
+
+-- From inside a rule action:
+rule("sleepButton:pressed => disable('bedroom')")
+rule("wakeButton:pressed  => enable('bedroom')")
+
+-- enable/disable also accept a rule object or numeric rule ID:
+rule("button:pressed => disable(r)")
+rule("button:pressed => disable(1)")  -- disable RULE1
 ```
 
 ​

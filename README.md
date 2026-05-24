@@ -16,7 +16,8 @@ EventRunner7 is a powerful rule-based automation framework for Fibaro Home Cente
 - **Intuitive Rule Syntax** — write rules as `condition => action` one-liners or multi-line blocks
 - **Rich Trigger System** — time (`@HH:MM`), interval (`@@HH:MM`), device properties, global variables, custom events (`#name`)
 - **Rule Modifiers** — `restart`, `since`, `debounce`, `cooldown`, `every` for precise firing control
-- **Named Scenes** — group device assignments under a name, activate/deactivate as a unit
+- **Rule Groups** — tag rules with `{group="name"}` and enable/disable the whole group at once
+- **Rule Groups** — tag rules with `{group="name"}` and enable/disable the whole group at once
 - **Async Actions** — `wait(ms)` suspends mid-action without blocking other rules
 - **Event Scheduling** — post events with relative (`+/HH:MM`) or absolute (`n/HH:MM`) times
 - **Device Collections** — apply actions to lists of devices; aggregate with `:average`, `:someTrue`, etc.
@@ -139,6 +140,22 @@ rule("#alert{level='$lvl'} => log('Alert level: %s', lvl)")
 -- Scheduled events:
 rule("motion:breached => post(#autoOff, +/00:05)")   -- 5 min later
 rule("@08:00 => post(#cleanup, n/10:00)")             -- next 10:00
+```
+
+### Rule Groups
+
+Tag rules with a group name and control them collectively:
+
+```lua
+rule("motion:breached => light:on",  {group="bedroom"})
+rule("@23:00 => light:off",          {group="bedroom"})
+
+-- Disable/enable an entire group from another rule:
+rule("sleepButton:pressed => disable('bedroom')")
+rule("wakeButton:pressed  => enable('bedroom')")
+
+-- Also accepts a rule object or numeric id:
+rule("button:pressed => disable(r)")
 ```
 
 ### Named Scenes

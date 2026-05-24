@@ -1563,6 +1563,46 @@ rule("air:co2 &gt; 800 =&gt; ventilation:on")</code></pre>
 </section>
 
 <!-- =============================================
+     SLIDE — RULE GROUPS
+     ============================================= -->
+<section class="slide" id="slide-groups">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Rule <em>Groups</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Tag rules at registration time
+rule("motion:breached =&gt; light:on",  {group="bedroom"})
+rule("@23:00          =&gt; light:off", {group="bedroom"})
+rule("door:isOpen     =&gt; alarm:on",  {group="security"})
+
+-- enable/disable an entire group from a rule action
+rule("sleepButton:pressed =&gt; disable('bedroom')")
+rule("wakeButton:pressed  =&gt; enable('bedroom')")
+
+-- also accepts a rule object or numeric rule ID
+local nightRule = rule("@@00:01 =&gt; nightCheck()", {group="night"})
+rule("@22:00 =&gt; enable(nightRule)")
+rule("@07:00 =&gt; disable(nightRule)")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Pass <code>{group="name"}</code> as the second argument to <code>rule()</code></li>
+        <li><code>enable</code> / <code>disable</code> accept a group name string, a rule object, or a numeric id</li>
+        <li>No argument → acts on the <strong>current</strong> rule (self-disable pattern)</li>
+        <li><code>ER.getGroup("name")</code> returns the list of rule objects for external use</li>
+      </ul>
+      <div class="slide-num">23 / 25</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
      SLIDE — NAMED SCENES
      ============================================= -->
 <section class="slide" id="slide-scenes">

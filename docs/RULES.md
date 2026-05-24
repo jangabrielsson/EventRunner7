@@ -163,6 +163,48 @@ rule("noise:detected since 00:01 cooldown 00:10 => sendAlert()")
 
 ---
 
+## Rule Groups
+
+A rule can be assigned to a named group by passing `group` in the opts table at registration:
+
+```lua
+rule("motion:breached => hallLight:on",  {group="hallway"})
+rule("@23:00 => hallLight:off",          {group="hallway"})
+rule("motion:safe =&gt; hallLight:off",     {group="hallway"})
+```
+
+### enable / disable
+
+The built-in `enable(arg)` and `disable(arg)` functions (available inside any rule action) accept:
+
+| Argument type | Effect |
+|---------------|--------|
+| `"groupName"` (string) | Enable/disable every rule in the named group |
+| rule object | Enable/disable that specific rule |
+| integer id | Enable/disable the rule with that `RULE<n>` id |
+| *(no argument)* | Enable/disable the **current** rule |
+
+```lua
+rule("sleepButton:pressed => disable('hallway')")  -- disable whole group
+rule("wakeButton:pressed  => enable('hallway')")   -- re-enable whole group
+
+local nightRule = rule("@@00:01 => nightCheck()", {group="night"})
+rule("@22:00 => enable(nightRule)")    -- rule object reference
+rule("@07:00 => disable(nightRule)")
+```
+
+### Accessing groups from Lua
+
+`ER.getGroup(name)` returns the list of rule objects in a group, or `nil` if the group does not exist:
+
+```lua
+for _, r in ipairs(ER.getGroup("hallway") or {}) do
+  print(tostring(r), r._disabled and "off" or "on")
+end
+```
+
+---
+
 ### Trigger variables
 
 Declare a name as a trigger variable before using it in a rule:

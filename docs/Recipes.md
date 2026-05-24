@@ -24,6 +24,19 @@
   - [Notification examples](#notification-examples)
     - [Send notification if door is left open for more than 5 minutes](#send-notification-if-door-is-left-open-for-more-than-5-minutes)
     - [Notification on last Monday in week](#notification-on-last-monday-in-week)
+  - [Rule modifiers](#rule-modifiers)
+    - [Extend a motion light with restart](#extend-a-motion-light-with-restart)
+    - [Ignore rapid re-triggers with debounce](#ignore-rapid-re-triggers-with-debounce)
+    - [Condition must hold for N seconds (since)](#condition-must-hold-for-n-seconds-since)
+    - [Suppress repeat notifications with cooldown](#suppress-repeat-notifications-with-cooldown)
+    - [Act only on every Nth trigger](#act-only-on-every-nth-trigger)
+  - [Named scenes](#named-scenes)
+    - [Simple activate-only scene](#simple-activate-only-scene)
+    - [Scene with activate and deactivate](#scene-with-activate-and-deactivate)
+    - [Triggering scenes from rules](#triggering-scenes-from-rules)
+  - [Rule groups](#rule-groups)
+    - [Group bedroom rules and toggle as a unit](#group-bedroom-rules-and-toggle-as-a-unit)
+    - [Vacation mode: disable non-essential rules](#vacation-mode-disable-non-essential-rules)
 
 ## Light triggering
 
@@ -39,7 +52,7 @@ rule([[motion:breached & sunset..sunrise =>
 ### Turn on lights when motion is detected and fibaro global variable 'Vacation' is not true
 
 ```lua
-rule([[motion:breached & !Vacation =>
+rule([[motion:breached & !$Vacation =>
   hallwayLight:on;
   log('Hallway light turned on due to motion')
 ]])
@@ -213,6 +226,13 @@ rule([[trueFor(00:05,temp:value < 20) =>
 ]])
 ```
 
+The same logic written with the `since` modifier (cleaner syntax, identical behaviour):
+
+```lua
+rule("temp:value > 28 since 00:05 => fan:on")
+rule("temp:value < 20 since 00:05 => fan:off")
+```
+
 ## Notification examples
 
 ### Send notification if door is left open for more than 5 minutes
@@ -231,5 +251,174 @@ rule([[trueFor(00:05,door:open) =>
 ```lua
 rule([[@18:00 & day('lastw-last') & wday('mon') =>
   user:msg = log('Last Monday in week, put out the trash')
+]])
+```
+
+---
+
+## Rule modifiers
+
+Modifiers are placed between the condition and `=>` and adjust *when* and *how* the action fires.
+
+### Extend a motion light with restart
+
+Without `restart`, a second motion event arrives while the light-off wait is already pending — the new run is blocked by the ongoing wait. With `restart`, the pending wait is cancelled and the timer restarts from zero:
+
+```lua
+rule([[motion:breached restart =>
+  hallwayLight:on;
+  wait(00:05);
+  hallwayLight:off
+]])
+```
+
+Every new motion event extends the on-period by another 5 minutes.
+
+### Ignore rapid re-triggers with debounce
+
+`debounce T` waits for T seconds of silence before running the action (implies `restart`). Useful for sensors that fire multiple events in quick succession:
+
+```lua
+-- Door bell: wait for 3 s of silence before notifying
+rule("doorBell:breached debounce 00:03 => user:msg='Door bell!'")
+
+-- Motion: only act after motion stops arriving for 10 s
+rule([[motion:breached debounce 00:10 =>
+  log('Motion settled, starting timer');
+  wait(00:05);
+  hallwayLight:off
+]])
+```
+
+### Condition must hold for N seconds (since)
+
+`since T` is a short form of `trueFor(T, condition)`. The action only runs after the condition has been continuously true for T:
+
+```lua
+rule("temp:value > 28 since 00:05 => fan:on")
+rule("temp:value < 20 since 00:05 => fan:off")
+
+-- Alert if flood sensor stays triggered for more than 30 s (avoids false positives)
+rule("flood:breached since 00:00:30 => user:msg='Flood detected!'")
+```
+
+### Suppress repeat notifications with cooldown
+
+`cooldown T` prevents the action from firing again within T seconds of the last run:
+
+```lua
+-- At most one push per hour even if the door keeps opening and closing
+rule("door:open cooldown 01:00 => user:msg='Front door opened'")
+
+-- Temperature alert at most once every 30 minutes
+rule("temp:value > 30 cooldown 00:30 => user:msg='High temperature!'")
+```
+
+### Act only on every Nth trigger
+
+`every N` runs the action only on every Nth evaluation of the condition:
+
+```lua
+-- Log only every 5th motion event (reduce noise)
+rule("motion:breached every 5 => log('Motion event #5 reached')")
+
+-- Reminder sent on 3rd consecutive door opening
+rule("door:open every 3 => user:msg='Door opened 3 times'")
+```
+
+---
+
+## Named scenes
+
+A **scene** groups a set of device property assignments under a name. It can be activated (and optionally deactivated) as a single unit.
+
+### Simple activate-only scene
+
+```lua
+-- Define the scene (runs once at startup as a statement)
+rule([[scene morningLights = {
+  kitchenLight:value  = 80,
+  hallwayLight:value  = 60,
+  bedroomLight:value  = 20
+}]])
+
+-- Activate it from a rule
+rule("@07:00 & wday('mon-fri') => morningLights:activate")
+```
+
+### Scene with activate and deactivate
+
+Use the long form with `activate:` and `deactivate:` blocks when you need to restore state:
+
+```lua
+rule([[scene movieMode = {
+  activate: {
+    livingRoomLight:value = 15,
+    tvBacklight:on,
+    blinds:value          = 0
+  },
+  deactivate: {
+    livingRoomLight:value = 80,
+    tvBacklight:off,
+    blinds:value          = 100
+  }
+}]])
+
+rule("tvRemote:scene == S1.single => movieMode:activate")
+rule("tvRemote:scene == S1.double => movieMode:deactivate")
+```
+
+### Triggering scenes from rules
+
+Scenes are ordinary named values — you can pass them as variables, store them in a table, or select between them at runtime:
+
+```lua
+rule("scene day   = { livingRoomLight:value = 80, hallwayLight:on }")
+rule("scene night = { livingRoomLight:value = 20, hallwayLight:off }")
+
+-- Select scene based on time of day
+rule([[activeScene = day]])  -- set Lua variable at startup
+rule([[sunset:breached  => activeScene = night; activeScene:activate]])
+rule([[sunrise:breached => activeScene = day;   activeScene:activate]])
+```
+
+---
+
+## Rule groups
+
+Tag rules at registration time with `{group="name"}` and enable or disable the whole group from a single rule action.
+
+### Group bedroom rules and toggle as a unit
+
+```lua
+rule("motion:breached sunset..sunrise => bedroomLight:on",  {group="bedroom"})
+rule("motion:safe   since 00:05       => bedroomLight:off", {group="bedroom"})
+rule("@23:30                          => bedroomLight:off", {group="bedroom"})
+
+-- Sleep button disables all bedroom automation for the night
+rule("sleepButton:scene == S1.single => disable('bedroom')")
+-- Wake button re-enables it
+rule("alarmButton:scene == S1.single => enable('bedroom')")
+```
+
+### Vacation mode: disable non-essential rules
+
+```lua
+-- Assign rules to groups
+rule("motion:breached sunset..sunrise => hallwayLight:on", {group="lighting"})
+rule("motion:safe   since 00:05       => hallwayLight:off", {group="lighting"})
+rule("temp:value > 28 since 00:05 => fan:on",  {group="climate"})
+rule("temp:value < 20 since 00:05 => fan:off", {group="climate"})
+
+-- Toggle via a global variable
+rule([[$Vacation == true =>
+  disable('lighting');
+  disable('climate');
+  log('Vacation mode: non-essential rules disabled')
+]])
+rule([[$Vacation == false =>
+  enable('lighting');
+  enable('climate');
+  log('Vacation mode off: rules re-enabled')
 ]])
 ```
