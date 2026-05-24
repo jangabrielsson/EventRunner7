@@ -104,11 +104,13 @@ condition [modifier...] => action
 
 ### `restart`
 
-If the condition re-fires while the action is still running (e.g. suspended in a `wait`), cancel the current run and restart the action.
+If the condition re-fires while the action has pending timers (e.g. suspended in a `wait` or a scheduled `post`), cancel all those pending timers and start a fresh run. The currently-executing synchronous portion of the action is not interrupted — only the timed continuations are dropped.
 
 ```lua
 rule("doorbell:pressed restart => wait(500); chime:play")
--- Re-plays chime if doorbell is pressed again while chime is still playing.
+-- If doorbell fires again while waiting the 500 ms, the wait is cancelled
+-- and a new 500 ms wait starts, so the chime always plays 500 ms
+-- after the *last* press.
 ```
 
 ### `since <duration>`

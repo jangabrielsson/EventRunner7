@@ -14,12 +14,14 @@ local ruleRunner, resumeRunner, sourceTrigger, scanHead
 local RULEIDX = 0
 local DAILYID = 1
 local rules = {}
+local groups = {} -- { [groupName] = {rule1, rule2, ...} }
 ER._triggerVars = {}
 
 local function isRule(obj) return type(obj) == 'table' and obj.type == 'RULE' end
 local function getRule(rule)
   return isRule(rule) and rule or rules[tonumber(rule) or 0]
 end
+local function getRuleGoup(name) return groups[name] end
 
 local dfltPrefix = { -- This is the defaults opts table. A mix of flags and log prefixes that the user can customize.
   started = false,  -- true => system start log, alt. user function(rule,env,trigger)
@@ -106,6 +108,11 @@ local function compRule(r, opts, src)
   RULEIDX = RULEIDX + 1
   local rule = { type='RULE', isRule = true, id = RULEIDX, verbosity = opts.verbosity or "normal", src = src, opts = opts }
   rules[RULEIDX] = rule
+  if opts.group then 
+    assert(type(opts.group) == "string", "Group name must be a string")
+    groups[opts.group] = groups[opts.group] or {} 
+    groups[opts.group][#groups[opts.group]+1] = rule 
+  end
   setmetatable(rule, {
     __tostring = function(self) return "RULE" .. tostring(self.id) end
   })
@@ -166,8 +173,8 @@ local function compRule(r, opts, src)
       post = {postR},
       cancel = {cancelR},
       setTimeout = {setTimeoutR},
-      enable = {function(id) rule.enable(id) end},
-      disable = {function(id) rule.disable(id) end},
+      enable = {function(arg) ER.enable(arg or rule,true) end},
+      disable = {function(arg) ER.enable(arg or rule,false) end},
     }
     for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
@@ -283,22 +290,9 @@ local function compRule(r, opts, src)
   end
 
   function rule.start(event) rule:run(event) return rule end
-  function rule.disable(id)
-    if id == nil then rule._disabled = true
-    else
-      local r = getRule(id)
-      if r then r.disable() end
-    end
-    return rule
-  end
-  function rule.enable(id)
-    if id == nil then rule._disabled = nil
-    else
-      local r = getRule(id)
-      if r then r.enable() end
-    end
-    return rule
-  end
+  function rule.disable(id) rule._disabled = true; return rule end
+  function rule.enable() rule._disabled = nil; return rule end
+
   function rule.info()
     print(tostring(rule)..":", rule.src)
     rule:dumpTriggers("  ")
@@ -700,6 +694,7 @@ local function bootEventRunner(cb)
   er.base64encode = ER.base64encode
   ER.isRule = isRule
   ER.getRule = getRule
+  ER.getGroup = getRuleGoup
 
   er.opts = {} -- default options
   ER.er = er

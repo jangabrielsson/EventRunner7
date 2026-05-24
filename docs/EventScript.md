@@ -544,7 +544,7 @@ condition [modifier...] => action
 
 | Modifier | Syntax | Effect |
 |----------|--------|--------|
-| `restart` | `cond restart =>` | If condition fires again while action is running, cancel and restart |
+| `restart` | `cond restart =>` | Cancel all pending timers/waits from the current run and start fresh when condition re-fires |
 | `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (alias for `trueFor`) |
 | `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `restart`) |
 | `cooldown` | `cond cooldown duration =>` | After action completes, ignore re-triggers for `duration` seconds |

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>EventRunner7 — New Features in v0.1.7</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      max-width: 860px;
+      margin: 30px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .copy-button {
+      background: #0366d6;
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .copy-button:hover { background: #0256cc; }
+    .copy-button.success { background: #28a745; }
+    .hint {
+      font-size: 13px;
+      color: #666;
+    }
+    /* ---- forum post preview ---- */
+    .post-content {
+      background: white;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 28px 32px;
+    }
+    /* styles that will survive copy-paste into a typical forum */
+    .post-content h2 {
+      color: #0366d6;
+      border-bottom: 2px solid #e1e4e8;
+      padding-bottom: 6px;
+      margin-top: 0;
+    }
+    .post-content h3 {
+      color: #24292f;
+      margin-top: 24px;
+      margin-bottom: 6px;
+    }
+    .post-content h4 {
+      color: #57606a;
+      margin-top: 18px;
+      margin-bottom: 4px;
+    }
+    .post-content p { margin: 8px 0; }
+    .post-content ul { margin: 6px 0 10px 20px; }
+    .post-content li { margin: 4px 0; }
+    .post-content code {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.88em;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .post-content pre {
+      background: #161b22;
+      color: #e6edf3;
+      border-radius: 6px;
+      padding: 14px 18px;
+      overflow-x: auto;
+      font-size: 0.83em;
+      line-height: 1.65;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      margin: 10px 0 16px;
+    }
+    .post-content pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+    }
+    .post-content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 10px 0 16px;
+      font-size: 0.9em;
+    }
+    .post-content th {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      padding: 7px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .post-content td {
+      border: 1px solid #d0d7de;
+      padding: 6px 12px;
+      vertical-align: top;
+    }
+    .post-content td code { font-size: 0.85em; }
+    .post-content .note {
+      background: #ddf4ff;
+      border: 1px solid #54aeff;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 14px 0;
+      font-size: 0.9em;
+    }
+    .post-content hr {
+      border: none;
+      border-top: 1px solid #e1e4e8;
+      margin: 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1 style="color:#24292f;margin-bottom:6px;">EventRunner7 v0.1.7 — New Features Post</h1>
+<p style="color:#57606a;margin-top:0;font-size:14px;">Preview the forum post below, then click Copy to paste it into the Fibaro community forum.</p>
+
+<div class="toolbar">
+  <button class="copy-button" id="copyBtn" onclick="copyPost()">📋 Copy Forum Post</button>
+  <span class="hint">Paste directly into the forum editor (rich text / HTML mode)</span>
+</div>
+
+<!-- ============================================================
+     FORUM POST CONTENT — everything inside .post-content is what
+     gets copied to the clipboard.
+     ============================================================ -->
+<div class="post-content" id="forumPost">
+
+<h2>🎉 EventRunner7 v0.1.7 — Rule Modifiers &amp; Named Scenes</h2>
+
+<p>
+  Two new language features landed in v0.1.7 that make rules more expressive and easier to maintain:
+  <strong>Rule Modifiers</strong> and <strong>Named Scenes</strong>.
+</p>
+
+<hr>
+
+<h3>⚙️ Rule Modifiers</h3>
+
+<p>
+  Modifiers are optional keywords placed between the condition and <code>=&gt;</code>.
+  They change <em>when</em> or <em>how often</em> the action fires — without touching the condition itself.
+</p>
+
+<pre><code>condition [modifier ...] =&gt; action</code></pre>
+
+<table>
+  <tr>
+    <th>Modifier</th>
+    <th>Syntax</th>
+    <th>Effect</th>
+  </tr>
+  <tr>
+    <td><code>restart</code></td>
+    <td><code>cond restart =&gt;</code></td>
+    <td>Cancel all pending timers / <code>wait()</code> suspensions from the current run and start fresh when the condition fires again</td>
+  </tr>
+  <tr>
+    <td><code>since T</code></td>
+    <td><code>cond since 00:02 =&gt;</code></td>
+    <td>Condition must stay <em>continuously</em> true for T seconds before firing (alias for <code>trueFor</code>)</td>
+  </tr>
+  <tr>
+    <td><code>debounce T</code></td>
+    <td><code>cond debounce 0.5 =&gt;</code></td>
+    <td>Wait T seconds of silence after the last fire; reset timer on each re-fire (implies <code>restart</code>)</td>
+  </tr>
+  <tr>
+    <td><code>cooldown T</code></td>
+    <td><code>cond cooldown 00:05 =&gt;</code></td>
+    <td>Suppress re-triggering for T seconds after the action completes</td>
+  </tr>
+  <tr>
+    <td><code>every N</code></td>
+    <td><code>cond every 4 =&gt;</code></td>
+    <td>Fire only on every N-th true evaluation</td>
+  </tr>
+</table>
+
+<h4>Examples</h4>
+
+<pre><code>-- restart: if doorbell fires again during the 500 ms wait, that wait is
+-- cancelled and a fresh 500 ms starts -- chime always plays after last press
+rule("doorbell:pressed restart =&gt; wait(500); chime:play")
+
+-- since: only trigger alarm after 2 continuous minutes of motion
+rule("motion:breached since 00:02 =&gt; alarm:on")
+
+-- debounce: wait 500 ms of quiet before calling search
+rule("keypress debounce 0.5 =&gt; searchAPI(query)")
+
+-- cooldown: at most one notification every 5 minutes
+rule("motion:breached cooldown 00:05 =&gt; notify('Motion detected!')")
+
+-- every: log temperature on every 4th change, not every change
+rule("tempSensor:value every 4 =&gt; log('Temp: %d', tempSensor:value)")
+
+-- Modifiers compose freely:
+rule("button:pressed restart cooldown 2 =&gt; wait(100); light:toggle")</code></pre>
+
+<hr>
+
+<h3>🎬 Named Scenes</h3>
+
+<p>
+  A <strong>named scene</strong> groups a set of device property assignments under a name.
+  Scenes are declared with the soft keyword <code>scene</code> and activated or deactivated
+  via the familiar <code>obj:property</code> syntax inside any rule action.
+</p>
+
+<h4>Short form — activate-only</h4>
+
+<pre><code>scene cozy = { lamp1:value=80, lamp2:level=40, blind:position=50 }</code></pre>
+
+<h4>Long form — separate activate and deactivate bodies</h4>
+
+<pre><code>scene movienight = {
+  activate:   { projector:on, lights:value=10, blind:position=0 },
+  deactivate: { projector:off, lights:value=100, blind:position=100 }
+}</code></pre>
+
+<h4>Using scenes in rules</h4>
+
+<pre><code>rule("@sunset     =&gt; cozy:activate")
+rule("button:pressed =&gt; movienight:activate")
+rule("@midnight   =&gt; movienight:deactivate")
+
+-- Conditional scene switch
+rule([[button:pressed =&gt;
+  if isMovieTime then movienight:activate
+  else cozy:activate end
+]])</code></pre>
+
+<h4>Dynamic values — re-evaluated at activation time</h4>
+
+<p>
+  Literal values (<code>10</code>, <code>true</code>, <code>"off"</code>) are stored at declaration time.
+  Any non-literal expression is wrapped in a <em>thunk</em> and re-evaluated every time the scene activates:
+</p>
+
+<pre><code>scene dynscene = {
+  activate:   { dimmer:value=targetLevel },  -- reads targetLevel NOW, not at declaration time
+  deactivate: { dimmer:value=0 }
+}
+
+targetLevel = 30
+rule("@morning =&gt; dynscene:activate")  -- dimmer set to whatever targetLevel is at 08:00</code></pre>
+
+<div class="note">
+  ℹ️ Calling <code>:deactivate</code> on a short-form (activate-only) scene is a runtime error that disables the rule, so you know immediately if you forgot a deactivate body.
+</div>
+
+<hr>
+
+<h3>📥 Download</h3>
+<ul>
+  <li><strong>GitHub Releases:</strong> <a href="https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.1.7">https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.1.7</a></li>
+  <li><strong>Direct download:</strong> <a href="https://github.com/jangabrielsson/EventRunner7/releases/download/v0.1.7/EventRunner7.fqa">EventRunner7.fqa</a></li>
+</ul>
+
+<h3>📚 Documentation</h3>
+<ul>
+  <li><a href="https://github.com/jangabrielsson/EventRunner7/blob/main/docs/EventScript.md">EventScript language reference</a> — updated with modifiers and scenes sections</li>
+  <li><a href="https://github.com/jangabrielsson/EventRunner7/blob/main/docs/RULES.md">Rule engine API reference</a></li>
+  <li><a href="https://github.com/jangabrielsson/EventRunner7/blob/main/README.md">README</a></li>
+</ul>
+
+</div><!-- end .post-content -->
+
+<script>
+function copyPost() {
+  const el = document.getElementById('forumPost');
+
+  // Modern clipboard API (copies rich HTML)
+  if (navigator.clipboard && window.ClipboardItem) {
+    const html = el.innerHTML;
+    const text = el.innerText;
+    const item = new ClipboardItem({
+      'text/html':  new Blob([html],  { type: 'text/html' }),
+      'text/plain': new Blob([text],  { type: 'text/plain' }),
+    });
+    navigator.clipboard.write([item]).then(flashSuccess, fallback);
+  } else {
+    fallback();
+  }
+
+  function fallback() {
+    // Legacy selection-based copy
+    const range = document.createRange();
+    range.selectNode(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    try {
+      document.execCommand('copy');
+      flashSuccess();
+    } catch(e) {
+      alert('Auto-copy failed — please manually select the post content and copy it.');
+    }
+    sel.removeAllRanges();
+  }
+
+  function flashSuccess() {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('success');
+    setTimeout(() => {
+      btn.textContent = '📋 Copy Forum Post';
+      btn.classList.remove('success');
+    }, 2500);
+  }
+}
+</script>
+
+</body>
+</html>

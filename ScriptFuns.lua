@@ -184,14 +184,24 @@ local function setupFuns()
     return t
   end
   
-  function builtin.enable(rule)
-    assert(ER.isRule(rule) or type(rule) == "number", "argument to enable must be a rule/id")
-    ER.getRule(rule).enable()
+  function ER.enable(arg,state)
+    local action = state and 'enable' or 'disable'
+    local emoji = state and '✅' or '❌'
+    if type(arg) == "string" then 
+      local rules = ER.getGroup(arg)
+      assert(rules, "no such group: "..arg)
+      for _,r in ipairs(rules) do 
+        r:log("verbose", emoji, action.."d")
+        r[action]() end
+      return
+    elseif type(arg) == "number" then arg = ER.getRule(arg) end
+    assert(ER.isRule(arg), "argument to disable must be a rule, group name, or rule ID")
+    arg[action]()
+    arg:log("verbose", emoji, action.."d")
   end
-  function builtin.disable(rule) 
-    assert(ER.isRule(rule) or type(rule) == "number", "argument to disable must be a rule/id")
-    ER.getRule(rule).disable()
-  end
+
+  function builtin.enable(rule) ER.enable(rule,true) end
+  function builtin.disable(rule) ER.enable(rule,false) end
   
   local async = ER.async
 

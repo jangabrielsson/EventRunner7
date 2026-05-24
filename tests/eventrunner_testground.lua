@@ -31,29 +31,32 @@ local function main(er) ER = er
 
   --fibaro.debugFlags.sourceTrigger = true
   
-  rule("temp1:value = 10; temp2:value = 20; temp3:value = 30")
+  -- rule("temp1:value = 10; temp2:value = 20; temp3:value = 30")
 
-  er.definePropClass("MyDevice")
-  local MyDevice = {}
-  function MyDevice:__init() self.value = 21; er.PropObject.__init(self) end
-  function MyDevice.getProp:temp(_) return self.value end
-  function MyDevice.setProp:temp(_, value) 
-    self.value = value 
-    er.sourceTrigger:post({type='device', id=tostring(self), property='value', value=value} )  
-    return true
-  end
-  function MyDevice.trigger:temp() return {type='device', id=tostring(self), property='value'} end
-  function MyDevice.map.temp(fun,list) 
-    local sum = 0
-    for _,v in ipairs(list) do sum = sum + fun(v) end
-    return sum
-  end
-  er.defglobals.mydev = MyDevice()
+  -- er.definePropClass("MyDevice")
+  -- local MyDevice = {}
+  -- function MyDevice:__init() self.value = 21; er.PropObject.__init(self) end
+  -- function MyDevice.getProp:temp(_) return self.value end
+  -- function MyDevice.setProp:temp(_, value) 
+  --   self.value = value 
+  --   er.sourceTrigger:post({type='device', id=tostring(self), property='value', value=value} )  
+  --   return true
+  -- end
+  -- function MyDevice.trigger:temp() return {type='device', id=tostring(self), property='value'} end
+  -- function MyDevice.map.temp(fun,list) 
+  --   local sum = 0
+  --   for _,v in ipairs(list) do sum = sum + fun(v) end
+  --   return sum
+  -- end
+  -- er.defglobals.mydev = MyDevice()
 
   --rule("temps = { mydev, temp1, temp2, temp3}")
-  rule("mydev:temp > 41 => wait(2); log('OK')")
-  rule("mydev:temp = 42",{result=true})
+  -- rule("mydev:temp > 41 => wait(2); log('OK')")
+  -- rule("mydev:temp = 42",{result=true})
   --rule("json.encode(temps:temp)")
+
+  rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
+  rule("disable('morning')")
 end
 
 
