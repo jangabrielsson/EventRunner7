@@ -92,6 +92,75 @@ rule.verbosity = "silent"    -- nothing logged
 
 For `GETPROP` triggers the property name (`isOn`, `isOff`, `value`, etc.) maps to the HC3 device property via `ER.getProps[key]`.
 
+---
+
+## Rule modifiers
+
+Modifiers are optional keywords placed between the condition expression and `=>`. They adjust *when* and *how* the action fires without changing the condition itself. Multiple modifiers may be combined.
+
+```
+condition [modifier...] => action
+```
+
+### `restart`
+
+If the condition re-fires while the action is still running (e.g. suspended in a `wait`), cancel the current run and restart the action.
+
+```lua
+rule("doorbell:pressed restart => wait(500); chime:play")
+-- Re-plays chime if doorbell is pressed again while chime is still playing.
+```
+
+### `since <duration>`
+
+The condition must have been *continuously* true for `<duration>` seconds before the action fires. Desugars to `trueFor(duration, condition)`.
+
+```lua
+rule("motion:breached since 00:02 => alarm:on")
+-- Only fires if motion has been continuously detected for 2 minutes.
+```
+
+### `debounce <duration>`
+
+Wait `<duration>` seconds after the *last* true evaluation before running the action. If the condition re-fires during the wait the timer resets (implies `restart`).
+
+```lua
+rule("search:keypress debounce 0.5 => searchAPI(query)")
+-- Waits 500 ms of silence after last keypress before calling the API.
+```
+
+### `cooldown <duration>`
+
+After the action runs, suppress re-triggering for `<duration>` seconds.
+
+```lua
+rule("motion:breached cooldown 00:05 => notify('Motion detected')")
+-- Sends at most one notification every 5 minutes.
+```
+
+### `every <n>`
+
+Fire only on every `<n>`-th true evaluation of the condition.
+
+```lua
+rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
+-- Logs temperature on every 4th change, not every change.
+```
+
+### Combining modifiers
+
+Modifiers compose left-to-right. Common combinations:
+
+```lua
+rule("button:pressed restart cooldown 2 => wait(100); light:toggle")
+-- Restarts on rapid-press; after toggle completes, silent for 2 s.
+
+rule("noise:detected since 00:01 cooldown 00:10 => sendAlert()")
+-- Sustained noise for 1 min triggers alert; won't re-alert for 10 min.
+```
+
+---
+
 ### Trigger variables
 
 Declare a name as a trigger variable before using it in a rule:

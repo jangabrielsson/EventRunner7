@@ -232,6 +232,31 @@ local function setupFuns()
     return -1 -- not async
   end
 
+  function async.cool_down(cb, T)
+    local state = cb.ctx.cool_down or {}
+    cb.ctx.cool_down = state
+    local now = os.time()
+    if not state.lastFired or (now - state.lastFired) >= T then
+      state.lastFired = now
+      cb(true)
+    else
+      cb(false)
+    end
+    return -1 -- not async
+  end
+
+  function async.every_other(cb, N)
+    local state = cb.ctx.every_other or {count=0}
+    cb.ctx.every_other = state
+    state.count = state.count + 1
+    if state.count % N == 0 then
+      cb(true)
+    else
+      cb(false)
+    end
+    return -1 -- not async
+  end
+
   function async.again(cb,n)
     local opts = cb.cf.ctx.opts
     local env = cb.cf.ctx.var_env[1]
@@ -275,6 +300,31 @@ local function setupFuns()
     repeat h = d0.hour; t0 = t0 + 3600; d0 = os.date("*t",t0) until d0.hour ~= (h+1) % 24
     if d0.month > 7 then t0 = t0 + 3600 end
     return t0
+  end
+
+  -- Named Scene PropClass ---------------------------------------------------
+  ER.definePropClass("Scene")
+  function Scene:__init()
+    PropObject.__init(self)
+  end
+  Scene.getProp.activate = function(self, _prop)
+    for _, e in ipairs(self._activate) do
+      local val = type(e[3]) == 'function' and e[3]() or e[3]
+      ER.resolvePropObject(e[1]):_setProp(e[2], val)
+    end
+  end
+  Scene.getProp.deactivate = function(self, _prop)
+    assert(self._deactivate, "#Scene has no deactivate body")
+    for _, e in ipairs(self._deactivate) do
+      local val = type(e[3]) == 'function' and e[3]() or e[3]
+      ER.resolvePropObject(e[1]):_setProp(e[2], val)
+    end
+  end
+  builtin.Scene = function(entries)
+    local s = Scene()
+    s._activate   = entries.activate
+    s._deactivate = entries.deactivate
+    return s
   end
 
 end

@@ -1045,6 +1045,43 @@ rule("trueFor(00:10, !hallMotion:breached) =&gt; hallLight:off")</code></pre>
 </section>
 
 <!-- =============================================
+     SLIDE — RULE MODIFIERS
+     ============================================= -->
+<section class="slide" id="slide-modifiers">
+  <div class="paper" data-section="1">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag triggers reveal">Triggers</div>
+      <h2 class="slide-heading reveal">Rule <em>Modifiers</em></h2>
+      <div class="rule-accent lavender reveal"></div>
+      <div class="code-block lavender-accent reveal">
+        <pre><code data-lua>-- restart: cancel &amp; restart if condition fires again mid-action
+rule("doorbell:pressed restart =&gt; wait(500); chime:play")
+-- since T: condition must hold continuously for T before firing
+rule("motion:breached since 00:02 =&gt; alarm:on")
+-- debounce T: wait T s after last fire; reset on re-fire (implies restart)
+rule("keypress debounce 0.5 =&gt; search(query)")
+-- cooldown T: suppress re-triggering for T s after action completes
+rule("motion:breached cooldown 00:05 =&gt; notify('Motion!')")
+-- every N: fire only on every N-th true evaluation
+rule("sensor:value every 4 =&gt; log('val: %d', sensor:value)")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Modifiers go <strong>between the condition and <code>=&gt;</code></strong> — combine freely</li>
+        <li><code>since T</code> is an alias for <code>trueFor(T, cond)</code> — no extra function needed</li>
+        <li><code>debounce</code> resets its timer on every re-fire, so the action waits for quiet</li>
+        <li>Example combo: <code>button:pressed restart cooldown 2 =&gt; wait(100); light:toggle</code></li>
+      </ul>
+      <div class="slide-num">09 / 24</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
      SLIDE 9 — VARIABLES
      ============================================= -->
 <section class="slide" id="slide-9">
@@ -1526,6 +1563,45 @@ rule("air:co2 &gt; 800 =&gt; ventilation:on")</code></pre>
 </section>
 
 <!-- =============================================
+     SLIDE — NAMED SCENES
+     ============================================= -->
+<section class="slide" id="slide-scenes">
+  <div class="paper" data-section="4">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag patterns reveal">Patterns</div>
+      <h2 class="slide-heading reveal">Named <em>Scenes</em></h2>
+      <div class="rule-accent cream reveal"></div>
+      <div class="code-block cream-accent reveal">
+        <pre><code data-lua>-- Short form: activate-only
+scene cozy = { lamp1:value=80, lamp2:level=40, blind:position=50 }
+
+-- Long form: separate activate + deactivate bodies
+scene movienight = {
+  activate:   { projector:on, lights:value=10, blind:position=0 },
+  deactivate: { projector:off, lights:value=100, blind:position=100 }
+}
+
+rule("@sunset =&gt; cozy:activate")
+rule("button:pressed =&gt; movienight:activate")
+rule("@midnight =&gt; movienight:deactivate")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li>Declare with the soft keyword <code>scene</code> — desugars to a <code>PropObject</code></li>
+        <li><strong>Non-literal values</strong> (variables, expressions) are re-evaluated at activation time</li>
+        <li>Short-form scenes have no deactivate body — calling <code>:deactivate</code> is a runtime error</li>
+        <li>Scene objects can be stored in variables and passed to functions like any prop object</li>
+      </ul>
+      <div class="slide-num">23 / 24</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
      SLIDE 22 — BEST PRACTICES
      ============================================= -->
 <section class="slide" id="slide-22">
@@ -1543,7 +1619,7 @@ rule("air:co2 &gt; 800 =&gt; ventilation:on")</code></pre>
         <li><strong>Use verbosity</strong> — set <code>rule.verbosity = "verbose"</code> while debugging, then revert</li>
         <li><strong>Cancel before post</strong> — always <code>cancel(timer)</code> before rescheduling to avoid duplicates</li>
       </ul>
-      <div class="slide-num">22 / 22</div>
+      <div class="slide-num">24 / 24</div>
     </div>
     <div class="tabs">
       <div class="tab">Basics</div><div class="tab">Triggers</div>

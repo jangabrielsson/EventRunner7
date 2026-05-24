@@ -347,6 +347,13 @@ end
 
 -- TABLE: {[k]=v, name=v, v, ...}  →  MAKETABLE(k1,v1, k2,v2, ...)
 -- Positional keys (TFIELD_VAL) are assigned compile-time integer positions.
+comp.FUNCTION = function(ast)
+  -- ast = {'FUNCTION', params_list, body_ast}
+  local params = ast[2]   -- list of param name strings
+  local body   = compile(ast[3])
+  return {'LAMBDA', params, body}
+end
+
 comp.TABLE = function(ast)
   local args = {'MAKETABLE'}
   local pos = 1

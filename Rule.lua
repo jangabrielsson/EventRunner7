@@ -121,6 +121,7 @@ local function compRule(r, opts, src)
     end
   end
 
+  local modifiers = r[4] or {}
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
   scanHead(head, trs)             -- scanHead may modify ast...
   local fun  = ER.csp.compile(r, r._srcmap)  -- compile rule action into CSP (with srcmap if available)
@@ -147,6 +148,15 @@ local function compRule(r, opts, src)
   local function cancelR(ref)
     rule.timers[ref]=nil
     return sourceTrigger:cancel(ref)
+  end
+
+  local function runRule(...)
+    if modifiers.restart then
+      local old = rule.timers
+      rule.timers = {}
+      for ref in pairs(old) do sourceTrigger:cancel(ref) end
+    end
+    ruleRunner(rule.fun, rule, ...)
   end
 
   local function mkEvVars(key,ev)
@@ -176,7 +186,7 @@ local function compRule(r, opts, src)
         return
       end
       if opts.started then rule:log("normal", opts.startPrefix, ev.event) end
-      ruleRunner(rule.fun, rule, {
+      runRule({
         vars = mkEvVars(key,ev)})
       end
     )
@@ -189,7 +199,7 @@ local function compRule(r, opts, src)
   if trs.interval then
     sourceTrigger:subscribe(intervalEvent, function(ev)
       rule:log("verbose", opts.startPrefix, "(interval)")
-      ruleRunner(rule.fun, rule, {
+      runRule({
         vars = mkEvVars('INTERVAL',{event=intervalEvent})})
       end
     )
@@ -207,9 +217,9 @@ local function compRule(r, opts, src)
       local function loop()
         if not rule._disabled then postR(intervalEvent) end
         nextTime = nextTime + value
-        intervalTimer = setTimeoutR(loop, (nextTime-os.time())*1000)
+        intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
       end
-      intervalTimer = setTimeoutR(loop, (nextTime-os.time())*1000)
+      intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
     end
   end
   rule:setupInterval()
@@ -225,7 +235,7 @@ local function compRule(r, opts, src)
       sourceTrigger:subscribe(subev, function(ev)
         if rule._disabled then return end
         rule:log("verbose", opts.startPrefix,tostring(subev))
-        ruleRunner(rule.fun, rule, {
+        runRule({
           vars = mkEvVars('DAILY',ev)})
         end
       )
@@ -259,7 +269,7 @@ local function compRule(r, opts, src)
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run(event)
     self:log("verbose", self.opts.startPrefix, "(manual)")
-    ruleRunner(self.fun, self, {vars=mkEvVars("MANUAL",{event=event})})
+    runRule({vars=mkEvVars("MANUAL",{event=event})})
   end
 
   function rule:dumpTriggers(pref)

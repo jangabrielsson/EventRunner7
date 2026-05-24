@@ -51,6 +51,12 @@ local keywords = {
   ['and'] = {type='op',value='and'},
   ['or'] = {type='op',value='or'},
 
+  ['restart']  = {type='restart',  value='restart'},
+  ['since']    = {type='since',    value='since'},
+  ['debounce'] = {type='debounce', value='debounce'},
+  ['cooldown'] = {type='cooldown', value='cooldown'},
+  ['every']    = {type='every',    value='every'},
+
   ['t/'] = {type='today',value='today'},  -- unary, today time constant, t/10:00
   ['n/'] = {type='nexttime',value='nexttime'},  -- unary, next today time constant, n/10:00
   ['+/'] = {type='plustime',value='plustime'},  -- unary, from today time constant, +/10:00

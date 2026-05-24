@@ -360,10 +360,81 @@ local function makeParser(src)
     return names
   end
 
+  --------------------------------------------------------------------------
+  -- Scene declaration: scene <Name> = { [activate: {entries}] [deactivate: {entries}] }
+  --   Desugars to:  <Name> = Scene({ activate={...}, deactivate={...} })
+  --------------------------------------------------------------------------
+  local function parseSceneDecl(name)
+    local function isLiteralNode(node)
+      local op = node[1]
+      return op == 'NUMBER' or op == 'STRING' or op == 'BOOL' or op == 'NIL'
+    end
+    local function maybeThunk(expr)
+      if isLiteralNode(expr) then return expr end
+      return {'FUNCTION', {}, {'BLOCK', {'RETURN', expr}}}
+    end
+    -- Parse  obj:prop=expr  entries until '}'
+    local function parseEntries()
+      local fields = {}
+      while peek(1) and peek(1).type ~= 'rbra' do
+        local obj_ast = parsePrimaryprefix()
+        expect('colon')
+        local prop = expect('identifier').value
+        expect('assign')
+        local val_ast = maybeThunk(parseExp())
+        table.insert(fields, {'TFIELD_VAL', {'TABLE',
+          {'TFIELD_VAL', obj_ast},
+          {'TFIELD_VAL', {'STRING', prop}},
+          {'TFIELD_VAL', val_ast},
+        }})
+        match('comma')
+      end
+      return {'TABLE', table.unpack(fields)}
+    end
+
+    expect('lbra')
+    local activate_ast, deactivate_ast
+    -- Detect subsection form:  activate: { ... }  or  deactivate: { ... }
+    if peek(1) and peek(1).type == 'identifier'
+        and (peek(1).value == 'activate' or peek(1).value == 'deactivate')
+        and peek(2) and peek(2).type == 'colon' then
+      while peek(1) and peek(1).type ~= 'rbra' do
+        local kw = next().value   -- 'activate' or 'deactivate'
+        expect('colon')
+        expect('lbra')
+        local entries = parseEntries()
+        expect('rbra')
+        match('comma')
+        if kw == 'activate' then activate_ast = entries
+        else deactivate_ast = entries end
+      end
+    else
+      activate_ast = parseEntries()  -- flat list = activate-only
+    end
+    expect('rbra')
+
+    local tfields = { {'TFIELD_NAME', 'activate', activate_ast} }
+    if deactivate_ast then
+      table.insert(tfields, {'TFIELD_NAME', 'deactivate', deactivate_ast})
+    end
+    local call_ast = {'CALL', {'NAME','Scene'}, {'TABLE', table.unpack(tfields)}}
+    return {'ASSIGN', {{'NAME', name}}, {call_ast}}
+  end
+
   local function parseStat()
     local t = peek(1)
     if not t then return nil end
     local ty = t.type
+
+    -- 'scene' soft keyword: scene <Name> = { ... }
+    if ty == 'identifier' and t.value == 'scene'
+        and peek(2) and peek(2).type == 'identifier'
+        and peek(3) and peek(3).type == 'assign' then
+      next()                  -- consume 'scene'
+      local sname = next().value  -- consume Name
+      next()                  -- consume '='
+      return parseSceneDecl(sname)
+    end
 
     if ty == 'do' then
       next()
@@ -557,17 +628,52 @@ local function makeParser(src)
   end
 
   local function parseScript()
-    -- script ::= exp '=>' action   →  {'RULE', cond, action}
-    --          | block             →  {'SCRIPT', block}
-    -- Speculatively parse a leading expression; if '=>' follows it's a rule.
+    -- script ::= exp {modifier} '=>' action   →  {'RULE', cond, action [,{restart=true}]}
+    --          | block                         →  {'SCRIPT', block}
+    -- Speculatively parse a leading expression; if modifiers and/or '=>' follow it's a rule.
     -- On failure or no '=>', restore and re-parse as a plain block.
     local snap = savePos()
     local ok, cond = pcall(parseExp)
-    if ok and peek(1) and peek(1).type == 'rule' then
-      next()  -- consume '=>'
-      local action = parseBlock()
-      if peek(1) then parseError("Unexpected token after rule action") end
-      return {'RULE', cond, action}
+    if ok and peek(1) then
+      local modifiers = {}
+      local consumedModifier = false
+      while peek(1) do
+        local tok = peek(1)
+        if tok.type == 'restart' then
+          next(); modifiers.restart = true; consumedModifier = true
+        elseif tok.type == 'since' then
+          next(); local T = parseExp()
+          cond = {'CALL', {'NAME','trueFor'}, T, cond}
+          consumedModifier = true
+        elseif tok.type == 'debounce' then
+          next(); local T = parseExp()
+          modifiers.restart = true; modifiers.debounce = T; consumedModifier = true
+        elseif tok.type == 'cooldown' then
+          next(); local T = parseExp()
+          cond = {'AND', cond, {'CALL', {'NAME','cool_down'}, T}}
+          consumedModifier = true
+        elseif tok.type == 'every' then
+          next(); local N = parseExp()
+          cond = {'AND', cond, {'CALL', {'NAME','every_other'}, N}}
+          consumedModifier = true
+        else
+          break
+        end
+      end
+      if peek(1) and peek(1).type == 'rule' then
+        next()  -- consume '=>'
+        local action = parseBlock()
+        -- debounce: prepend wait(T) to the action block
+        if modifiers.debounce then
+          table.insert(action, 2, {'CALL', {'NAME','wait'}, modifiers.debounce})
+        end
+        if peek(1) then parseError("Unexpected token after rule action") end
+        local node = {'RULE', cond, action}
+        if modifiers.restart then node[4] = {restart=true} end
+        return node
+      elseif consumedModifier then
+        parseError("Expected '=>' after rule modifiers")
+      end
     end
     -- Not a rule: restore and parse as a plain block.
     restorePos(snap)

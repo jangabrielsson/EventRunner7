@@ -518,6 +518,29 @@ local function CFUN(lua_fn, ...)
   end
 end
 
+-- ── LAMBDA ────────────────────────────────────────────────────────────────
+-- Forward-declare eval so LAMBDA (defined before eval) can close over it.
+local eval  -- assigned below
+
+-- LAMBDA(params, body) captures the current var-env snapshot and returns a
+-- Lua function.  When the function is called with args, each param is bound
+-- to the corresponding arg in a fresh frame, body is evaluated, and its
+-- return value(s) are returned to the Lua caller.
+local function LAMBDA(params, body)
+  return function(cont)
+    local f = function(...)
+      local vars = nil
+      if #params > 0 then
+        local call_args = table.pack(...)
+        vars = {}
+        for i, name in ipairs(params) do vars[name] = {call_args[i]} end
+      end
+      return select(2, eval(body, vars and {vars = vars} or nil))
+    end
+    return cont(f)
+  end
+end
+
 -- ── VARIABLE ENVIRONMENT ──────────────────────────────────────────────────
 -- Values are boxed as {val} so nil is a valid binding and inner frames always
 -- shadow outer frames regardless of value.
@@ -675,7 +698,7 @@ local taggableErrors = {
   "attempt to",
 }
 
-local function eval(expr, opts)
+eval = function(expr, opts)   -- NOTE: forward-declared above for LAMBDA
   local outer = _ctx:snapshot()
   local top_cont = function(...) return nil, ... end
   _ctx:restore({ break_stack = {}, error_handler = nil, exit_cont = TR(top_cont), var_env = {}, trace = opts and opts.trace or false, opts = opts })
@@ -775,6 +798,7 @@ local expr = {
   GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
   CFUN  = CFUN,
+  LAMBDA = LAMBDA,
   NOW  = function() return CFUN(function(cb) return cb(ER.now()) end) end,
 }
 
@@ -867,6 +891,9 @@ local function compile(t)
     checkProgn(t)
     local cargs = cal(t, 2)
     f = PROGN(table.unpack(cargs))
+  elseif op == "LAMBDA"    then
+    -- t[2] is a raw list of param name strings; t[3] is the compiled body CSP tree
+    f = LAMBDA(t[2], ca(t[3]))
   else
     local cargs = cal(t, 2)
     f = expr[op](table.unpack(cargs))

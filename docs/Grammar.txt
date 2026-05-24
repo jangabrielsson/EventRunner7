@@ -1,8 +1,16 @@
 
 Left-recursion eliminated grammar for EventScript
 
-script ::= exp '=>' action |
+script ::= exp {modifier} '=>' action |
            block
+
+-- Rule modifiers appear between the condition expression and '=>'.
+-- Multiple modifiers may be combined (e.g. condition restart cooldown 5 => ...).
+modifier ::= 'restart'              -- restart pending action when condition re-fires
+           | 'since' exp            -- condition must have been true for exp seconds
+           | 'debounce' exp         -- wait exp seconds after last fire before running action (implies restart)
+           | 'cooldown' exp         -- suppress re-firing for exp seconds after action runs
+           | 'every' exp            -- fire only on every exp-th true evaluation
 
 action ::= block
 
@@ -19,8 +27,28 @@ stat ::= varlist '=' explist |
          for Name '=' exp ',' exp [',' exp] do block end |
          for namelist in explist do block end |
          local namelist ['=' explist] |
-         setprop
-         incvar
+         setprop |
+         incvar |
+         scenedecl
+
+-- Scene declaration (soft keyword; 'scene' is a plain identifier used as keyword)
+-- Desugars to:  Name = Scene({ activate={...} [, deactivate={...}] })
+-- Short form:   all entries go into activate
+-- Long form:    explicit activate: and/or deactivate: subsections (order irrelevant)
+-- Entry values: literals are stored directly; non-literals are wrapped in a
+--               zero-arg lambda and re-evaluated at activation/deactivation time.
+scenedecl ::= 'scene' Name '=' '{' sceneBody '}'
+
+sceneBody ::= sceneEntries                                       -- short form (activate-only)
+            | { ('activate' | 'deactivate') ':' '{' sceneEntries '}' [','] }  -- long form
+
+sceneEntries ::= { sceneEntry [','] }
+
+sceneEntry ::= primaryprefix ':' Name '=' exp
+
+-- Scene usage (get-property syntax activates/deactivates the scene):
+--   sceneName:activate      -- run activate body
+--   sceneName:deactivate    -- run deactivate body (error if none defined)
 
 incvar ::= var '+=' exp | var '-=' exp | var '*=' exp | var '/=' exp
 
@@ -106,4 +134,8 @@ field ::= '[' exp ']' '=' exp | Name '=' exp | exp
 fieldsep ::= ',' | ';'
 
 
-fieldsep ::= ',' | ';'
+-- Reserved keywords: do end while repeat until if then elseif else for in
+--                    local return break
+-- Modifier keywords: restart since debounce cooldown every
+-- Soft keyword:      scene  (parsed as identifier; only treated as keyword when
+--                    followed by Name '=')

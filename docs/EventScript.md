@@ -70,6 +70,8 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Time-based Automation](#time-based-automation)
     - [List Operations](#list-operations-1)
     - [Advanced Scenarios](#advanced-scenarios)
+  - [Rule Modifiers](#rule-modifiers)
+  - [Named Scenes](#named-scenes)
   - [Rule management functions](#rule-management-functions)
   - [Best Practices](#best-practices)
 
@@ -532,6 +534,43 @@ rule("#se-start => -- Reinitialize state after reboot\n  $mode = 'home'\n  allLi
 
 ## Functions
 
+## Rule Modifiers
+
+Modifiers are optional keywords placed between the condition and `=>`. They change *when* or *how many times* the action fires.
+
+```
+condition [modifier...] => action
+```
+
+| Modifier | Syntax | Effect |
+|----------|--------|--------|
+| `restart` | `cond restart =>` | If condition fires again while action is running, cancel and restart |
+| `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (alias for `trueFor`) |
+| `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `restart`) |
+| `cooldown` | `cond cooldown duration =>` | After action completes, ignore re-triggers for `duration` seconds |
+| `every` | `cond every n =>` | Fire only on every `n`-th true evaluation |
+
+**Examples:**
+```lua
+rule("doorbell:pressed restart => wait(500); chime:play")
+-- Re-starts chime if pressed again mid-play.
+
+rule("motion:breached since 00:02 => alarm:on")
+-- Only triggers after 2 continuous minutes of motion.
+
+rule("search:keypress debounce 0.5 => searchAPI(query)")
+-- Waits 500 ms of silence before calling search.
+
+rule("motion:breached cooldown 00:05 => notify('Motion detected')")
+-- At most one notification per 5 minutes.
+
+rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
+-- Logs on every 4th temperature change.
+
+-- Modifiers compose:
+rule("button:pressed restart cooldown 2 => wait(100); light:toggle")
+```
+
 ### trueFor Function
 
 Execute actions when conditions remain true for a specified duration:
@@ -905,6 +944,79 @@ rule("@08:00 =>\n  local data, status = http.get('http://192.168.1.100/api/statu
 
 rule("sensor:temp =>\n  http.post('http://my-logger/api/data',\n    {user='admin', pwd='secret'},\n    {sensor=sensor:id, value=sensor:temp})")
 ```
+
+## Named Scenes
+
+A **named scene** groups a set of device property assignments under a name. Scenes are declared as statements (using the soft keyword `scene`) and activated or deactivated via the property syntax.
+
+### Declaring a scene
+
+**Short form** — all entries are treated as the *activate* body:
+
+```lua
+scene cozy = { light1:value=80, light2:level=50, blind:position=30 }
+```
+
+**Long form** — explicit `activate` and/or `deactivate` subsections (order is irrelevant):
+
+```lua
+scene movienight = {
+  activate:   { projector:on, lights:value=10, blind:position=0 },
+  deactivate: { projector:off, lights:value=100, blind:position=100 }
+}
+```
+
+An activate-only scene has no `deactivate` body; calling `:deactivate` on it is a runtime error that disables the rule.
+
+### Entry value semantics
+
+Entry values follow these evaluation rules:
+
+- **Literals** (`42`, `true`, `"closed"`, etc.) are stored directly at declaration time.
+- **Expressions** (variable references, arithmetic, function calls) are wrapped in a zero-argument lambda and **re-evaluated each time the scene is activated/deactivated**. This means the scene always uses the current value of any variables it references.
+
+```lua
+scene dynscene = {
+  activate:   { dimmer:value=targetLevel },   -- re-reads targetLevel on every activate
+  deactivate: { dimmer:value=0 }
+}
+```
+
+### Using a scene
+
+Activate or deactivate a scene using the property syntax inside a rule action:
+
+```lua
+rule("@sunset => movienight:activate")
+rule("@midnight => movienight:deactivate")
+
+-- Conditional scene switch:
+rule("button:pressed => if isMovieTime then movienight:activate else cozy:activate end")
+```
+
+Scenes are standard `PropObject`-derived values; they can be stored in variables, passed to functions, and used anywhere a property object is valid.
+
+```lua
+scene garden = {
+  activate:   { porch:on, path:value=60 },
+  deactivate: { porch:off, path:off }
+}
+
+local myScene = garden      -- scene object can be stored in a variable
+rule("@sunset => myScene:activate")
+rule("@sunrise => myScene:deactivate")
+```
+
+### Summary table
+
+| Syntax | Description |
+|--------|-------------|
+| `scene name = { obj:prop=expr, ... }` | Short form: activate-only scene |
+| `scene name = { activate: { ... }, deactivate: { ... } }` | Long form: separate activate/deactivate bodies |
+| `name:activate` | Run the activate body |
+| `name:deactivate` | Run the deactivate body (runtime error if none defined) |
+
+---
 
 ## Extending the Property System
 
