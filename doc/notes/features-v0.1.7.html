@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>EventRunner7 — New Features in v0.1.7</title>
+  <title>EventRunner7 — New Features in v0.1.8</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -124,7 +124,7 @@
 </head>
 <body>
 
-<h1 style="color:#24292f;margin-bottom:6px;">EventRunner7 v0.1.7 — New Features Post</h1>
+<h1 style="color:#24292f;margin-bottom:6px;">EventRunner7 v0.1.8 — New Features Post</h1>
 <p style="color:#57606a;margin-top:0;font-size:14px;">Preview the forum post below, then click Copy to paste it into the Fibaro community forum.</p>
 
 <div class="toolbar">
@@ -138,11 +138,11 @@
      ============================================================ -->
 <div class="post-content" id="forumPost">
 
-<h2>🎉 EventRunner7 v0.1.7 — Rule Modifiers &amp; Named Scenes</h2>
+<h2>🎉 EventRunner7 v0.1.8 — Rule Modifiers, Named Scenes &amp; Rule Groups</h2>
 
 <p>
-  Two new language features landed in v0.1.7 that make rules more expressive and easier to maintain:
-  <strong>Rule Modifiers</strong> and <strong>Named Scenes</strong>.
+  Three new language features landed in v0.1.7–v0.1.8 that make rules more expressive and easier to maintain:
+  <strong>Rule Modifiers</strong>, <strong>Named Scenes</strong>, and <strong>Rule Groups</strong>.
 </p>
 
 <hr>
@@ -264,10 +264,62 @@ rule("@morning =&gt; dynscene:activate")  -- dimmer set to whatever targetLevel 
 
 <hr>
 
+<h3>�️ Rule Groups</h3>
+
+<p>
+  Rules can now be tagged with a group name at registration time. The entire group can then be
+  enabled or disabled in a single call — from outside in Lua, or from inside any rule action
+  using the built-in <code>enable</code> / <code>disable</code> functions.
+</p>
+
+<h4>Registering rules in a group</h4>
+
+<pre><code>rule("motion:breached sunset..sunrise =&gt; hallwayLight:on",  {group="hallway"})
+rule("motion:safe   since 00:05       =&gt; hallwayLight:off", {group="hallway"})
+rule("@23:30                          =&gt; hallwayLight:off", {group="hallway"})</code></pre>
+
+<h4>Enabling / disabling a group from a rule action</h4>
+
+<pre><code>-- sleep button: disable all hallway automation
+rule("sleepButton:scene == S1.single =&gt; disable('hallway')")
+-- wake button: re-enable it
+rule("wakeButton:scene  == S1.single =&gt; enable('hallway')")</code></pre>
+
+<p>The built-in <code>enable</code> / <code>disable</code> accept:</p>
+<ul>
+  <li>A <strong>group name string</strong> — acts on every rule in the group</li>
+  <li>A <strong>rule object</strong> — acts on that rule only</li>
+  <li>A <strong>numeric rule id</strong> — acts on that rule only</li>
+  <li><strong>No argument</strong> — acts on the current rule (self-disable pattern)</li>
+</ul>
+
+<h4>Vacation mode example</h4>
+
+<pre><code>rule("motion:breached =&gt; hallwayLight:on",   {group="lighting"})
+rule("temp:value &gt; 28 since 00:05 =&gt; fan:on", {group="climate"})
+
+rule([[$Vacation == true  =&gt;
+  disable('lighting'); disable('climate');
+  log('Vacation mode on')
+]])
+rule([[$Vacation == false =&gt;
+  enable('lighting');  enable('climate');
+  log('Vacation mode off')
+]])</code></pre>
+
+<h4>Accessing groups from Lua</h4>
+
+<pre><code>-- List all rules in a group and their enabled state
+for _, r in ipairs(ER.getGroup("lighting") or {}) do
+  print(tostring(r), r._disabled and "disabled" or "enabled")
+end</code></pre>
+
+<hr>
+
 <h3>📥 Download</h3>
 <ul>
-  <li><strong>GitHub Releases:</strong> <a href="https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.1.7">https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.1.7</a></li>
-  <li><strong>Direct download:</strong> <a href="https://github.com/jangabrielsson/EventRunner7/releases/download/v0.1.7/EventRunner7.fqa">EventRunner7.fqa</a></li>
+  <li><strong>GitHub Releases:</strong> <a href="https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.1.8">https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.1.8</a></li>
+  <li><strong>Direct download:</strong> <a href="https://github.com/jangabrielsson/EventRunner7/releases/download/v0.1.8/EventRunner7.fqa">EventRunner7.fqa</a></li>
 </ul>
 
 <h3>📚 Documentation</h3>
