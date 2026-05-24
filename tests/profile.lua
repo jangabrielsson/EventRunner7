@@ -26,6 +26,7 @@ SOFTWARE.
 ]]
 
 local clock = os.clock
+local jit = rawget(_G, 'jit')
 
 --- The "profile" module controls when to start or stop collecting data and can be used to generate reports.
 -- @module profile

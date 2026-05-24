@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# er — run an EventScript rule expression inline
+#
+# Usage:
+#   er "wait(4); log('OK')"
+#   er -t 30 "@08:00 => log('morning')"
+#   er --raw "log('bare lua')"      # skip rule() wrapper
+
+RUNFOR=10
+RAW=false
+
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -t|--time) RUNFOR="$2"; shift 2 ;;
+    --raw)     RAW=true; shift ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: er [-t <seconds>] [--raw] \"<rule>\" [\"<rule2>\" ...]"
+  exit 1
+fi
+
+RUNNER="$(cd "$(dirname "$0")/.." && pwd)/tests/rulerunner.lua"
+
+{
+  for arg in "$@"; do
+    if $RAW; then
+      printf '%s\n' "$arg"
+    else
+      printf 'rule([==[%s]==])\n' "$arg"
+    fi
+  done
+} | plua --fibaro --nodebug --run-for "$RUNFOR" "$RUNNER"
