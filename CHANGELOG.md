@@ -1,5 +1,35 @@
 # Changelog
 
+## [v0.1.7] - 2026-05-24
+
+## Changes in v0.1.7
+
+- ✨ **Feature**: Add support for rule modifiers and named scenes
+  - Implemented rule modifiers: `restart`, `since`, `debounce`, `cooldown`, and `every` to enhance action firing control.
+  - Introduced named scenes with `scene` keyword, allowing grouped device property assignments with activate/deactivate bodies.
+  - Updated parser and compiler to handle new syntax for modifiers and scenes.
+  - Enhanced documentation to include examples and explanations for new features.
+  - Added unit tests for modifier functionality and named scene behavior to ensure reliability.
+- ✨ **Feature**: Add skills-lock.json to define available skills with source and path information
+- ✨ **Feature**: Enhance EventScript with new variable definition functions and add parameter constraints to documentation
+- ✨ **Feature**: Add EventScript runner and profiling enhancements
+  - Introduced a new script `er` for running EventScript rule expressions inline with options for execution time and raw mode.
+  - Added a new Lua file `rulerunner.lua` to facilitate the execution of rules from standard input, enhancing the EventRunner functionality.
+  - Updated `profile.lua` to include JIT support for performance profiling.
+- ✨ **Feature**: Revamp EventScript rules presentation with Neon Cyber theme
+  - Updated font styles to use Clash Display and Satoshi for a modern look.
+  - Redesigned color scheme to a Neon Cyber theme with vibrant accents.
+  - Enhanced layout and styling for slide elements, including borders and shadows.
+  - Added new slides for File Structure, Logging Flags, Predefined Variables, Startup Event, Dim Light, Weather Object, HTTP Functions, Custom Properties, and Best Practices.
+  - Improved code block styling for better readability and visual appeal.
+  - Adjusted typography and spacing for a cleaner presentation.
+- ✨ **Feature**: add post and cancel functions to event runner
+- ✨ **Feature**: Update tutorial and release script references from EventRunner6 to EventRunner7
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.6 with download links and documentation
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.6] - 2026-05-22
 
 ## Changes in v0.1.6
