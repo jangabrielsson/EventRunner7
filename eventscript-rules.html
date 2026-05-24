@@ -1251,6 +1251,42 @@ rule("motion:breached =&gt; post(#motion{room='hall'})") </code></pre>
 </section>
 
 <!-- =============================================
+     SLIDE 14b — EVENT PARAMETER CONSTRAINTS
+     ============================================= -->
+<section class="slide" id="slide-param-constraints">
+  <div class="paper" data-section="3">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag events reveal">Events</div>
+      <h2 class="slide-heading reveal">Parameter <em>Constraints</em></h2>
+      <div class="rule-accent sky reveal"></div>
+      <div class="code-block sky-accent reveal">
+        <pre><code data-lua>-- $var binds the matched value as a local variable
+rule("#alert{level='$lvl'} => log('level: %s', lvl)")
+
+-- Constraint: only match if condition holds
+rule("#sensor{temp='$t>25'}  => fan:on")
+rule("#sensor{temp='$t<=15'} => heater:on")
+
+-- String pattern match with <>
+rule("#ev{name='$n<>door.*'} => log('door event: %s', n)")</code></pre>
+      </div>
+      <ul class="bullet-list reveal">
+        <li><code>'$var'</code> &mdash; binds any value; <code>'$var&gt;N'</code> binds only when value &gt; N</li>
+        <li><strong>Numeric ops:</strong> <code>&gt;</code> &nbsp;<code>&lt;</code> &nbsp;<code>&gt;=</code> &nbsp;<code>&lt;=</code> &nbsp;<code>==</code> &nbsp;<code>~=</code></li>
+        <li><strong>String op:</strong> <code>&lt;&gt;</code> &mdash; Lua pattern match &nbsp;<code>'$v&lt;&gt;door.*'</code></li>
+        <li>Bound variable is available as a local in the action scope</li>
+      </ul>
+      <div class="slide-num">15 / 24</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
      SLIDE 15 — CANCEL & DEBOUNCE
      ============================================= -->
 <section class="slide" id="slide-15">

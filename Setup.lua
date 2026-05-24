@@ -101,6 +101,17 @@ local function preSetup(er)
         e.t=e.t+e.dir*e.step
         if 0 <= e.t and  e.t <= e.sec then fibaro.post(e,os.time()+e.step) end
     end)
+
+    er.var = er.variables
+    er.triggerVar = er.triggerVariables
+    function er.defVar(name,init) er.variables[name] = init end
+    function er.defTriggerVar(name,init) er.triggerVariables[name] = init end
+    function er.defvars(tab) 
+        assert(type(tab) =="table","Expected a table")
+        for k,v in pairs(tab) do er.variables[k] = v end
+    end
+    function er.reverseMapDef(_) end
+    function er.reverseVar(id) return id end
 end
 
 local function postSetup(er)
