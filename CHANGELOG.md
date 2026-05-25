@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.1.9] - 2026-05-25
+
+## Changes in v0.1.9
+
+- ✨ **Feature**: Add 'first_in' token type and corresponding parser logic
+- ✨ **Feature**: Add Rule Groups feature and update version in documentation
+- ✨ **Feature**: Add Rule Groups feature and update documentation
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.8] - 2026-05-24
 
 ## Changes in v0.1.8
