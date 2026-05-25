@@ -56,6 +56,7 @@ local keywords = {
   ['debounce'] = {type='debounce', value='debounce'},
   ['cooldown'] = {type='cooldown', value='cooldown'},
   ['every']    = {type='every',    value='every'},
+  ['first_in'] = {type='first_in', value='first_in'},
 
   ['t/'] = {type='today',value='today'},  -- unary, today time constant, t/10:00
   ['n/'] = {type='nexttime',value='nexttime'},  -- unary, next today time constant, n/10:00

@@ -656,6 +656,13 @@ local function makeParser(src)
           next(); local N = parseExp()
           cond = {'AND', cond, {'CALL', {'NAME','every_other'}, N}}
           consumedModifier = true
+        elseif tok.type == 'first_in' then
+          next(); local W = parseExp()
+          if W[1] ~= 'BETW' then
+            parseError("'first_in' requires a time window expression (e.g. 07:00..08:00)")
+          end
+          cond = {'AND', cond, {'CALL', {'NAME','once'}, W}}
+          consumedModifier = true
         else
           break
         end
