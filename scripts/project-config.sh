@@ -98,24 +98,9 @@ TAG_MESSAGE_TEMPLATE="Release v{VERSION}
 # }
 
 # Artifact build hook (optional) - custom artifact generation
-# plua serializes an empty Lua table as {} (JSON object) but HC3 requires
-# quickAppVariables to be a JSON array []. Fix it after every pack.
-custom_artifact_build() {
-    local fqa="dist/EventRunner7.fqa"
-    if [ -f "$fqa" ]; then
-        python3 -c "
-import json, sys
-path = sys.argv[1]
-with open(path, 'r', encoding='utf-8') as f:
-    data = json.load(f)
-ip = data.get('initialProperties', {})
-if isinstance(ip.get('quickAppVariables'), dict):
-    ip['quickAppVariables'] = list(ip['quickAppVariables'].values()) if ip['quickAppVariables'] else []
-with open(path, 'w', encoding='utf-8') as f:
-    json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
-" "$fqa" && echo "Fixed quickAppVariables in $fqa"
-    fi
-}
+# custom_artifact_build() {
+#     echo "Building custom artifacts..."
+# }
 
 # ============================================================================
 # HELPER FUNCTIONS
