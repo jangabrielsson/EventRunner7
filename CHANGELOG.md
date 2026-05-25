@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.1.10] - 2026-05-25
+
+## Changes in v0.1.10
+
+- ✨ **Feature**: Add 'first_in' modifier and enhance documentation
+  - Introduced 'first_in' modifier for time window-based rule triggering.
+  - Updated existing modifiers documentation for clarity and consistency.
+  - Added new release notes for version 0.1.9, highlighting recent features.
+  - Created comprehensive EventScript debug tooling documentation for better rule inspection and monitoring.
+  - Implemented a custom artifact build process to fix quickAppVariables format for HC3 compatibility.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.9] - 2026-05-25
 
 ## Changes in v0.1.9
