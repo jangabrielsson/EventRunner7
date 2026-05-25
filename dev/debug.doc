@@ -1,0 +1,11 @@
+Priority / Implementation Order
+#	Feature	Effort	Value
+E	Named rules {name=...}	Low	Prerequisite for all others
+B	History buffer {history=N}	Low	High — no CSP changes needed
+C	er.info() inspector	Low	High — data already available
+A	Sub-expression trace {trace=true}	Medium	Very high — addresses #1 pain point
+D	er.watch() live toggle	Low (needs A)	High
+F	plua desktop panel	High	High for plua-only dev workflow
+
+Start with E → B → C as they require no compiler changes.
+A is the big win and the prerequisite for D.

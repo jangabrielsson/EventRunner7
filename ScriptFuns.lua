@@ -202,6 +202,107 @@ local function setupFuns()
 
   function builtin.enable(rule) ER.enable(rule,true) end
   function builtin.disable(rule) ER.enable(rule,false) end
+
+  function builtin.historyOn(rule, size)
+    local r = ER.getRule(rule)
+    assert(r, "historyOn: no such rule: "..tostring(rule))
+    r.historySize = size or r.historySize
+    r.historyOn = true
+    r.history = {}
+  end
+
+  function builtin.historyOff(rule)
+    local r = ER.getRule(rule)
+    assert(r, "historyOff: no such rule: "..tostring(rule))
+    r.historyOn = false
+  end
+
+  function builtin.watchOn(rule)
+    local r = ER.getRule(rule)
+    assert(r, "watchOn: no such rule: "..tostring(rule))
+    r.watchOn = true
+  end
+
+  function builtin.watchOff(rule)
+    local r = ER.getRule(rule)
+    assert(r, "watchOff: no such rule: "..tostring(rule))
+    r.watchOn = false
+  end
+
+  function builtin.watchOnAll()
+    for _, r in pairs(ER.namedRules) do r.watchOn = true end
+  end
+
+  function builtin.watchOffAll()
+    for _, r in pairs(ER.namedRules) do r.watchOn = false end
+  end
+
+  function builtin.historyOnAll(size)
+    for _, r in pairs(ER.namedRules) do
+      r.historySize = size or r.historySize
+      r.historyOn = true
+      r.history = {}
+    end
+  end
+
+  function builtin.historyOffAll()
+    for _, r in pairs(ER.namedRules) do
+      r.historyOn = false
+    end
+  end
+
+  function builtin.showHistory(rule)
+    local r = ER.getRule(rule)
+    assert(r, "showHistory: no such rule: "..tostring(rule))
+    if not r.history or #r.history == 0 then
+      print(fmt("📋 [%s] No history recorded", r.name))
+      return
+    end
+    print(fmt("📋 [%s] Last %d invocations:", r.name, #r.history))
+    for _, e in ipairs(r.history) do
+      local ts = os.date("%H:%M:%S", e.time)
+      local res = e.result and "✅ PASS" or "❌ FAIL"
+      print(fmt("  %s  %s  %s", ts, res, e.trigger))
+    end
+  end
+
+  function builtin.info(rule)
+    local r = ER.getRule(rule)
+    assert(r, "info: no such rule: "..tostring(rule))
+    local src = r.src and (r.src:len() > 80 and r.src:sub(1,77).."..." or r.src) or "n/a"
+    print(fmt("ℹ️  [%s] (id=%d)", r.name, r.id))
+    print(fmt("   src:     %s", src))
+    print(fmt("   status:  %s", r._disabled and "❌ disabled" or "✅ enabled"))
+    if r.opts.group then
+      print(fmt("   group:   %s", r.opts.group))
+    end
+    -- triggers
+    print("   triggers:")
+    r:dumpTriggers("  ")
+    -- modifier flags (compile-time)
+    local mods = {}
+    if r.modifiers.restart  then mods[#mods+1] = "restart" end
+    if r.modifiers.debounce then mods[#mods+1] = fmt("debounce(%s)", r.modifiers.debounce) end
+    if #mods > 0 then print(fmt("   modifiers: %s", table.concat(mods, ", "))) end
+    -- modifier runtime state
+    local ms = r._mstate
+    if ms.once      ~= nil then print(fmt("   once:      %s", ms.once and "locked" or "open")) end
+    if ms.cool_down ~= nil then
+      local cd = ms.cool_down
+      print(fmt("   cooldown:  last fired %s", cd.lastFired and os.date("%H:%M:%S", cd.lastFired) or "never"))
+    end
+    if ms.every_other ~= nil then print(fmt("   every:     count=%d", ms.every_other.count)) end
+    if r.trueFor and r.trueFor.ref then
+      print(fmt("   trueFor:   waiting (triggered by %s)", tostring(r.trueFor.trigger)))
+    end
+    -- active timers
+    local tc = 0; for _ in pairs(r.timers) do tc = tc + 1 end
+    if tc > 0 then print(fmt("   timers:    %d active", tc)) end
+    -- history
+    print(fmt("   history:   %s (size=%d, entries=%d)",
+      r.historyOn and "recording" or "off", r.historySize, #r.history))
+    return r
+  end
   
   local async = ER.async
 
@@ -231,20 +332,26 @@ local function setupFuns()
   end
 
   function async.once(cb,expr)
-    local once = cb.ctx.once
+    local opts = cb.cf.ctx.opts
+    local rule = opts and opts.rule
+    local mstate = rule and rule._mstate or cb.ctx
+    local once = mstate.once
     if expr then
       if not once then 
-        cb.ctx.once = true
+        mstate.once = true
         cb(true)
       else cb(false) 
       end
-    else  cb.ctx.once = nil; cb(false) end
+    else  mstate.once = nil; cb(false) end
     return -1 -- not async
   end
 
   function async.cool_down(cb, T)
-    local state = cb.ctx.cool_down or {}
-    cb.ctx.cool_down = state
+    local opts = cb.cf.ctx.opts
+    local rule = opts and opts.rule
+    local mstate = rule and rule._mstate or cb.ctx
+    local state = mstate.cool_down or {}
+    mstate.cool_down = state
     local now = os.time()
     if not state.lastFired or (now - state.lastFired) >= T then
       state.lastFired = now
@@ -256,8 +363,11 @@ local function setupFuns()
   end
 
   function async.every_other(cb, N)
-    local state = cb.ctx.every_other or {count=0}
-    cb.ctx.every_other = state
+    local opts = cb.cf.ctx.opts
+    local rule = opts and opts.rule
+    local mstate = rule and rule._mstate or cb.ctx
+    local state = mstate.every_other or {count=0}
+    mstate.every_other = state
     state.count = state.count + 1
     if state.count % N == 0 then
       cb(true)

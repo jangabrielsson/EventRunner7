@@ -165,27 +165,74 @@
   <tr>
     <td><code>restart</code></td>
     <td><code>cond restart =&gt;</code></td>
-    <td>Cancel all pending timers / <code>wait()</code> suspensions from the current run and start fresh when the condition fires again</td>
+    <td>Cancel all pending timers and <code>wait()</code> suspensions from the previous run before starting a new one</td>
   </tr>
   <tr>
     <td><code>since T</code></td>
     <td><code>cond since 00:02 =&gt;</code></td>
-    <td>Condition must stay <em>continuously</em> true for T seconds before firing (alias for <code>trueFor</code>)</td>
+    <td>Condition must stay <em>continuously</em> true for T seconds before firing</td>
   </tr>
   <tr>
     <td><code>debounce T</code></td>
     <td><code>cond debounce 0.5 =&gt;</code></td>
-    <td>Wait T seconds of silence after the last fire; reset timer on each re-fire (implies <code>restart</code>)</td>
+    <td>Wait T seconds of silence after the last trigger; any re-trigger cancels and restarts the wait (implies <code>restart</code>)</td>
   </tr>
   <tr>
     <td><code>cooldown T</code></td>
     <td><code>cond cooldown 00:05 =&gt;</code></td>
-    <td>Suppress re-triggering for T seconds after the action completes</td>
+    <td>Suppress re-triggering for T seconds after the last fire</td>
   </tr>
   <tr>
     <td><code>every N</code></td>
     <td><code>cond every 4 =&gt;</code></td>
-    <td>Fire only on every N-th true evaluation</td>
+    <td>Fire only on every N-th true evaluation of the condition</td>
+  </tr>
+  <tr>
+    <td><code>first_in W</code></td>
+    <td><code>cond first_in 07:00..08:00 =&gt;</code></td>
+    <td>Fire at most once per opening of time window <code>W</code>; the latch resets automatically when the window closes. <code>W</code> must be a <code>..</code> time range.</td>
+  </tr>
+</table>
+
+<h4>What each modifier desugars to</h4>
+
+<p>
+  All modifiers except <code>restart</code> and <code>debounce</code> are <em>pure condition sugar</em> —
+  they rewrite the condition expression before compilation. <code>restart</code> and <code>debounce</code>
+  also carry a runtime flag that clears active timers on each invocation.
+</p>
+
+<table>
+  <tr><th>Modifier</th><th>Expands to</th><th>Clears timers?</th></tr>
+  <tr>
+    <td><code>cond restart =&gt; action</code></td>
+    <td>RULE node flag <code>{restart=true}</code> set; action unchanged</td>
+    <td>✅ cancels pending <code>wait()</code> / timers before each run</td>
+  </tr>
+  <tr>
+    <td><code>cond since T =&gt; action</code></td>
+    <td>condition becomes <code>trueFor(T, cond)</code></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td><code>cond debounce T =&gt; action</code></td>
+    <td>RULE flag <code>{restart=true}</code> set; <code>wait(T)</code> prepended to action block</td>
+    <td>✅ cancels previous <code>wait(T)</code> on each re-trigger</td>
+  </tr>
+  <tr>
+    <td><code>cond cooldown T =&gt; action</code></td>
+    <td>condition becomes <code>cond AND cool_down(T)</code></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td><code>cond every N =&gt; action</code></td>
+    <td>condition becomes <code>cond AND every_other(N)</code></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td><code>cond first_in W =&gt; action</code></td>
+    <td>condition becomes <code>cond AND once(W)</code></td>
+    <td>—</td>
   </tr>
 </table>
 
@@ -198,7 +245,8 @@ rule("doorbell:pressed restart =&gt; wait(500); chime:play")
 -- since: only trigger alarm after 2 continuous minutes of motion
 rule("motion:breached since 00:02 =&gt; alarm:on")
 
--- debounce: wait 500 ms of quiet before calling search
+-- debounce: wait 500 ms of quiet before calling search; each new keypress
+-- cancels the pending wait and restarts the 500 ms countdown
 rule("keypress debounce 0.5 =&gt; searchAPI(query)")
 
 -- cooldown: at most one notification every 5 minutes
@@ -207,8 +255,19 @@ rule("motion:breached cooldown 00:05 =&gt; notify('Motion detected!')")
 -- every: log temperature on every 4th change, not every change
 rule("tempSensor:value every 4 =&gt; log('Temp: %d', tempSensor:value)")
 
+-- first_in: play radio the first time the sensor is breached in the morning
+-- window; the latch resets at 08:00 so it works again next day
+rule("sensor:breached first_in 07:00..08:00 =&gt; radio:play")
+
 -- Modifiers compose freely:
 rule("button:pressed restart cooldown 2 =&gt; wait(100); light:toggle")</code></pre>
+
+<div class="note">
+  ℹ️ <strong><code>first_in</code></strong> requires a <code>..</code> time window as its argument.
+  Passing anything else (a number, a variable, etc.) is a <strong>parse-time error</strong>.
+  Under the hood it desugars to <code>cond AND once(W)</code> — the existing <code>once()</code>
+  latch function, which auto-resets when the window closes.
+</div>
 
 <hr>
 

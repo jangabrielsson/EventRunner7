@@ -15,11 +15,14 @@ local RULEIDX = 0
 local DAILYID = 1
 local rules = {}
 local groups = {} -- { [groupName] = {rule1, rule2, ...} }
+local namedRules = {} -- { [name] = rule } — includes auto-names "RULE<id>"
 ER._triggerVars = {}
 
 local function isRule(obj) return type(obj) == 'table' and obj.type == 'RULE' end
 local function getRule(rule)
-  return isRule(rule) and rule or rules[tonumber(rule) or 0]
+  if isRule(rule) then return rule end
+  if type(rule) == 'string' then return namedRules[rule] end
+  return rules[tonumber(rule) or 0]
 end
 local function getRuleGoup(name) return groups[name] end
 
@@ -107,15 +110,23 @@ local function compRule(r, opts, src)
 
   RULEIDX = RULEIDX + 1
   local rule = { type='RULE', isRule = true, id = RULEIDX, verbosity = opts.verbosity or "normal", src = src, opts = opts }
+  rule.name = opts.name or ("RULE" .. RULEIDX)
   rules[RULEIDX] = rule
+  namedRules[rule.name] = rule
   if opts.group then 
     assert(type(opts.group) == "string", "Group name must be a string")
     groups[opts.group] = groups[opts.group] or {} 
     groups[opts.group][#groups[opts.group]+1] = rule 
   end
   setmetatable(rule, {
-    __tostring = function(self) return "RULE" .. tostring(self.id) end
+    __tostring = function(self) return self.name end
   })
+  rule.historyOn = false
+  rule.historySize = opts.historySize or 10
+  rule.history = {}
+  rule.watchOn = false
+  rule.modifiers = r[4] or {}  -- raw modifier flags (restart, debounce, etc.)
+  rule._mstate = {}             -- runtime modifier state (once, cool_down, every_other)
   function rule:log(minLevel, prefix, a1,...)
     local level = VERBOSITY[self.verbosity or "normal"] or 1
     local min   = VERBOSITY[minLevel] or 1
@@ -637,6 +648,17 @@ local function ruleGuard(success)
     local prefix = success and opts.successPrefix or opts.failPrefix
     ctx:log("normal", prefix, event)
   end
+  local r = opts.rule
+  if r and r.historyOn then
+    local entry = { time=os.time(), trigger=tostring(event), result=success }
+    table.insert(r.history, entry)
+    if #r.history > (r.historySize or 10) then table.remove(r.history, 1) end
+  end
+  if r and r.watchOn then
+    local ts = os.date("%H:%M:%S")
+    local res = success and "✅ PASS" or "❌ FAIL"
+    print(fmt("👁  [%s] %s  %s  %s", r.name, ts, res, tostring(event)))
+  end
   return success
 end
 
@@ -695,6 +717,7 @@ local function bootEventRunner(cb)
   ER.isRule = isRule
   ER.getRule = getRule
   ER.getGroup = getRuleGoup
+  ER.namedRules = namedRules
 
   er.opts = {} -- default options
   ER.er = er
