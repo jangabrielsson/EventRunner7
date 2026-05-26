@@ -457,9 +457,9 @@ end
 --
 -- yield handlers receive (continuationFn, ctx, cb, ...yieldArgs)
 local yieldHandlers = {
-  sleep = function(cf, ctx, cb, ms)
+  sleep = function(cf, ctx, cb, sec)
     local o = ctx.opts
-    ms = math.floor(ms*1000+0.5)
+    local ms = math.floor(sec*1000+0.5)
     if o.waiting then
       ctx:log("normal", o.waitPrefix, fmt("sleeping %dms", ms))
     end

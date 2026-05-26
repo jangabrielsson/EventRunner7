@@ -232,6 +232,10 @@ local function makeParser(src)
         next(); return {'NEG', parseUnaryexp()}
       elseif t.value == 'not' then
         next(); return {'NOT', parseUnaryexp()}
+      elseif t.value == 'and' then
+        parseError("Unexpected '&' — use '&' as a binary operator between two expressions (e.g. 'a > 0 & b > 0'), not '&&'")
+      elseif t.value == 'or' then
+        parseError("Unexpected '|' — use '|' as a binary operator between two expressions (e.g. 'a > 0 | b > 0'), not '||'")
       end
     elseif t and t.type == 'today' then
       next(); return {'TODAY', parseUnaryexp()}
@@ -342,6 +346,9 @@ local function makeParser(src)
     while peek(1) and peek(1).type == 'op' and peek(1).value == 'or' do
       local op = next()
       left = P({'OR', left, parseAndexp()}, op)
+    end
+    if peek(1) and peek(1).type == 'case_bar' then
+      parseError("Use '|' for OR (not '||') in EventScript expressions")
     end
     return left
   end
@@ -632,6 +639,9 @@ local function makeParser(src)
     --          | block                         →  {'SCRIPT', block}
     -- Speculatively parse a leading expression; if modifiers and/or '=>' follow it's a rule.
     -- On failure or no '=>', restore and re-parse as a plain block.
+    if peek(1) and peek(1).type == 'rule' then
+      parseError("Rule requires a condition before '=>'")
+    end
     local snap = savePos()
     local ok, cond = pcall(parseExp)
     if ok and peek(1) then
@@ -642,18 +652,34 @@ local function makeParser(src)
         if tok.type == 'restart' then
           next(); modifiers.restart = true; consumedModifier = true
         elseif tok.type == 'since' then
-          next(); local T = parseExp()
+          next()
+          if not peek(1) or peek(1).type == 'rule' then
+            parseError("'since' requires a duration (e.g. since 5)")
+          end
+          local T = parseExp()
           cond = {'CALL', {'NAME','trueFor'}, T, cond}
           consumedModifier = true
         elseif tok.type == 'debounce' then
-          next(); local T = parseExp()
+          next()
+          if not peek(1) or peek(1).type == 'rule' then
+            parseError("'debounce' requires a duration (e.g. debounce 5)")
+          end
+          local T = parseExp()
           modifiers.restart = true; modifiers.debounce = T; consumedModifier = true
         elseif tok.type == 'cooldown' then
-          next(); local T = parseExp()
+          next()
+          if not peek(1) or peek(1).type == 'rule' then
+            parseError("'cooldown' requires a duration (e.g. cooldown 5)")
+          end
+          local T = parseExp()
           cond = {'AND', cond, {'CALL', {'NAME','cool_down'}, T}}
           consumedModifier = true
         elseif tok.type == 'every' then
-          next(); local N = parseExp()
+          next()
+          if not peek(1) or peek(1).type == 'rule' then
+            parseError("'every' requires a count (e.g. every 3)")
+          end
+          local N = parseExp()
           cond = {'AND', cond, {'CALL', {'NAME','every_other'}, N}}
           consumedModifier = true
         elseif tok.type == 'first_in' then
@@ -688,6 +714,9 @@ local function makeParser(src)
     restorePos(snap)
     local block = parseBlock()
     if peek(1) then
+      if peek(1).type == 'rule' then
+        parseError("Unexpected '=>': did you mean '==' instead of '=' in the condition?")
+      end
       parseError("Unexpected token at top level")
     end
     return {'SCRIPT', block}

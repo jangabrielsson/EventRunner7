@@ -553,8 +553,8 @@ condition [modifier...] => action
 
 **Examples:**
 ```lua
-rule("doorbell:pressed restart => wait(500); chime:play")
--- Re-starts chime if pressed again mid-play.
+rule("doorbell:pressed restart => wait(0.5); chime:play")
+-- Re-starts chime if pressed again mid-play (0.5 = 500 ms).
 
 rule("motion:breached since 00:02 => alarm:on")
 -- Only triggers after 2 continuous minutes of motion.
@@ -569,7 +569,7 @@ rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
 -- Logs on every 4th temperature change.
 
 -- Modifiers compose:
-rule("button:pressed restart cooldown 2 => wait(100); light:toggle")
+rule("button:pressed restart cooldown 2 => wait(0.1); light:toggle")
 ```
 
 ### trueFor Function

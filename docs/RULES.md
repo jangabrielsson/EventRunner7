@@ -28,7 +28,7 @@ local v = rule("return 3 + 4")   -- v == 7
 
 -- Asynchronous expression: contains wait(); logs 💤, returns nil immediately;
 -- logs 📋 result when done
-local v = rule("wait(100); return 7")  -- v == nil immediately, logs 📋 7 after 100ms
+local v = rule("wait(0.1); return 7")  -- v == nil immediately, logs 📋 7 after 100ms
 ```
 
 | Input | `eval()` returns | Logs immediately | Logs later |
@@ -107,7 +107,7 @@ condition [modifier...] => action
 If the condition re-fires while the action has pending timers (e.g. suspended in a `wait` or a scheduled `post`), cancel all those pending timers and start a fresh run. The currently-executing synchronous portion of the action is not interrupted — only the timed continuations are dropped.
 
 ```lua
-rule("doorbell:pressed restart => wait(500); chime:play")
+rule("doorbell:pressed restart => wait(0.5); chime:play")
 -- If doorbell fires again while waiting the 500 ms, the wait is cancelled
 -- and a new 500 ms wait starts, so the chime always plays 500 ms
 -- after the *last* press.
@@ -217,12 +217,12 @@ Writing to `er.triggerVars.myvar` posts a `{type='trigger-variable', name='myvar
 
 ---
 
-## Asynchronous actions: `wait(ms)`
+## Asynchronous actions: `wait(secs)`
 
-`wait(ms)` suspends the rule action and resumes it after `ms` milliseconds via `setTimeout`. Multiple `wait` calls chain correctly:
+`wait(secs)` suspends the rule action and resumes it after `secs` seconds (fractional values allowed: `wait(0.5)` = 500 ms) via `setTimeout`. Multiple `wait` calls chain correctly:
 
 ```
-cond => wait(500); doSomething(); wait(1000); return result
+cond => wait(0.5); doSomething(); wait(1); return result
 ```
 
 - `eval()` / `rule:run()` return **immediately** when the action suspends

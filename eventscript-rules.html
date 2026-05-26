@@ -832,7 +832,7 @@ rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
           <div class="fc-label">Async expression</div>
           <div class="fc-title">Suspends &amp; resumes</div>
           <div class="fc-body">Contains <code>wait()</code>. Returns nil immediately, logs 📋 when done.</div>
-          <div class="fc-code">er.eval("wait(100); return 7")</div>
+          <div class="fc-code">er.eval("wait(0.1); return 7")</div>
         </div>
       </div>
       <div class="slide-num">04 / 22</div>
@@ -1056,7 +1056,7 @@ rule("trueFor(00:10, !hallMotion:breached) =&gt; hallLight:off")</code></pre>
       <div class="rule-accent lavender reveal"></div>
       <div class="code-block lavender-accent reveal">
         <pre><code data-lua>-- restart: cancel &amp; restart if condition fires again mid-action
-rule("doorbell:pressed restart =&gt; wait(500); chime:play")
+rule("doorbell:pressed restart =&gt; wait(0.5); chime:play")
 -- since T: condition must hold continuously for T before firing
 rule("motion:breached since 00:02 =&gt; alarm:on")
 -- debounce T: wait T s after last fire; reset on re-fire (implies restart)
@@ -1070,7 +1070,7 @@ rule("sensor:value every 4 =&gt; log('val: %d', sensor:value)")</code></pre>
         <li>Modifiers go <strong>between the condition and <code>=&gt;</code></strong> — combine freely</li>
         <li><code>since T</code> is an alias for <code>trueFor(T, cond)</code> — no extra function needed</li>
         <li><code>debounce</code> resets its timer on every re-fire, so the action waits for quiet</li>
-        <li>Example combo: <code>button:pressed restart cooldown 2 =&gt; wait(100); light:toggle</code></li>
+        <li>Example combo: <code>button:pressed restart cooldown 2 =&gt; wait(0.1); light:toggle</code></li>
       </ul>
       <div class="slide-num">09 / 24</div>
     </div>
@@ -1165,14 +1165,14 @@ rule("motionSensor:breached =&gt; homeOccupied = true")</code></pre>
         <pre><code data-lua>-- Turn light on, wait 5 min, turn off if no motion
 rule([[motion:breached =&gt;
   hallLight:on;
-  wait(300000);           -- 300 000 ms = 5 minutes
+  wait(00:05);           -- 5 minutes
   if !motion:breached then
     hallLight:off
   end
 ]])</code></pre>
       </div>
       <ul class="bullet-list reveal">
-        <li><code>wait(ms)</code> suspends the action and resumes via <code>setTimeout</code></li>
+        <li><code>wait(secs)</code> suspends the action and resumes via <code>setTimeout</code> (fractions ok: <code>wait(0.5)</code> = 500 ms)</li>
         <li>Multiple <code>wait</code> calls chain correctly in sequence</li>
         <li>Set <code>rule.verbosity = "verbose"</code> to log 💤 / ⏰ around each wait</li>
       </ul>
