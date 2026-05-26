@@ -57,7 +57,6 @@ local function main(er) ER = er
 
   -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
   -- rule("disable('morning')")
-  rule("log('profiles:%s',1:profile)")
 end
 
 

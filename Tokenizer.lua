@@ -115,6 +115,8 @@ local tknsStrs = {
     local h,m = s:match("(%d+):(%d+)")
     return {type='number', value=tonumber(h)*3600+tonumber(m)*60}
   end},
+  {"0123456789", "%d+:%d+", function(s) error("Time literals must be in HH:MM or HH:MM:SS format: "..s) end}, -- catch common mistake of forgetting leading zeros
+  {"0123456789", "%d+:%d+:%d+", function(s) error("Time literals must be in HH:MM or HH:MM:SS format: "..s) end}, -- catch common mistake of forgetting leading zeros
   {"0123456789","%d+%.%d+",function(n) 
     return {type='number',value=tonumber(n)} 
   end
