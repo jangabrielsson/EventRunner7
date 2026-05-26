@@ -916,6 +916,7 @@ local vm = {
   defGlobal = function(name, v) _ctx:defGlobal(name, v) end,
   getGlobal = function(name)    return (_ctx:getGlobal(name)) end,
   setGlobal = function(name, v) return _ctx:setGlobal(name, v) end,
+  resetGlobals = function()     _global_env = {} end,
 }
 
 fibaro.ER.csp = vm

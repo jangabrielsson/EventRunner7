@@ -17,6 +17,7 @@ local rules = {}
 local groups = {} -- { [groupName] = {rule1, rule2, ...} }
 local namedRules = {} -- { [name] = rule } — includes auto-names "RULE<id>"
 ER._triggerVars = {}
+local generation = 0  -- incremented on each bootEventRunner call; used to invalidate stale startup timers
 
 local function isRule(obj) return type(obj) == 'table' and obj.type == 'RULE' end
 local function getRule(rule)
@@ -462,7 +463,9 @@ local yieldHandlers = {
     if o.waiting then
       ctx:log("normal", o.waitPrefix, fmt("sleeping %dms", ms))
     end
-    setTimeout(function()
+    local ref
+    ref = setTimeout(function()
+      if ctx.timers then ctx.timers[ref] = nil end
       if o.waited then
         ctx:log("normal", o.waitedPrefix, fmt("woke after %dms", ms))
       end
@@ -473,6 +476,7 @@ local yieldHandlers = {
         ctx:log("normal", o.errorPrefix, err)
       end
     end, ms)
+    if ctx.timers then ctx.timers[ref] = ms end  -- track so restart can cancel
   end,
   asyncFun = function(cf, ctx, cb, fun, ...)
     local timedOut,timeref = false,nil
@@ -662,7 +666,20 @@ local function ruleGuard(success)
   return success
 end
 
+local function clearRules()
+  for _, r in pairs(rules) do
+    for ref in pairs(r.timers) do sourceTrigger:cancel(ref) end
+  end
+  rules = {}; groups = {}; namedRules = {}
+  RULEIDX = 0; DAILYID = 1
+  ER.ASYNCFUNS = {}; ER._triggerVars = {}
+  vm.resetGlobals()
+end
+
 local function bootEventRunner(cb)
+  local silent = ER.silent
+  generation = generation + 1
+  local gen = generation
   local color = ER.color
   local er = {eval = eval, now = ER.now}
 
@@ -702,7 +719,10 @@ local function bootEventRunner(cb)
   er.defglobals = ER.defglobals
   er.variables = er.defglobals -- backward compatibility, will be removed in future
 
-  midnightLoop()
+  if not ER._midnightRunning then
+    ER._midnightRunning = true
+    midnightLoop()
+  end
 
   er.post = function(...) return sourceTrigger:post(...) end
   er.cancel = function(...) return sourceTrigger:cancel(...) end
@@ -720,6 +740,7 @@ local function bootEventRunner(cb)
   ER.namedRules = namedRules
 
   er.opts = {} -- default options
+  er.reset = function(newMain) clearRules(); bootEventRunner(newMain or function() end) end
   ER.er = er
 
   for _,hook in ipairs(ER.onInitHooks or {}) do hook(er) end
@@ -730,6 +751,7 @@ local function bootEventRunner(cb)
     __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
   })
   setTimeout(function()
+    if gen ~= generation then return end
     sourceTrigger:run()
 
     local preModules,afterModules = {},{} -- Modules with negative prio are loaded before the main callback, others after. This allows modules to patch ER before rules are loaded.
@@ -740,15 +762,21 @@ local function bootEventRunner(cb)
     table.sort(preModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
     table.sort(afterModules, function(a,b) return (a.prio or 0) < (b.prio or 0) end)
 
-    print(color('green',"=========== Loading rules ================"))
+    if not silent then print(color('green',"=========== Loading rules ================")) end
 
     local loadTime = os.clock()
-    for i,m in ipairs(preModules) do m.code(er) if m.name==nil or m.name:sub(1,1) ~= "_" then print(fmt("Loaded module %s", m.name or i)) end end
+    for i,m in ipairs(preModules) do m.code(er) if m.name==nil or m.name:sub(1,1) ~= "_" then 
+      if not silent then print(fmt("Loaded module %s", m.name or i)) end
+      end 
+    end
     cb(er) -- User's main callback, where they typically define their rules, runs between preModules and afterModules to allow preModules to patch ER before rules are loaded, and afterModules to patch ER after rules are loaded.
-    for i,m in ipairs(afterModules) do m.code(er) if m.name==nil or m.name:sub(1,1) ~= "_" then print(fmt("Loaded module %s", m.name or i)) end end
+    for i,m in ipairs(afterModules) do m.code(er) if m.name==nil or m.name:sub(1,1) ~= "_" then 
+      if not silent then print(fmt("Loaded module %s", m.name or i)) end
+      end
+    end
     loadTime = os.clock() - loadTime
 
-    print(color('green', fmt("=========== Load time: %.3fs ============", loadTime)))
+    if not silent then print(color('green', fmt("=========== Load time: %.3fs ============", loadTime))) end
 
   end, 500)
 end
