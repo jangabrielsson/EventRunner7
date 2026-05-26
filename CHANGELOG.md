@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.12] - 2026-05-26
+
+## Changes in v0.1.12
+
+- ✨ **Feature**: Add error handling for time literals in HH:MM and HH:MM:SS format in Tokenizer
+- ✨ **Feature**: Enhance rule handling with first_in_win functionality and update tests
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.11] - 2026-05-26
 
 ## Changes in v0.1.11
