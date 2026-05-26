@@ -293,7 +293,7 @@ local function compCall(ast)
 end
 
 -- ── Built-in intrinsics ───────────────────────────────────────────────────
--- wait(ms)  →  YIELD('sleep', ms)
+-- wait(seconds)  →  YIELD('sleep', seconds)
 -- ms may be a numeric literal or any expression; time literals like 00:05
 -- are already converted to seconds by the tokenizer, so wait(00:05) = wait(300).
 intrinsics.wait = function(ms_ast)

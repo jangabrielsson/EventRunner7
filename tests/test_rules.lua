@@ -126,7 +126,7 @@ test("first_in with reset", function(er, rule, vars, tv, er)
   rule("timeA = now; timeB = now+01:00")
   rule("y == true first_in timeA..timeB => x += 1")
   rule("x == 2 => done()")
-  rule("y=true; wait(24:00:00); y=false; wait(1); y=true")
+  rule("y=true; wait(24:00); y=false; wait(1); y=true")
 end, {timeout=1000*60*60*24+2*1000})
 
 -- device props
