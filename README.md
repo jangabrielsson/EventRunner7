@@ -191,7 +191,7 @@ scene dynscene = {
 ```lua
 rule([[motion:breached =>
   hallLight:on;
-  wait(300000);             -- suspend 5 minutes; other rules keep running
+  wait(00:05);             -- suspend 5 minutes; other rules keep running
   if !motion:breached then hallLight:off end
 ]])
 ```
