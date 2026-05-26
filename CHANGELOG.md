@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.13] - 2026-05-26
+
+## Changes in v0.1.13
+
+- ✨ **Feature**: Implement early rule processing termination with BREAK sentinel
+- 🐛 **Fix**: Update wait time format in tests to HH:MM
+- 🐛 **Fix**: Update wait time format in example rule to HH:MM
+- ✨ **Feature**: Add error handling for logical operators and improve duration specifications in rules
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.12] - 2026-05-26
 
 ## Changes in v0.1.12
