@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.1.14] - 2026-05-26
+
+## Changes in v0.1.14
+
+- ✨ **Feature**: Add release notes for version 0.1.13 and enhance error handling in tests
+  - Created a new HTML file for the release notes of EventRunner7 v0.1.13, detailing new features and fixes.
+  - Implemented a copy-to-clipboard functionality for easy sharing of the forum post.
+  - Enhanced the error testing in `error_test.lua` to include checks for rule compilation errors and improved time constant validation.
+  - Added a function to convert HTML entities to plain text for better error message readability.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.13] - 2026-05-26
 
 ## Changes in v0.1.13
