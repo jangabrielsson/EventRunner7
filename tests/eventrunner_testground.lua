@@ -57,7 +57,10 @@ local function main(er) ER = er
 
   -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
   -- rule("disable('morning')")
-  rule("log(00:05)")
+  er.triggerVars.a = 0
+  rule("a == 1 => log('OK1'); return BREAK") -- prevents rule engine from processing any more rules for this trigger, so "OK2" won't be logged
+  rule("a == 1 => log('OK2')")
+  rule("a = 1")
 end
 
 

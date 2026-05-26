@@ -595,6 +595,7 @@ local function makeParser(src)
   local terminators = {
     ['end'] = true, ['else'] = true, ['elseif'] = true, ['until'] = true,
     ['case_bar'] = true,  -- '||' terminates a case branch block
+    ['rule'] = true,      -- '=>' stops block parsing so parseScript can give a better error
   }
 
   parseBlock = function()
@@ -645,6 +646,19 @@ local function makeParser(src)
     local snap = savePos()
     local ok, cond = pcall(parseExp)
     if ok and peek(1) then
+      -- '=' immediately after an expression in a rule context means the user
+      -- likely wrote 'x = val => ...' instead of 'x == val => ...'.
+      -- Confirm by peeking ahead: skip '= expr' and check if '=>' follows.
+      if peek(1).type == 'assign' then
+        local snap2 = savePos()
+        next()  -- skip '='
+        local ok2 = pcall(parseExp)  -- skip RHS
+        local hasArrow = ok2 and peek(1) and peek(1).type == 'rule'
+        restorePos(snap2)
+        if hasArrow then
+          parseError("Did you mean '==' instead of '='? Use '==' for equality in conditions")
+        end
+      end
       local modifiers = {}
       local consumedModifier = false
       while peek(1) do

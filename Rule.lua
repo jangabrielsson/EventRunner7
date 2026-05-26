@@ -143,6 +143,11 @@ local function compRule(r, opts, src)
   local modifiers = r[4] or {}
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
   scanHead(head, trs)             -- scanHead may modify ast...
+  -- sanity check that scanHead found something triggerable
+  if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
+    rules[RULEIDX], namedRules[rule.name] = nil, nil -- remove rule from registry
+    error("Rule has no triggers: " .. src)
+  end 
   local fun  = ER.csp.compile(r, r._srcmap)  -- compile rule action into CSP (with srcmap if available)
   rule.fun = fun
   rule.timers = {}
@@ -175,7 +180,7 @@ local function compRule(r, opts, src)
       rule.timers = {}
       for ref in pairs(old) do sourceTrigger:cancel(ref) end
     end
-    ruleRunner(rule.fun, rule, ...)
+    return ruleRunner(rule.fun, rule, ...)
   end
 
   local function mkEvVars(key,ev)
@@ -205,7 +210,7 @@ local function compRule(r, opts, src)
         return
       end
       if opts.started then rule:log("normal", opts.startPrefix, ev.event) end
-      runRule({
+      return runRule({
         vars = mkEvVars(key,ev)})
       end
     )
@@ -718,6 +723,7 @@ local function bootEventRunner(cb)
   er.globals = ER.globals
   er.defglobals = ER.defglobals
   er.variables = er.defglobals -- backward compatibility, will be removed in future
+  er.defglobals.BREAK = sourceTrigger.eventEngine.BREAK
 
   if not ER._midnightRunning then
     ER._midnightRunning = true

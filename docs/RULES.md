@@ -217,6 +217,25 @@ Writing to `er.triggerVars.myvar` posts a `{type='trigger-variable', name='myvar
 
 ---
 
+## Stopping rule processing early: `BREAK`
+
+When multiple rules share the same trigger, EventRunner fires them all in registration order. A rule action can return `BREAK` to stop processing any further rules for that trigger event:
+
+```lua
+er.triggerVars.a = 0
+rule("a == 1 => log('OK1'); return BREAK")  -- fires, then stops
+rule("a == 1 => log('OK2')")                -- never reached
+rule("a = 1")                               -- sets a → fires the two rules above
+```
+
+`BREAK` is a special sentinel value (`'%BREAK%'`) exposed via `er.defglobals.BREAK`. It is checked by the event engine after each rule's action returns — if the value matches, event dispatch stops immediately.
+
+Rules that *don't* share the same trigger pattern are unaffected.
+
+> **Important:** `BREAK` only works in **synchronous** rule actions (no `wait()` calls). When an action suspends on a `wait()`, the event engine has already moved on and subsequent rules for the same trigger have already fired. Returning `BREAK` from inside or after a `wait()` continuation has no effect.
+
+---
+
 ## Asynchronous actions: `wait(secs)`
 
 `wait(secs)` suspends the rule action and resumes it after `secs` seconds (fractional values allowed: `wait(0.5)` = 500 ms) via `setTimeout`. Multiple `wait` calls chain correctly:
