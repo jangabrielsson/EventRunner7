@@ -17,7 +17,13 @@ local compileAST     = ER.compileAST
 local compileASTWithMap = ER.compileASTWithMap
 local vm             = ER.csp
 
-local function main()
+local function dehtml(s)
+  s = s:gsub("</br>", "\n")
+  s = s:gsub("&nbsp;", " ")
+  return s
+end
+
+local function main(er)
 
   -- ── Test harness ──────────────────────────────────────────────────────────
 
@@ -42,6 +48,23 @@ local function main()
     elseif expect_cursor and not msg:find("%^") then
       failed = failed + 1
       print("FAIL (no cursor): " .. name .. "\n  msg: " .. msg)
+    else
+      passed = passed + 1
+      print("PASS: " .. name)
+    end
+  end
+
+  -- Expect an error thrown during rule compilation (compRule/scanHead path).
+  -- Uses er.eval which goes through the full rule pipeline.
+  local function testRuleError(name, src, pattern)
+    local ok, err = pcall(er.eval, src, {verbosity="silent", defined=false, triggers=false, throw=true})
+    local msg = tostring(err)
+    if ok then
+      failed = failed + 1
+      print("FAIL (no error): " .. name)
+    elseif not msg:find(pattern) then
+      failed = failed + 1
+      print("FAIL (wrong msg): " .. name .. "\n  pattern : " .. pattern .. "\n  got     : " .. msg)
     else
       passed = passed + 1
       print("PASS: " .. name)
@@ -137,6 +160,33 @@ local function main()
     "nonexistent_gv_xyz",
     true)
 
+  testError("assign in condition",
+    "x = 8 => return 1",
+    "Did you mean '==' instead of '='%? Use '==' for equality",
+    true)
+
+  testError("time constant 1",
+    "a = 1:00",
+    "Time literals must be in HH:MM",
+    false)
+
+  testError("time constant 2",
+    "a = 10:0",
+    "Time literals must be in HH:MM",
+    false)
+
+  testRuleError("undefined device",
+    "20000:value => return 1",
+    "No such device")
+
+  testRuleError("no triggers",
+    "log('ok') => return 1",
+    "Rule has no triggers")
+
+  testRuleError("first_in time_window",
+    "46:value first_in 'a' => return 1",
+    "'first_in' requires a time window")
+
   -- ── Runtime errors — cursor placement ────────────────────────────────────
   -- These check that the ^ appears under the right token, not just anywhere.
 
@@ -149,7 +199,7 @@ local function main()
       local code       = vm.compile(tree, smap)
       vm.eval(code, { src = src })
     end)
-    local msg = tostring(err)
+    local msg = dehtml(tostring(err))
     -- The marker line must start with spaces then ^ roughly at column 12 (the 'n' of nil)
     local marker = msg:match("\n([%s%^]+)$") or msg:match("\n([%s%^]+)\n?$")
     local col = marker and (marker:find("%^") or 0) or 0

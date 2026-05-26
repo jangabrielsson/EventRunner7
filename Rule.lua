@@ -1,6 +1,6 @@
 fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
-local vm = ER.csp
+local vm
 
 local _VERSION = "0.1.13"
 fibaro.EventRunnerVersion = _VERSION
@@ -355,6 +355,7 @@ function HOPS.GETPROP(ast,trs)
   if type(obj) ~= 'table' then obj = {obj} end
   for _,o in pairs(obj) do
     local gp = ER.resolvePropObject(o)
+    assert(gp, "GETPROP: cannot resolve object: "..tostring(o))
     if not gp:hasGetProp(key) then
       error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp))
     end
@@ -631,8 +632,10 @@ local function eval(src,opts)
   end)
 
   if not ok then
-    print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
-    --error(err) -- we already printed this... re-throwing would cause double printing if eval is called from another eval's pcall, so just return nil on error.
+    if not opts.throw then
+      print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+    end
+    if opts.throw then error(err, 0) end
   end
 
   -- For bare expressions: log the sync result if we got one.
@@ -788,6 +791,7 @@ local function bootEventRunner(cb)
 end
 
 function fibaro.EventRunner(cb)
+  vm = ER.csp
   if type(cb)=='function' then bootEventRunner(cb) -- new style
   else
     return setmetatable({start = function() bootEventRunner(function(er) cb:main(er) end) end}, { -- Backward comp. with ER6
