@@ -661,7 +661,9 @@ local function makeParser(src)
           if W[1] ~= 'BETW' then
             parseError("'first_in' requires a time window expression (e.g. 07:00..08:00)")
           end
-          cond = {'AND', cond, {'CALL', {'NAME','once'}, W}}
+          -- pass both the BETW result and the raw stop expression so
+          -- first_in_win can schedule a proactive reset at window end
+          cond = {'AND', cond, {'CALL', {'NAME','first_in_win'}, W, W[3]}}
           consumedModifier = true
         else
           break

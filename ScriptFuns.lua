@@ -331,18 +331,53 @@ local function setupFuns()
     return -1 -- not async...
   end
 
-  function async.once(cb,expr)
+  function async.once(cb, expr)
+    -- Backwards-compatible wrapper: resets at midnight (00:00 = stopVal 0)
+    return async.first_in_win(cb, expr, 0)
+  end
+
+  -- first_in_win: like once() but proactively resets at the window end time
+  -- so the rule can fire again in the NEXT occurrence of the window.
+  -- stopVal is seconds-since-midnight (< 86400) or an epoch timestamp (>= 86400).
+  function async.first_in_win(cb, inWindow, stopVal)
     local opts = cb.cf.ctx.opts
     local rule = opts and opts.rule
     local mstate = rule and rule._mstate or cb.ctx
-    local once = mstate.once
-    if expr then
-      if not once then 
+    if inWindow then
+      if not mstate.once then
         mstate.once = true
+        -- Schedule a reset at the end of the window
+        local msEnd
+        if stopVal >= 86400 then  -- epoch timestamp
+          msEnd = (stopVal - os.time()) * 1000
+        else                      -- seconds since midnight
+          local now_secs = os.time() - ER.midnight()
+          local stop_adj = stopVal >= now_secs and stopVal or stopVal + 86400
+          msEnd = (stop_adj - now_secs) * 1000
+        end
+        if msEnd > 0 and rule then
+          if mstate.once_timer then clearTimeout(mstate.once_timer) end
+          local ref
+          ref = setTimeout(function()
+            mstate.once = nil
+            mstate.once_timer = nil
+            if rule.timers then rule.timers[ref] = nil end
+          end, msEnd)
+          mstate.once_timer = ref
+          if rule.timers then rule.timers[ref] = msEnd end
+        end
         cb(true)
-      else cb(false) 
+      else cb(false) end
+    else
+      -- Outside window: cancel any pending reset and clear the flag
+      if mstate.once_timer then
+        clearTimeout(mstate.once_timer)
+        if rule and rule.timers then rule.timers[mstate.once_timer] = nil end
+        mstate.once_timer = nil
       end
-    else  mstate.once = nil; cb(false) end
+      mstate.once = nil
+      cb(false)
+    end
     return -1 -- not async
   end
 
@@ -423,6 +458,7 @@ local function setupFuns()
   end
 
   -- Named Scene PropClass ---------------------------------------------------
+  Scene = {}
   ER.definePropClass("Scene")
   function Scene:__init()
     PropObject.__init(self)

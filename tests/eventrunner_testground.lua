@@ -55,8 +55,9 @@ local function main(er) ER = er
   -- rule("mydev:temp = 42",{result=true})
   --rule("json.encode(temps:temp)")
 
-  rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
-  rule("disable('morning')")
+  -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
+  -- rule("disable('morning')")
+  rule("log('profiles:%s',1:profile)")
 end
 
 

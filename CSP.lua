@@ -184,6 +184,10 @@ local function CONST(c)
   end
 end
 
+local function msstr(v) 
+  local mt = getmetatable(v)
+  return mt and mt.__tostring and mt.__tostring(v) or v
+end
 local OPS = {
   ADD = function(left_hand, right_hand) return left_hand+right_hand end,
   SUB = function(left_hand, right_hand) return left_hand-right_hand end,
@@ -191,7 +195,7 @@ local OPS = {
   DIV = function(left_hand, right_hand) return left_hand/right_hand end,
   MOD = function(left_hand, right_hand) return left_hand%right_hand end,
   POW = function(left_hand, right_hand) return left_hand^right_hand end,
-  EQ = function(left_hand, right_hand) return left_hand==right_hand end,
+  EQ = function(left_hand, right_hand) return msstr(left_hand)==msstr(right_hand) end,
   LT = function(left_hand, right_hand) return left_hand<right_hand end,
   LTE = function(left_hand, right_hand) return left_hand<=right_hand end,
   GT = function(left_hand, right_hand) return left_hand>right_hand end,

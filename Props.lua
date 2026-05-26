@@ -129,7 +129,9 @@ local propertyTable = {
   parent = {
     get = function(pd,id) return api.get("/devices/"..id).parentId end
   },
-  profile = {
+  profile = { -- TBD, should be a custom prop object
+    trigger = {type='profile', property='activeProfile'},
+    get = function(pd,id) return api.get("/profiles").activeProfile end,
     set = function(pd,id,val,_) 
       if val then fibaro.profile("activateProfile",id) end return val
     end
@@ -278,7 +280,9 @@ local propertyTable = {
   simKey = {
     set = function(pd,id,value) 
       if type(value) ~= 'table' or not value.keyId or not value.keyAttribute then error("#simKey expects a table with keyId and keyAttribute") end
-      ER.sourceTrigger:post({type='device', id=id, property='centralSceneEvent', value={keyId=value.keyId,keyAttribute=value.keyAttribute}})
+      local ev = {type='device', id=id, property='centralSceneEvent', value={keyId=value.keyId,keyAttribute=value.keyAttribute}}
+      ev = setmetatable(ev,keyMT)
+      ER.sourceTrigger:post(ev)
       return value
     end
   },

@@ -19,6 +19,7 @@ local function main(er)
   local ER = fibaro.ER
 
   -- ── Mock PropClass with recordable set ──────────────────────────────────
+  MockDev = {}
   ER.definePropClass("MockDev")
   function MockDev:__init(name)
     PropObject.__init(self)
