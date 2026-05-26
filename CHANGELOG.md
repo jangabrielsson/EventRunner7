@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.11] - 2026-05-26
+
+## Changes in v0.1.11
+
+- ✨ **Feature**: Implement rule testing framework and add unit tests for rule conditions
+- ✨ **Feature**: Add release notes for v0.1.10 and update project configuration script
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.10] - 2026-05-25
 
 ## Changes in v0.1.10
