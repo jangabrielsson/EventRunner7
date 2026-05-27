@@ -290,7 +290,7 @@ local propertyTable = {
   -------------- Alarm -------------------------
   armed = {
     trigger = {type='alarm'},
-    get = function(id) return  armState(id)=='armed' end,
+    get = function(_,id) return  armState(id)=='armed' end,
     set = setAlarm,
     reduce = table.mapOr
   },
@@ -300,42 +300,42 @@ local propertyTable = {
   },
   isArmed = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).armed end,
+    get = function(_,id) return partition(id).armed end,
     reduce = table.mapOr
   },
   isAllArmed = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).armed end,
+    get = function(_,id) return partition(id).armed end,
     reduce = table.mapAnd
   },
   isDisarmed = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).armed==false end,
+    get = function(_,id) return partition(id).armed==false end,
     reduce = table.mapAnd
   },
   isAnyDisarmed = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).armed==false end,
+    get = function(_,id) return partition(id).armed==false end,
     reduce = table.mapOr
   },
   isAlarmBreached = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).breached end,
+    get = function(_,id) return partition(id).breached end,
     reduce = table.mapOr
   },
   isAlarmSafe = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).breached==false end,
+    get = function(_,id) return partition(id).breached==false end,
     reduce = table.mapAnd
   },
   isAllAlarmBreached = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).breached end,
+    get = function(_,id) return partition(id).breached end,
     reduce = table.mapAnd
   },
   isAnyAlarmSafe = {
     trigger = {type='alarm'},
-    get = function(id) return partition(id).breached==false end,
+    get = function(_,id) return partition(id).breached==false end,
     reduce = table.mapOr
   },
 
