@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.18] - 2026-05-27
+
+## Changes in v0.1.18
+
+- ✨ **Feature**: Refactor code structure for improved readability and maintainability
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.17 and update documentation with new features and reserved keywords
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.17] - 2026-05-27
 
 ## Changes in v0.1.17
