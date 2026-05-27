@@ -12,8 +12,16 @@ local function main(er)
 
   rule("@@00:00:05 => log('tick')",{check=false})
 
+  er.addStdProp("onIfOff",{
+  trigger = {type='device', property='value'},
+   get = function(_,id)
+      local value = fibaro.getValue(id,'value')
+      if type(value)=='boolean' then value = value and 1 or 0 end
+      if value == 0 then fibaro.call(id,"turnOn") end
+    end,
+    reduce = table.mapF
+})
 end
-
 function QuickApp:onInit()
   local str = "EventRunner 7, v"..fibaro.EventRunnerVersion
   self:debug(string.format("<font color='green'>%s</font>",str))

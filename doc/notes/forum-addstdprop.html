@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EventRunner7 - Adding a Custom Device Property</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: #333;
+            max-width: 820px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .post-content {
+            background: #fafafa;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .copy-button {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .copy-button:hover { background: #0256cc; }
+        h2 { color: #0366d6; }
+        h3 { color: #586069; }
+        code { background: #f6f8fa; padding: 2px 5px; border-radius: 3px; font-size: 0.92em; }
+        pre { background: #f6f8fa; border: 1px solid #e1e1e1; border-radius: 4px; padding: 12px; overflow-x: auto; }
+        pre code { background: none; padding: 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>EventRunner7 — Adding a Custom Device Property</h1>
+    <div>
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Forum Post</button>
+    </div>
+
+    <div class="post-content" id="forumPost">
+<h2>🔧 EventRunner7 — Adding a Custom Device Property with <code>er.addStdProp</code></h2>
+
+<p>EventRunner7 comes with a set of built-in device properties you can use in rule conditions, such as <code>value</code>, <code>batteryLevel</code>, <code>dead</code>, and so on. If you need to use a property that is not built-in — for example a sensor's <code>lastBreached</code> timestamp — you can register it yourself with <code>er.addStdProp</code>.</p>
+
+<p>Once registered, the new property works exactly like the built-in ones: you can read it, trigger on its changes, and use it with multiple device IDs.</p>
+
+<h3>Basic syntax</h3>
+
+<pre><code>er.addStdProp("propertyName", {
+    trigger = {type='device', property='hc3PropertyName'},
+    get     = function(pd, id) return fibaro.getValue(id, 'hc3PropertyName') end,
+    set     = function(pd, id, value) fibaro.call(id, 'setProperty', value) end,
+    reduce  = table.mapF,
+})
+</code></pre>
+
+<p>The definition table fields:</p>
+<ul>
+<li><strong>trigger</strong> — the HC3 event that fires when the property changes. Usually <code>{type='device', property='...'}</code>.</li>
+<li><strong>get</strong> — called when the rule reads the property value. Receives the definition table and the device id.</li>
+<li><strong>set</strong> — called when the rule assigns a value to the property. Optional.</li>
+<li><strong>reduce</strong> — aggregation function used when the rule references a list of device IDs. <code>table.mapF</code> returns a list of values, <code>table.mapOr</code> returns true if any are true, <code>table.mapAnd</code> returns true if all are true. Optional.</li>
+<li><strong>setCmd</strong> — alternative HC3 action name to use for set. Optional.</li>
+</ul>
+
+<p>Register the property inside your <code>main(er)</code> callback or in a module with a negative priority (so it is available before rules are compiled).</p>
+
+<h3>Example 1 — reading a sensor timestamp</h3>
+
+<p>Many Fibaro sensors expose a <code>lastBreached</code> property that records the last time they were triggered. It is not a built-in ER7 property, but you can add it:</p>
+
+<pre><code>er.addStdProp("lastBreached", {
+    trigger = {type='device', property='lastBreached'},
+    get     = function(pd, id) return fibaro.getValue(id, 'lastBreached') end,
+    reduce  = table.mapF,
+})
+
+-- Now use it in rules:
+rule("42:lastBreached =&gt; log('Sensor triggered at %s', os.date('%c', 42:lastBreached))")
+
+-- Works with multiple sensors too:
+rule("{42,43,44}:lastBreached =&gt; log('A sensor was triggered')")
+</code></pre>
+
+<p>The rule fires whenever the HC3 fires a <code>device</code> event with <code>property='lastBreached'</code> for device 42. The <code>get</code> function is called when the rule reads <code>42:lastBreached</code> inside the action.</p>
+
+<h3>Example 2 — a boolean wrapper property</h3>
+
+<p>The built-in <code>value</code> property of a dimmer is a number (0–99). If you want to react to "is the light on or off" as a boolean, you can add a custom property:</p>
+
+<pre><code>er.addStdProp("isOn", {
+    trigger = {type='device', property='value'},
+    get = function(pd, id)
+        local v = fibaro.getValue(id, 'value')
+        return type(v) == 'boolean' and v or tonumber(v) &gt; 0
+    end,
+    reduce = table.mapOr,
+})
+
+-- Fires whenever value changes, reports boolean
+rule("22:isOn =&gt; log('Dimmer is %s', 22:isOn and 'on' or 'off')")
+
+-- With multiple devices: fires if ANY of them is on
+rule("{22,23,24}:isOn =&gt; log('At least one light is on')")
+</code></pre>
+
+<h3>Example 3 — a writable property</h3>
+
+<p>You can also register a <code>set</code> function to allow writing from a rule:</p>
+
+<pre><code>er.addStdProp("colorHex", {
+    trigger = {type='device', property='color'},
+    get = function(pd, id)
+        local c = fibaro.getValue(id, 'color')
+        -- convert r,g,b,w to hex string
+        return string.format("#%02X%02X%02X", c.red or 0, c.green or 0, c.blue or 0)
+    end,
+    set = function(pd, id, hex)
+        local r = tonumber(hex:sub(2,3),16) or 0
+        local g = tonumber(hex:sub(4,5),16) or 0
+        local b = tonumber(hex:sub(6,7),16) or 0
+        fibaro.call(id, 'setColor', r, g, b, 0)
+    end,
+})
+
+rule("@18:00 =&gt; 55:colorHex = '#FF4400'")
+</code></pre>
+
+<h3>When to use <code>addStdProp</code> vs a custom PropObject</h3>
+
+<p><code>addStdProp</code> is the right tool when you are working with <strong>standard device IDs</strong> and the HC3 property system. The property is always accessed as <code>&lt;deviceId&gt;:propertyName</code>.</p>
+
+<p>If you need a reactive variable that is <em>not</em> tied to a numeric device ID — for example a weather object, a third-party API, or any other data source — use a custom PropObject instead. That is covered in a separate post.</p>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const postContent = document.getElementById('forumPost');
+            const range = document.createRange();
+            range.selectNode(postContent);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try {
+                document.execCommand('copy');
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#0366d6';
+                }, 2000);
+            } catch (err) {
+                alert('Please manually select and copy the content below');
+            }
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>

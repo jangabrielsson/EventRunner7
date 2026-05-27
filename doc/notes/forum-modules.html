@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EventRunner7 - The Module System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: #333;
+            max-width: 820px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .post-content {
+            background: #fafafa;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .copy-button {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .copy-button:hover { background: #0256cc; }
+        h2 { color: #0366d6; }
+        h3 { color: #586069; }
+        code { background: #f6f8fa; padding: 2px 5px; border-radius: 3px; font-size: 0.92em; }
+        pre { background: #f6f8fa; border: 1px solid #e1e1e1; border-radius: 4px; padding: 12px; overflow-x: auto; }
+        pre code { background: none; padding: 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>EventRunner7 — The Module System</h1>
+    <div>
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Forum Post</button>
+    </div>
+
+    <div class="post-content" id="forumPost">
+<h2>📦 EventRunner7 — The Module System</h2>
+
+<p>EventRunner7 includes a simple module system that lets you split your rules into separate files without modifying the main QuickApp file. This is useful for organising rules by topic, sharing reusable rule sets, or adding support libraries.</p>
+
+<h3>How it works</h3>
+
+<p>A module is a <code>.lua</code> file that registers itself in the global <code>MODULE</code> table. When EventRunner7 boots, it loads all registered modules in priority order and passes the <code>er</code> object to each one — the same object your <code>main(er)</code> callback receives.</p>
+
+<p>The basic structure of a module file:</p>
+
+<pre><code>MODULE = MODULE or {}
+
+local function setup(er)
+    local rule = er.eval
+
+    rule("22:value == true  =&gt; log('Kitchen light on')")
+    rule("22:value == false =&gt; log('Kitchen light off')")
+    rule("@08:00 =&gt; log('Good morning')")
+end
+
+MODULE[#MODULE+1] = {name="MyRules", prio=0, code=setup}
+</code></pre>
+
+<p>The module table entry has three fields:</p>
+<ul>
+<li><strong>name</strong> — a label for log output. If the name starts with <code>_</code>, no "Loaded module …" message is printed.</li>
+<li><strong>prio</strong> — controls load order (see below).</li>
+<li><strong>code</strong> — a function that receives <code>er</code> and is called during boot.</li>
+</ul>
+
+<h3>Load order and priority</h3>
+
+<p>Modules with a <strong>negative</strong> priority load <em>before</em> your <code>main(er)</code> callback. Modules with a <strong>positive</strong> priority load <em>after</em> it. Within each group they are sorted smallest-first.</p>
+
+<pre><code>-- Loads before main(er) — can patch er before your rules are defined
+MODULE[#MODULE+1] = {name="Setup", prio=-100, code=preSetup}
+
+-- Loads after main(er) — sees all rules already registered
+MODULE[#MODULE+1] = {name="Audit", prio=100, code=postSetup}
+</code></pre>
+
+<p>The typical use of a negative-priority module is to set up variables, register custom properties, or subscribe to events that your rules depend on. Positive-priority modules are useful for post-boot actions, like sending a startup notification once all rules are loaded.</p>
+
+<h3>⚠️ Important: file naming convention</h3>
+
+<p>If you use the EventRunner7 auto-update feature (which synchronises the QuickApp files from GitHub), any extra files you have added will be <strong>deleted</strong> unless their filename starts with the letter <code>x</code>.</p>
+
+<p>Always name your module files starting with <code>x</code>, for example:</p>
+<ul>
+<li><code>xMyRules.lua</code></li>
+<li><code>xLighting.lua</code></li>
+<li><code>xSetup.lua</code></li>
+</ul>
+
+<h3>A more complete example</h3>
+
+<p>Here is a self-contained module that defines a trigger variable, sets up a few rules, and uses a negative priority so the trigger variable is registered before <code>main(er)</code> runs:</p>
+
+<pre><code>-- File: xMotionRules.lua
+MODULE = MODULE or {}
+
+local function setup(er)
+    -- Declare a trigger variable so rules can react to it
+    er.triggerVars.motionActive = false
+
+    local rule = er.eval
+
+    -- React when motion starts
+    rule("motionActive == true  =&gt; log('Motion detected')")
+
+    -- React when motion stops, wait 2 minutes, then turn off lights
+    rule("motionActive == false =&gt; wait(120); fibaro.call(22, 'turnOff')")
+end
+
+MODULE[#MODULE+1] = {name="MotionRules", prio=-50, code=setup}
+</code></pre>
+
+<h3>Summary</h3>
+<ul>
+<li>Modules keep your rules organised across multiple files.</li>
+<li>Each module registers a <code>code(er)</code> function in <code>MODULE</code>.</li>
+<li>Use negative <code>prio</code> to run before <code>main(er)</code>, positive to run after.</li>
+<li>Always start module filenames with <code>x</code> to survive auto-updates.</li>
+</ul>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const postContent = document.getElementById('forumPost');
+            const range = document.createRange();
+            range.selectNode(postContent);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try {
+                document.execCommand('copy');
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#0366d6';
+                }, 2000);
+            } catch (err) {
+                alert('Please manually select and copy the content below');
+            }
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>

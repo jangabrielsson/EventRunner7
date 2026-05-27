@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EventRunner7 - Custom Reactive Objects with definePropClass</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: #333;
+            max-width: 820px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .post-content {
+            background: #fafafa;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .copy-button {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .copy-button:hover { background: #0256cc; }
+        h2 { color: #0366d6; }
+        h3 { color: #586069; }
+        code { background: #f6f8fa; padding: 2px 5px; border-radius: 3px; font-size: 0.92em; }
+        pre { background: #f6f8fa; border: 1px solid #e1e1e1; border-radius: 4px; padding: 12px; overflow-x: auto; }
+        pre code { background: none; padding: 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>EventRunner7 — Custom Reactive Objects</h1>
+    <div>
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Forum Post</button>
+    </div>
+
+    <div class="post-content" id="forumPost">
+<h2>🌐 EventRunner7 — Custom Reactive Objects with <code>er.definePropClass</code></h2>
+
+<p>EventRunner7 lets you create custom reactive objects that can be used in rule conditions just like device properties. These are called <em>PropObjects</em>. Unlike <code>er.addStdProp</code> which extends the built-in device-ID system, a PropObject is a standalone variable that can wrap any data source: the HC3 weather API, a third-party REST service, a virtual sensor — anything you can read from Lua.</p>
+
+<h3>addStdProp vs PropObject — which to use?</h3>
+
+<ul>
+<li><strong><code>er.addStdProp</code></strong> — use when you want to add a new property to <em>existing devices</em>. The property is always accessed as <code>&lt;deviceId&gt;:propertyName</code>, e.g. <code>42:lastBreached</code>. The trigger must be a device event.</li>
+<li><strong>PropObject</strong> — use when the data source is <em>not a numbered device</em>. The object is a named variable, accessed as <code>varName:propertyName</code>, e.g. <code>weather:temp</code>. The trigger can be any HC3 event type (weather, custom-event, global-variable, etc.).</li>
+</ul>
+
+<h3>The four steps</h3>
+
+<ol>
+<li>Call <code>er.definePropClass("ClassName")</code> to create the class.</li>
+<li>Define an <code>__init</code> method that calls <code>PropObject.__init(self)</code>.</li>
+<li>Populate the <code>getProp</code> and <code>trigger</code> tables with functions for each property.</li>
+<li>Create an instance and store it in <code>er.variables</code> so rules can access it.</li>
+</ol>
+
+<h3>Example — Weather object</h3>
+
+<p>The HC3 has a built-in weather API. Here is how to wrap it as a reactive PropObject with four properties:</p>
+
+<pre><code>er.definePropClass("Weather")
+
+function Weather:__init()
+    PropObject.__init(self)
+end
+
+-- Property getters: read the current value
+function Weather.getProp.temp(prop, env)
+    return api.get("/weather").Temperature
+end
+function Weather.getProp.humidity(prop, env)
+    return api.get("/weather").Humidity
+end
+function Weather.getProp.wind(prop, env)
+    return api.get("/weather").Wind
+end
+function Weather.getProp.condition(prop, env)
+    return api.get("/weather").WeatherCondition
+end
+
+-- Triggers: which HC3 event fires when each property changes
+function Weather.trigger.temp(prop)
+    return {type='weather', property='Temperature'}
+end
+function Weather.trigger.humidity(prop)
+    return {type='weather', property='Humidity'}
+end
+function Weather.trigger.wind(prop)
+    return {type='weather', property='Wind'}
+end
+function Weather.trigger.condition(prop)
+    return {type='weather', property='WeatherCondition'}
+end
+
+-- Create the instance and make it available to rules
+er.variables.weather = Weather()
+</code></pre>
+
+<p>Now you can write rules like this:</p>
+
+<pre><code>rule("weather:temp &lt; 0 =&gt; log('Below freezing!')")
+rule("weather:humidity &gt; 80 =&gt; log('Very humid: %d%%', weather:humidity)")
+rule("weather:condition =&gt; log('Weather changed to: %s', weather:condition)")
+</code></pre>
+
+<p>The rule <code>weather:temp &lt; 0</code> fires every time the HC3 posts a weather event for <code>Temperature</code>. The <code>getProp.temp</code> function is called to read the current value for the condition check.</p>
+
+<h3>Example — Custom REST API object</h3>
+
+<p>PropObjects are not limited to HC3 data. Here is a minimal example wrapping a custom event:</p>
+
+<pre><code>er.definePropClass("AirQuality")
+
+function AirQuality:__init()
+    PropObject.__init(self)
+    self.lastValue = 0
+end
+
+function AirQuality.getProp.aqi(prop, env)
+    return api.get("/globalVariables/AQI_Value").value
+end
+
+function AirQuality.trigger.aqi(prop)
+    -- Fires when an external system updates this global variable
+    return {type='global-variable', name='AQI_Value'}
+end
+
+er.variables.air = AirQuality()
+
+rule("air:aqi &gt; 100 =&gt; log('Poor air quality: %d', air:aqi)")
+</code></pre>
+
+<h3>Adding a set property</h3>
+
+<p>If you want to allow rules to <em>write</em> to a property, add a function to the <code>setProp</code> table:</p>
+
+<pre><code>er.definePropClass("MyDevice")
+
+function MyDevice:__init() PropObject.__init(self) end
+
+function MyDevice.getProp.mode(prop, env)
+    return fibaro.getGlobalVariable("OperationMode")
+end
+function MyDevice.setProp.mode(prop, env, value)
+    fibaro.setGlobalVariable("OperationMode", value)
+end
+function MyDevice.trigger.mode(prop)
+    return {type='global-variable', name='OperationMode'}
+end
+
+er.variables.mydev = MyDevice()
+
+-- Read in condition:
+rule("mydev:mode == 'away' =&gt; log('Away mode active')")
+
+-- Write in action:
+rule("@22:00 =&gt; mydev:mode = 'night'")
+</code></pre>
+
+<h3>Where to define PropObjects</h3>
+
+<p>PropObjects must be defined and instantiated <em>before</em> the rules that use them are compiled. The safest place is in a module with a negative <code>prio</code> value, which runs before your <code>main(er)</code> callback:</p>
+
+<pre><code>MODULE = MODULE or {}
+
+local function setup(er)
+    er.definePropClass("Weather")
+    -- ... define getProp, trigger, etc ...
+    er.variables.weather = Weather()
+end
+
+MODULE[#MODULE+1] = {name="_WeatherObj", prio=-10, code=setup}
+</code></pre>
+
+<p>Alternatively, define the PropObject at the start of your <code>main(er)</code> callback, before any <code>rule(...)</code> calls that reference it.</p>
+
+<h3>Summary</h3>
+<ul>
+<li>Use <code>er.definePropClass</code> to create a reactive variable wrapping any data source.</li>
+<li>Populate <code>getProp</code>, <code>trigger</code>, and optionally <code>setProp</code> tables.</li>
+<li>Store the instance in <code>er.variables</code> so rules can read and trigger on it.</li>
+<li>The trigger can be any HC3 event — not just device events.</li>
+<li>For properties on existing numbered devices, use <code>er.addStdProp</code> instead.</li>
+</ul>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const postContent = document.getElementById('forumPost');
+            const range = document.createRange();
+            range.selectNode(postContent);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try {
+                document.execCommand('copy');
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#0366d6';
+                }, 2000);
+            } catch (err) {
+                alert('Please manually select and copy the content below');
+            }
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>
