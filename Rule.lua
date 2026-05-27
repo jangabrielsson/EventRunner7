@@ -2,7 +2,7 @@ fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local vm
 
-local _VERSION = "0.1.16"
+local _VERSION = "0.1.17"
 fibaro.EventRunnerVersion = _VERSION
 
 local fmt = string.format

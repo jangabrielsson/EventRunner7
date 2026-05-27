@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.17] - 2026-05-27
+
+## Changes in v0.1.17
+
+- ✨ **Feature**: Add HTML release notes for EventRunner7 v0.1.16 with download links and copy-to-clipboard feature
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.16] - 2026-05-27
 
 ## Changes in v0.1.16
