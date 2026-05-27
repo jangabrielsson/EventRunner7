@@ -108,33 +108,43 @@ rule("@sunset-00:30 => blinds:close")
 
 ## Getting Started
 
-All your rules are defined inside the `main` function of your EventRunner7 QuickApp:
+All your rules are defined inside a `main` function that you pass to `fibaro.EventRunner()` inside `QuickApp:onInit`:
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
+local function main(er)
+  local rule = er.eval          -- rule() is an alias for er.eval
+  local var = er.variables      -- shared variables
+  local triggerVar = er.triggerVariables
+
   -- Your rules go here
   rule("@08:00 => log('Good morning!')")
+end
+
+function QuickApp:onInit()
+  fibaro.EventRunner(main)
 end
 ```
 
 Let's break this down:
-- `rule` - Function to define automation rules
-- `var` - Table for storing variables accessible across all rules
-- `triggerVar` - Table for variables that can trigger rules when changed
+- `rule` / `er.eval` — registers an automation rule
+- `var` / `er.variables` — table for storing variables accessible across all rules
+- `triggerVar` / `er.triggerVariables` — variables that trigger rules when changed
+- `fibaro.EventRunner(main)` — initialises EventRunner and calls `main(er)` after 500 ms
 
 #### Try this
 - Add a second rule in the same `main` for `@sunset` that logs a message.
 - Temporarily add `@@00:00:10 => log('Ping every 10s')` and remove it after testing.
+
+> **Note:** All code examples below show only the body of the `main` function for brevity — `function main(er) ... end` and `fibaro.EventRunner(main)` in `onInit` are assumed.
 
 ## Your First Rules
 
 Let's start with some simple rules to get you comfortable:
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
+local function main(er)
+  local rule = er.eval
+  local var = er.variables
   
   -- Turn on lights every morning
   rule("@08:00 => log('Good morning! Time to wake up')")
@@ -144,6 +154,10 @@ function QuickApp:main(er)
   
   -- Log the current time every hour
   rule("@@01:00 => log('The time is now %s', HM(now))")
+end
+
+function QuickApp:onInit()
+  fibaro.EventRunner(main)
 end
 ```
 
@@ -890,11 +904,26 @@ rule("#heaterOff => HT.patio.heater:off")
    rule("@08:00 => lights:on")
    ```
 
+4. **"Expected 'identifier', got 'restart'" error**: You tried to use a reserved keyword as an identifier or after `.`:
+   ```lua
+   -- Wrong: 'restart' is a reserved keyword in EventScript
+   -- plugin.restart()
+
+   -- Correct: use bracket-index syntax
+   plugin["restart"]()
+   ```
+   See [EventScript.md#reserved-keywords](EventScript.md#reserved-keywords) for the full list.
+
 ### Debugging Tips
 
 1. **Add logging**: Use `log()` to trace rule execution
    ```lua
    rule("motion:breached => log('Motion detected!'); lights:on")
+   ```
+   Use `log.color(fmt, ...)` to add colour in the HC3 debug console — any CSS colour name works as the method:
+   ```lua
+   rule("door:open   => log.orange('Front door opened at %s', HM(now))")
+   rule("alarm:fired => log.red('ALERT: %s', alarm:name)")
    ```
 
 2. **Test with simple rules**: Start simple and build complexity

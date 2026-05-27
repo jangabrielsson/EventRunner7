@@ -365,6 +365,51 @@ testAsync("via post",
 
 ---
 
+## Reserved keywords
+
+The following words cannot be used as identifiers (variable names, function names, or after `.` in a method call) in EventScript. If you get the error `'restart' is a reserved keyword`, rename the symbol or access it via `obj["restart"]` index syntax instead of `obj.restart`.
+
+### Word keywords — clash with identifiers
+
+| Keyword | Role |
+|---------|------|
+| `if` / `then` / `else` / `elseif` / `end` | conditional expression |
+| `while` / `do` / `loop` / `repeat` / `until` | loop constructs |
+| `for` / `in` | for-in loop |
+| `local` | local variable declaration |
+| `function` | function literal |
+| `return` / `break` | control flow |
+| `nil` / `true` / `false` | literals |
+| `not` / `and` / `or` | logical operators (also written `!` / `&` / `\|`) |
+| `case` | case expression |
+| `restart` | rule modifier — restart a running async action |
+| `since` | rule modifier — condition must be true for a duration |
+| `debounce` | rule modifier — delay action until condition settles |
+| `cooldown` | rule modifier — minimum time between successive firings |
+| `every` | rule modifier — fire every N-th trigger |
+| `first_in` | rule modifier — fire only on the first trigger |
+
+### Symbol keywords — operators and punctuation
+
+These are not identifiers and can never clash with variable names.
+
+| Symbol | Meaning |
+|--------|---------|
+| `=>` | rule arrow (condition `=>` action) |
+| `@` | daily time trigger (`@10:00`) |
+| `@@` | interval trigger (`@@00:05`) |
+| `..` | between operator (`10:00..11:00`) |
+| `$` / `$$` / `$$$` | global / QA / persistent variable access |
+| `++` | string concatenation |
+| `===` | string pattern match |
+| `??` | nil-coalescing operator |
+| `+=` / `-=` / `*=` / `/=` | compound assignment |
+| `\|\|` | case branch separator |
+| `>>` | case branch arrow |
+| `t/` / `n/` / `+/` | today / next / plus time constants |
+
+---
+
 ## Pipeline summary
 
 ```

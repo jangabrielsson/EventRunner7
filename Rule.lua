@@ -701,6 +701,7 @@ local function bootEventRunner(cb)
       vm.defGlobal(k, v)
     end
   })
+  er.triggerVariables = er.triggerVars -- backward compatibility, will be removed in future
 
   ER.ASYNCFUNS = ER.ASYNCFUNS or {}
   function er.createAsyncFun(fun)

@@ -61,6 +61,7 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Information Properties](#information-properties)
     - [List Operations](#list-operations)
     - [Weather Object](#weather-object)
+  - [Named Scenes](#named-scenes)
   - [Extending the Property System](#extending-the-property-system)
     - [Adding Custom Device Properties](#adding-custom-device-properties-eraddstdprop)
     - [Defining Custom Property Classes](#defining-custom-property-classes-erdefinepropclass)
@@ -71,9 +72,10 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [List Operations](#list-operations-1)
     - [Advanced Scenarios](#advanced-scenarios)
   - [Rule Modifiers](#rule-modifiers)
-  - [Named Scenes](#named-scenes)
-  - [Rule Groups](#rule-groups)
+  - [Reserved Keywords](#reserved-keywords)
+  - [BREAK — stop rule dispatch early](#break--stop-rule-dispatch-early)
   - [Rule management functions](#rule-management-functions)
+    - [Rule Groups](#rule-groups)
   - [Best Practices](#best-practices)
 
 ## Language Overview
@@ -535,42 +537,7 @@ rule("#se-start => -- Reinitialize state after reboot\n  $mode = 'home'\n  allLi
 
 ## Functions
 
-## Rule Modifiers
-
-Modifiers are optional keywords placed between the condition and `=>`. They change *when* or *how many times* the action fires.
-
-```
-condition [modifier...] => action
-```
-
-| Modifier | Syntax | Effect |
-|----------|--------|--------|
-| `restart` | `cond restart =>` | Cancel all pending timers/waits from the current run and start fresh when condition re-fires |
-| `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (alias for `trueFor`) |
-| `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `restart`) |
-| `cooldown` | `cond cooldown duration =>` | After action completes, ignore re-triggers for `duration` seconds |
-| `every` | `cond every n =>` | Fire only on every `n`-th true evaluation |
-
-**Examples:**
-```lua
-rule("doorbell:pressed restart => wait(0.5); chime:play")
--- Re-starts chime if pressed again mid-play (0.5 = 500 ms).
-
-rule("motion:breached since 00:02 => alarm:on")
--- Only triggers after 2 continuous minutes of motion.
-
-rule("search:keypress debounce 0.5 => searchAPI(query)")
--- Waits 500 ms of silence before calling search.
-
-rule("motion:breached cooldown 00:05 => notify('Motion detected')")
--- At most one notification per 5 minutes.
-
-rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
--- Logs on every 4th temperature change.
-
--- Modifiers compose:
-rule("button:pressed restart cooldown 2 => wait(0.1); light:toggle")
-```
+Built-in functions available in rule triggers and actions.
 
 ### trueFor Function
 
@@ -633,6 +600,7 @@ Functions for logging and string formatting within rules.
 | Function | Description | Example |
 |----------|-------------|---------|
 | `log(fmt, ...)` | Log formatted message | `log('Temperature: %d°C', temp)` |
+| `log.color(fmt, ...)` | Log with CSS colour name as method — any valid CSS colour | `log.beige('Door opened')`, `log.red('Fault: %d', code)` |
 | `fmt(...)` | Format string without logging | `message = fmt('Status: %s', status)` |
 | `HM(t)` | Format time as "HH:MM" | `timeStr = HM(os.time())` |
 | `HMS(t)` | Format time as "HH:MM:SS" | `timeStr = HMS(os.time())` |
@@ -643,6 +611,12 @@ rule("sensor:temp => log('Temperature changed to %d°C', sensor:temp)")
 rule("@08:00 => log('Good morning! Time is %s', HM(now))")
 rule("alarm:breached => message = fmt('ALERT at %s', HMS(now))")
 ```
+
+The inline `#C:color#` tag inside the format string sets the colour in the HC3 debug console:
+```lua
+rule("door:open => log('#C:orange#Front door opened at %s', HM(now))")
+```
+`log.color(fmt, ...)` is shorthand that prepends the tag automatically — `log.orange(...)` is equivalent to `log('#C:orange#...')`. Any CSS colour name works.
 
 ### Event Functions
 
@@ -1126,6 +1100,84 @@ rule("trueFor(01:00, room:isAllOff) => hvac:targetLevel=18")
 -- Weather-based automation
 rule("weatherStation:temp < 0 & @06:00 => carHeater:on")
 ```
+
+## Rule Modifiers
+
+Modifiers are optional keywords placed between the condition and `=>`. They change *when* or *how many times* the action fires.
+
+```
+condition [modifier...] => action
+```
+
+| Modifier | Syntax | Effect |
+|----------|--------|--------|
+| `restart` | `cond restart =>` | Cancel all pending timers/waits from the current run and start fresh when condition re-fires |
+| `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (alias for `trueFor`) |
+| `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `restart`) |
+| `cooldown` | `cond cooldown duration =>` | After action completes, ignore re-triggers for `duration` seconds |
+| `every` | `cond every n =>` | Fire only on every `n`-th true evaluation |
+| `first_in` | `cond first_in T1..T2 =>` | Fire only the first time the trigger is true within the time window `T1..T2`; resets at window end |
+
+**Examples:**
+```lua
+rule("doorbell:pressed restart => wait(0.5); chime:play")
+-- Re-starts chime if pressed again mid-play (0.5 = 500 ms).
+
+rule("motion:breached since 00:02 => alarm:on")
+-- Only triggers after 2 continuous minutes of motion.
+
+rule("search:keypress debounce 0.5 => searchAPI(query)")
+-- Waits 500 ms of silence before calling search.
+
+rule("motion:breached cooldown 00:05 => notify('Motion detected')")
+-- At most one notification per 5 minutes.
+
+rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
+-- Logs on every 4th temperature change.
+
+-- first_in: play radio the first time sensor is breached in the morning window
+rule("sensor:breached first_in 07:00..08:00 => radio:play")
+
+-- Modifiers compose:
+rule("button:pressed restart cooldown 2 => wait(0.1); light:toggle")
+```
+
+## Reserved Keywords
+
+The following identifiers are reserved by the EventScript language and cannot be used as variable names, function names, or after `.` in a property access. If a device or object has a method whose name clashes (e.g. `plugin.restart()`), use bracket notation instead: `plugin["restart"]()`.
+
+### Language control keywords
+
+`if`, `then`, `else`, `elseif`, `end`, `while`, `do`, `loop`, `repeat`, `until`, `return`, `break`, `nil`, `true`, `false`, `for`, `in`, `local`, `function`, `not`, `and`, `or`, `case`
+
+### Rule modifier keywords
+
+`restart`, `since`, `debounce`, `cooldown`, `every`, `first_in`
+
+**Workaround for clashing names:** Use bracket-index syntax to access any method or property whose name is a keyword:
+
+```lua
+-- Wrong — 'restart' is a reserved keyword:
+-- plugin.restart()
+
+-- Correct:
+plugin["restart"]()
+```
+
+## BREAK — stop rule dispatch early
+
+When multiple rules share the same trigger, EventRunner fires them all in registration order. A rule action can `return BREAK` to stop processing further rules for that trigger event:
+
+```lua
+er.triggerVars.a = 0
+rule("a == 1 => log('OK1'); return BREAK")  -- fires, then stops
+rule("a == 1 => log('OK2')")                -- never reached
+rule("a = 1")                               -- sets a → fires the two rules above
+```
+
+`BREAK` is a sentinel value (`'%BREAK%'`) exposed via `er.defglobals.BREAK`. Rules that share a *different* trigger are unaffected.
+
+> **Important:** `BREAK` only works in **synchronous** rule actions. When an action contains `wait()`, the event engine has already advanced past subsequent rules before the wait completes.
 
 ## Rule management functions
 

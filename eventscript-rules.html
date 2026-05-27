@@ -702,6 +702,65 @@ body.edit-mode .fc-body {
 .slide.visible .reveal-scale:nth-child(2) { transition-delay: 0.2s; }
 .slide.visible .reveal-scale:nth-child(3) { transition-delay: 0.3s; }
 
+/* ===========================================
+   KEYWORD PILL GRID
+   =========================================== */
+.kw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(0.5rem, 1.2vw, 0.9rem);
+  margin-top: clamp(0.4rem, 1vh, 0.8rem);
+}
+.kw-group-label {
+  font-family: var(--font-mono);
+  font-size: var(--eyebrow-size);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.kw-group-label.lang    { color: var(--tab-1); }
+.kw-group-label.mods    { color: var(--tab-2); }
+.kw-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.kw-pill {
+  font-family: var(--font-mono);
+  font-size: clamp(0.58rem, 1vw, 0.76rem);
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+  font-weight: 500;
+}
+.kw-pill.lang {
+  color: var(--tab-1);
+  border-color: rgba(0,255,204,0.3);
+  background: rgba(0,255,204,0.05);
+}
+.kw-pill.mod {
+  color: var(--tab-2);
+  border-color: rgba(255,0,170,0.3);
+  background: rgba(255,0,170,0.05);
+}
+.kw-note {
+  margin-top: clamp(0.4rem, 0.8vh, 0.7rem);
+  font-size: clamp(0.6rem, 1vw, 0.76rem);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+.kw-note code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  color: var(--tab-1);
+  background: rgba(0,255,204,0.06);
+  border: 1px solid rgba(0,255,204,0.2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
 </style>
 </head>
 <body>
@@ -797,6 +856,67 @@ rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
         <li>Each registered rule gets an id: <code>RULE1</code>, <code>RULE2</code>, …</li>
       </ul>
       <div class="slide-num">03 / 16</div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Basics</div><div class="tab">Triggers</div>
+      <div class="tab">Variables</div><div class="tab">Events</div><div class="tab">Patterns</div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================
+     SLIDE 3b — RESERVED KEYWORDS
+     ============================================= -->
+<section class="slide" id="slide-keywords">
+  <div class="paper" data-section="0">
+    <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+    <div class="page-content">
+      <div class="section-tag basics reveal">Basics</div>
+      <h2 class="slide-heading reveal">Reserved <em>Keywords</em></h2>
+      <div class="rule-accent mint reveal"></div>
+      <div class="kw-grid reveal">
+        <div>
+          <div class="kw-group-label lang">Language</div>
+          <div class="kw-pills">
+            <span class="kw-pill lang">if</span>
+            <span class="kw-pill lang">then</span>
+            <span class="kw-pill lang">else</span>
+            <span class="kw-pill lang">elseif</span>
+            <span class="kw-pill lang">end</span>
+            <span class="kw-pill lang">while</span>
+            <span class="kw-pill lang">do</span>
+            <span class="kw-pill lang">loop</span>
+            <span class="kw-pill lang">repeat</span>
+            <span class="kw-pill lang">until</span>
+            <span class="kw-pill lang">for</span>
+            <span class="kw-pill lang">in</span>
+            <span class="kw-pill lang">local</span>
+            <span class="kw-pill lang">function</span>
+            <span class="kw-pill lang">return</span>
+            <span class="kw-pill lang">break</span>
+            <span class="kw-pill lang">not</span>
+            <span class="kw-pill lang">and</span>
+            <span class="kw-pill lang">or</span>
+            <span class="kw-pill lang">nil</span>
+            <span class="kw-pill lang">true</span>
+            <span class="kw-pill lang">false</span>
+            <span class="kw-pill lang">case</span>
+          </div>
+        </div>
+        <div>
+          <div class="kw-group-label mods">Rule modifiers</div>
+          <div class="kw-pills">
+            <span class="kw-pill mod">restart</span>
+            <span class="kw-pill mod">since</span>
+            <span class="kw-pill mod">debounce</span>
+            <span class="kw-pill mod">cooldown</span>
+            <span class="kw-pill mod">every</span>
+            <span class="kw-pill mod">first_in</span>
+          </div>
+        </div>
+      </div>
+      <p class="kw-note reveal">These words cannot be used as variable or function names, nor after <code>.</code> in a method call. If a Lua API method has a clashing name, use index syntax: <code>plugin["restart"]()</code> instead of <code>plugin.restart()</code>.</p>
+      <div class="slide-num">03b</div>
     </div>
     <div class="tabs">
       <div class="tab">Basics</div><div class="tab">Triggers</div>
