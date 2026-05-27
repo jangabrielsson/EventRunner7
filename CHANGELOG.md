@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.19] - 2026-05-27
+
+## Changes in v0.1.19
+
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.18 with download links and documentation
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.18] - 2026-05-27
 
 ## Changes in v0.1.18
