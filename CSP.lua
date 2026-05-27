@@ -917,9 +917,10 @@ local vm = {
   end,
   expr      = expr,
   rterror   = rterror,
-  defGlobal = function(name, v) _ctx:defGlobal(name, v) end,
-  getGlobal = function(name)    return (_ctx:getGlobal(name)) end,
-  setGlobal = function(name, v) return _ctx:setGlobal(name, v) end,
+  defGlobal    = function(name, v) _ctx:defGlobal(name, v) end,
+  getGlobal    = function(name)    return (_ctx:getGlobal(name)) end,
+  lookupGlobal = function(name)    local _, v = _ctx:getGlobal(name); return v end,
+  setGlobal    = function(name, v) return _ctx:setGlobal(name, v) end,
   resetGlobals = function()     _global_env = {} end,
 }
 

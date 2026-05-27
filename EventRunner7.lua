@@ -10,9 +10,8 @@ local function main(er)
   local rule,var = er.eval,er.variables
   er.opts = { started = true, check = true, result = false, triggers=true}
 
-  --rule("@@00:00:05 => log('tick')",{check=false})
+  rule("@@00:00:05 => log('tick')",{check=false})
 
-rule("46:breached => lights:on", {name="entry-light"})
 end
 
 function QuickApp:onInit()

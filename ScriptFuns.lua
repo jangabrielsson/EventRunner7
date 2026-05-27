@@ -52,11 +52,11 @@ local function setupFuns()
   local sourceTrigger = ER.sourceTrigger
 
   ER.globals = setmetatable({},{
-    __index    = function(t,k)   return vm.getGlobal(k) end,
+    __index    = function(t,k)   return vm.lookupGlobal(k) end,
     __newindex = function(t,k,v) vm.setGlobal(k,v) end
   })
   ER.defglobals = setmetatable({},{
-    __index    = function(t,k)   return vm.getGlobal(k) end,
+    __index    = function(t,k)   return vm.lookupGlobal(k) end,
     __newindex = function(t,k,v) vm.defGlobal(k,v) end
   })
   local builtin = ER.defglobals

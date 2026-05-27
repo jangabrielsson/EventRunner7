@@ -290,6 +290,9 @@ local function tokenStream(str)
     else
       local exp = lookupTkType(expectedType) or expectedType
       local gotStr = t and ("'" .. (t.tk or tostring(t.value)) .. "'") or "end of input"
+      if expectedType == 'identifier' and t and t.tk and keywords[t.tk] then
+        gotStr = gotStr .. " ('" .. t.tk .. "' is a reserved keyword)"
+      end
       local ctx = ctxHint() or ""
       local loc = t and sourceAt(t) or " at end of input"
       error(ctx .. "Expected '" .. exp .. "', got " .. gotStr .. loc, 2)
