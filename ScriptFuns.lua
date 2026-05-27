@@ -75,8 +75,8 @@ local function setupFuns()
     if color then str=string.format("<font color='%s'>%s</font>",color,str) end
     return str
   end
-  
-  function builtin.log(...) -- printable tables and #C:color# tag
+
+  local function rawLog(...) -- printable tables and #C:color# tag
     local args,n = {...},0
     for i=1,#args do 
       local a = args[i]
@@ -94,6 +94,19 @@ local function setupFuns()
     print(msg)
     return msg
   end
+
+  -- log(...)           plain log, supports #C:color# tag in format string
+  -- log.colorname(...) wraps first string arg in #C:colorname# automatically
+  -- log.beige "msg"    string-shorthand works too (single arg, no parens)
+  builtin.log = setmetatable({}, {
+    __call  = function(_, ...) return rawLog(...) end,
+    __index = function(_, color)
+      return function(fmt, ...)
+        if type(fmt) == 'string' then fmt = '#C:'..color..'#'..fmt end
+        return rawLog(fmt, ...)
+      end
+    end,
+  })
 
   function builtin.post(ev,time) return (ER.sourceTrigger:post(ev,time)) end
   function builtin.cancel(ref) return ER.sourceTrigger:cancel(ref) end

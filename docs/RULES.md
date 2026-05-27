@@ -236,6 +236,41 @@ Rules that *don't* share the same trigger pattern are unaffected.
 
 ---
 
+## Logging
+
+The `log` function prints a message from a rule action.
+
+```lua
+rule("door:breached => log('Door opened')")
+rule("temp:value => log('Temp is %d°C', temp:value)")
+```
+
+### Coloured output with `#C:color#`
+
+Wrap a colour tag in the format string to colour the entire message in the HC3 debug log:
+
+```lua
+log('#C:beige#Verlichting wastafel - Uit')
+log('#C:lightblue#$Bezetting_Badkamer = %s', $Bezetting_Badkamer)
+```
+
+### Colour-dot shorthand: `log.color(...)`
+
+As a cleaner alternative, access `log` with a dot and any CSS colour name. The colour is prepended automatically:
+
+```lua
+log.beige('Verlichting wastafel - Uit')
+log.lightblue('$Bezetting_Badkamer = %s', val)
+log.red('Error code: %d', code)
+log.cyan('Checkpoint A')
+```
+
+Any valid CSS colour name works: `log.beige`, `log.lightblue`, `log.orange`, `log.tomato`, `log.lime`, etc.
+
+`log(...)` without a dot continues to work as before and also supports the `#C:color#` tag inside the format string.
+
+---
+
 ## Asynchronous actions: `wait(secs)`
 
 `wait(secs)` suspends the rule action and resumes it after `secs` seconds (fractional values allowed: `wait(0.5)` = 500 ms) via `setTimeout`. Multiple `wait` calls chain correctly:
