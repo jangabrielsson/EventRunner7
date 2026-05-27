@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.1.15] - 2026-05-27
+
+## Changes in v0.1.15
+
+- ✨ **Feature**: Add logging functionality with color support to RULES.md
+  - Introduced the `log` function for printing messages from rule actions.
+  - Added examples for basic logging and formatted logging with temperature values.
+  - Documented colored output using `#C:color#` tags for the HC3 debug log.
+  - Introduced a shorthand method for colored logging using `log.color(...)` syntax.
+  - Provided a list of valid CSS color names for use with the new logging feature.
+- ✨ **Feature**: Add documentation for EventRunner7 features and release v0.1.14
+  - Created forum posts for adding custom device properties, module system, and custom reactive objects.
+  - Added HTML files for each topic with examples and usage instructions.
+  - Implemented a copy-to-clipboard feature for easy sharing of forum posts.
+  - Documented changes and enhancements in release v0.1.14, including error handling improvements.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.14] - 2026-05-26
 
 ## Changes in v0.1.14
