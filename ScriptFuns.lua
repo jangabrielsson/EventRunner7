@@ -140,6 +140,7 @@ local function setupFuns()
   function builtin.sort(t) table.sort(t) return t end
   function builtin.osdate(a,b) return os.date(a,b) end
   function builtin.ostime(t) return os.time(t) end
+  function builtin.nexttime(m,n) local t1 = m+n; return t1 > os.time() and t1 or t1+86400 end
   
   function builtin.global(name)
     local s = fibaro.getGlobalVariable(name)     

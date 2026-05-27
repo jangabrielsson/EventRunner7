@@ -12,8 +12,6 @@ local function main(er)
 
   rule("@@00:00:05 => log('tick')",{check=false})
 
-  rule("log(1:armed == true)")
-
 end
 
 function QuickApp:onInit()

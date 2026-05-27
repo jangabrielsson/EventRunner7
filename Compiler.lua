@@ -318,6 +318,9 @@ comp.NEG    = compNEG
 comp.NOT    = compNOT
 comp.DAILY  = compUnaryWrap('DAILY')
 comp.INTERV = compUnaryWrap('INTERV')
+comp.PLUSTIME = function(ast) return {'ADD', {'CALL', {'GET', 'ostime'}}, compile(ast[2])} end
+comp.TODAY    = function(ast) return {'ADD', {'GET', 'midnight'}, compile(ast[2])} end
+comp.NEXTTIME = function(ast) return {'CALL', {'GET', 'nexttime'}, {'GET', 'midnight'}, compile(ast[2])} end
 
 comp.SCRIPT = function(ast) return compile(ast[2]) end
 comp.BLOCK  = compBlock
