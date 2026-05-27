@@ -86,7 +86,8 @@ local function lookupTkType(t)
   return nil
 end
 
-local identifierChars = "abcdefghijklmnopqrstuvwxyzåäöøABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖØ"
+-- ASCII identifier characters; UTF-8 multi-byte chars (\x80-\xFF) are handled separately below
+local identifierChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 
 local function kwHandler(t)
   local k = keywords[t]
@@ -97,7 +98,7 @@ end
 local tknsStrs = {
   -- Multi-char tokens that share a first char with simpler tokens must come
   -- BEFORE those simpler entries so they are tried first in tokenLookup.
-  {"#", "#["..identifierChars.."]+["..identifierChars.."_%d]*", function(s)
+  {"#", "#["..identifierChars.."\x80-\xFF]+["..identifierChars.."\x80-\xFF%d]*", function(s)
     return {type='event', value=s:sub(2)}   -- strip leading '#'
   end},
   {"@",  "@@?",   kwHandler},   -- @@ interval | @ daily (greedy: @@ matched before @)
@@ -155,7 +156,7 @@ end
 {"'\n'","'(.-)'",function(s) 
   return {type='string', value=s:sub(2,-2)} end
 },
-{identifierChars,"["..identifierChars.."]["..identifierChars.."_%d]*",function(id) 
+{identifierChars,"["..identifierChars.."\x80-\xFF]["..identifierChars.."\x80-\xFF%d]*",function(id) 
   local k = keywords[id]
   if k then
     return {type=k.type, value=k.value, tk=id}
@@ -175,6 +176,21 @@ for _,v in ipairs(tknsStrs) do
       tokenLookup[c] = {}
     end
     table.insert(tokenLookup[c], {pattern="^"..pattern, handler=handler})
+  end
+end
+-- Register all UTF-8 high bytes (0x80-0xFF) as valid identifier starts.
+-- This lets any European (or other) multi-byte character appear in identifiers.
+do
+  local utf8IdentPat = "^["..identifierChars.."\x80-\xFF]["..identifierChars.."\x80-\xFF%d]*"
+  local function utf8IdentHandler(id)
+    local k = keywords[id]
+    if k then return {type=k.type, value=k.value, tk=id} end
+    return {type='identifier', value=id}
+  end
+  for i = 0x80, 0xFF do
+    local c = string.char(i)
+    if not tokenLookup[c] then tokenLookup[c] = {} end
+    table.insert(tokenLookup[c], {pattern=utf8IdentPat, handler=utf8IdentHandler})
   end
 end
 

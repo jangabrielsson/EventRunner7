@@ -10,8 +10,14 @@ local function main(er)
   local rule,var = er.eval,er.variables
   er.opts = { started = true, check = true, result = false, triggers=true}
 
-  rule("@@00:00:05 => log('tick')",{check=false})
+  -- rule("@@00:00:05 => log('tick')",{check=false})
 
+  rule([[#keuken_Apparatuur_Aan => 
+        for _,id in pairs(keuken_apparatuur) do id:on; wait(00:00:02) end;
+            log.yellow('keuken_apparatuur = Aan');
+            log('19-A');
+        wait(0)
+            ]])
 end
 
 function QuickApp:onInit()
