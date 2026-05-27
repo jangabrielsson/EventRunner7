@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.1.16] - 2026-05-27
+
+## Changes in v0.1.16
+
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.15 with new features and documentation updates
+  - Introduced logging functionality with color support in RULES.md
+  - Added documentation for EventRunner7 features and release v0.1.14
+  - Implemented a copy-to-clipboard feature for forum posts
+  - Generated HTML release notes for easy sharing
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.15] - 2026-05-27
 
 ## Changes in v0.1.15
