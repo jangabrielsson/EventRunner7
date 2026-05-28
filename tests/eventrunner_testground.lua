@@ -6,7 +6,7 @@
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
 --%%file:Sim.lua,sim
---%%time:2026/04/28 05:10:00
+--%%time:2026/04/28 10:10:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into
 -- eventrunner_test.lua once we have a stable set of features to test.
@@ -59,7 +59,7 @@ local function main(er) ER = er
   -- rule("disable('morning')")
 
   er.createSimGlobal("Weer_Bewolking","Zwaar_Bewolkt")
-  er.createSimGlobal("Gordijn_Licht","Ochtend")
+  er.createSimGlobal("Gordijn_Licht","Ochtöend")
   er.createSimGlobal("Gordijn_Bewolking","")
   local var = er.variables
   var.Gordijn_Bewolking = "fopp"
