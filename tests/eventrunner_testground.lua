@@ -12,109 +12,24 @@
 -- eventrunner_test.lua once we have a stable set of features to test.
 
 local function main(er) ER = er
-  local rule, test = er.eval, er.test
+  local rule, var, tvar, test = er.eval, er.variables, er.triggerVars, er.test
   local function loadDevice(name) return er.loadSimDevice(name) end
 
-  er.createSimGlobal("G_foo","15:00")
-  er.createSimGlobal("G_bar","66")
-  er.createSimGlobal("TimeGV","13:00")
-  er.defglobals.light1 = loadDevice("binarySwitch")
-  er.defglobals.light2 = loadDevice("binarySwitch")
-  er.defglobals.motion1 = loadDevice("motionSensor")
-  er.defglobals.door1 = loadDevice("doorSensor")
-  er.defglobals.window1 = loadDevice("windowSensor")
-  er.defglobals.window2 = loadDevice("windowSensor")
-  er.defglobals.fire1 = loadDevice("fireDetector")
-  er.defglobals.temp1 = loadDevice("temperatureSensor")
-  er.defglobals.temp2 = loadDevice("temperatureSensor")
-  er.defglobals.temp3 = loadDevice("temperatureSensor")
+  tvar.x = 0
 
-  --fibaro.debugFlags.sourceTrigger = true
-  
-  -- rule("temp1:value = 10; temp2:value = 20; temp3:value = 30")
+  rule("x single => wait(2); log('hup')")
 
-  -- er.definePropClass("MyDevice")
-  -- local MyDevice = {}
-  -- function MyDevice:__init() self.value = 21; er.PropObject.__init(self) end
-  -- function MyDevice.getProp:temp(_) return self.value end
-  -- function MyDevice.setProp:temp(_, value) 
-  --   self.value = value 
-  --   er.sourceTrigger:post({type='device', id=tostring(self), property='value', value=value} )  
-  --   return true
-  -- end
-  -- function MyDevice.trigger:temp() return {type='device', id=tostring(self), property='value'} end
-  -- function MyDevice.map.temp(fun,list) 
-  --   local sum = 0
-  --   for _,v in ipairs(list) do sum = sum + fun(v) end
-  --   return sum
-  -- end
-  -- er.defglobals.mydev = MyDevice()
-
-  --rule("temps = { mydev, temp1, temp2, temp3}")
-  -- rule("mydev:temp > 41 => wait(2); log('OK')")
-  -- rule("mydev:temp = 42",{result=true})
-  --rule("json.encode(temps:temp)")
-
-  -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
-  -- rule("disable('morning')")
-
-  er.createSimGlobal("Hand_Instelling_Ysemar_Logeert","Nee")
-  er.createSimGlobal("Verlichting_Appartement","Aanwezig_Aan")
-  er.createSimGlobal("Bezetting_Logeerkamer","Bezet")
-  er.createSimGlobal("Verlichting_Dagdeel","Ochtend")
-  local var = er.variables
-  var.dimmer_logeerkamer = false
-
-logeerkamer = {}
-logeerkamer.pir = loadDevice("motionSensor")
-
-rule([[($Bezetting_Logeerkamer == 'Bezet' | logeerkamer.deur:isOpen | logeerkamer.pir:breached) & dimmer_logeerkamer == false  & $Verlichting_Appartement == 'Aanwezig_Aan'  & $Hand_Instelling_Ysemar_Logeert == 'Nee'  =>
-        log.byzantine('Logeerkamer gordijn:isClosed & logeerkamer.deur open of radar is On'); 
-wait(0); case
-    || $Verlichting_Dagdeel == 'Opstaan_Sjaak' >>
-        logeerkamer.Logeerkamer_Spots:value = 70;
-       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A2');
-wait(0)
-    || $Verlichting_Dagdeel == 'Opstaan_Beide' >>
-        logeerkamer.Logeerkamer_Spots:value = 70;
-       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A4');
-wait(0)
-    || $Verlichting_Dagdeel == 'Ochtend' >>
-        logeerkamer.Logeerkamer_Spots:value = 70;
-       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A6');
-wait(0)
-    || $Verlichting_Dagdeel == 'Middag_Laat' >>
-        logeerkamer.Logeerkamer_Spots:value = 70;
-       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A8');
-wait(0)
-    || $Verlichting_Dagdeel == 'Avond_Vroeg' >>
-        logeerkamer.Logeerkamer_Spots:value = 100;
-       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A10');
-wait(0)
-    || $Verlichting_Dagdeel == 'Avond_Laat' >>
-        logeerkamer.Logeerkamer_Spots:value = 70;
-       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A12');
-wait(0)
-    || $Verlichting_Dagdeel == 'Slapen' >>
-        logeerkamer.Logeerkamer_Spots:off;
-       log.beige('logeerkamer.Logeerkamer_Lampen = 0  "Uit" >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
-            log('62-A14');
-wait(0)
-end
-]]).start()
+  rule([[
+     x=1; wait(1);
+     x=2
+  ]])
 
 end
 
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-  fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
+  --fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
     fibaro.EventRunner(main)
-  end)
+  --end)
 end

@@ -936,7 +936,7 @@ end
     if ev.type=='device' and ev.property=='value' then
       local last = lastID[ev.id]
       local _,t = fibaro.get(ev.id,'value')
-      local v = t-last.time
+      local v = last and t-last.time
       if not(last and last.script and t-last.time <= 2) then
         lastID[ev.id]={script=false, time=t}
       end

@@ -127,7 +127,7 @@ local function compRule(r, opts, src)
   rule.historySize = opts.historySize or 10
   rule.history = {}
   rule.watchOn = false
-  rule.modifiers = r[4] or {}  -- raw modifier flags (single, debounce, etc.)
+  rule.modifiers = r._modifiers or {}  -- raw modifier flags (single, debounce, etc.)
   rule._mstate = {}             -- runtime modifier state (once, cool_down, every_other)
   function rule:log(minLevel, prefix, a1,...)
     local level = VERBOSITY[self.verbosity or "normal"] or 1
@@ -141,7 +141,7 @@ local function compRule(r, opts, src)
     end
   end
 
-  local modifiers = r[4] or {}
+  local modifiers = r._modifiers or {}
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
   scanHead(head, trs)             -- scanHead may modify ast...
   -- sanity check that scanHead found something triggerable
@@ -179,7 +179,10 @@ local function compRule(r, opts, src)
     if modifiers.single then
       local old = rule.timers
       rule.timers = {}
-      for ref in pairs(old) do sourceTrigger:cancel(ref) end
+      for ref in pairs(old) do
+        clearTimeout(ref)          -- cancel raw setTimeout timers (wait/sleep)
+        sourceTrigger:cancel(ref)  -- cancel event-queue posts (postR)
+      end
     end
     rule.stats.runs = rule.stats.runs + 1
     return ruleRunner(rule.fun, rule, ...)
@@ -483,7 +486,7 @@ local yieldHandlers = {
         ctx:log("normal", o.errorPrefix, err)
       end
     end, ms)
-    if ctx.timers then ctx.timers[ref] = ms end  -- track so restart can cancel
+    if ctx.timers then ctx.timers[ref] = ms end  -- track so single can cancel
   end,
   asyncFun = function(cf, ctx, cb, fun, ...)
     local timedOut,timeref = false,nil

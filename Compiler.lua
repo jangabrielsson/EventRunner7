@@ -452,13 +452,14 @@ end
 -- that compRule() expects.  Bypasses the _compRule runtime indirection.
 -- Returns (rule_csp) with rule_csp._srcmap already set.
 function ER.compileRuleBody(ast)
-  -- ast = {'RULE', condition_ast, action_ast}
+  -- ast = {'RULE', condition_ast, action_ast [, modifiers]}
   _srcmap = {}
   local result
   local ok, err = pcall(function()
     local cond = {"CALL", {'NAME','_ruleCondition'}, ast[2]}
     result = compile({'IF', cond, ast[3], {}, {'RETURN', {'STRING', ER.ruleFail}}})
     if _srcmap then result._srcmap = _srcmap end
+    if ast[4] then result._modifiers = ast[4] end  -- preserve modifiers (single, debounce, etc.)
   end)
   _srcmap = nil
   if not ok then error(err, 2) end
