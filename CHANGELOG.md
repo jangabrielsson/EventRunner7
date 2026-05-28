@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.21] - 2026-05-28
+
+## Changes in v0.1.21
+
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.20 with forum post helper
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.20] - 2026-05-28
 
 ## Changes in v0.1.20
