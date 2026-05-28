@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.26] - 2026-05-28
+
+## Changes in v0.1.26
+
+- ♻️ **Refactor**: clean up eventrunner_testground.lua and add post function in Setup.lua
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.25] - 2026-05-28
 
 ## Changes in v0.1.25
