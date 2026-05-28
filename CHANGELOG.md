@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.25] - 2026-05-28
+
+## Changes in v0.1.25
+
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.24 in HTML format
+  - Created a new HTML document for the release notes of version 0.1.24.
+  - Included features, changes, download links, and documentation references.
+  - Implemented a copy-to-clipboard button for easy sharing of the forum post.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.24] - 2026-05-28
 
 ## Changes in v0.1.24
