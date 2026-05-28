@@ -722,6 +722,7 @@ local function bootEventRunner(cb)
   end
 
   er.async = setmetatable({}, {
+    __index = function(t,k) return vm.lookupGlobal(k) end,
     __newindex = function(t, k, v)
       assert(type(v) == 'fun'..'ction', "Only func".."tions can be assigned to async")
       er.createAsyncFun(v)

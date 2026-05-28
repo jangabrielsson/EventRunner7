@@ -348,11 +348,6 @@ local function setupFuns()
     return -1 -- not async...
   end
 
-  function async.once(cb, expr)
-    -- Backwards-compatible wrapper: resets at midnight (00:00 = stopVal 0)
-    return async.first_in_win(cb, expr, 0)
-  end
-
   -- first_in_win: like once() but proactively resets at the window end time
   -- so the rule can fire again in the NEXT occurrence of the window.
   -- stopVal is seconds-since-midnight (< 86400) or an epoch timestamp (>= 86400).
@@ -396,6 +391,11 @@ local function setupFuns()
       cb(false)
     end
     return -1 -- not async
+  end
+
+  function async.once(cb, expr)
+    -- Backwards-compatible wrapper: resets at midnight (00:00 = stopVal 0)
+    return async.first_in_win(cb, expr, 0)
   end
 
   function async.cool_down(cb, T)
