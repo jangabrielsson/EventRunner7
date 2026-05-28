@@ -921,7 +921,9 @@ end
   local lastID,switchMap = {},{}
   local oldFibaroCall = fibaro.call
   function fibaro.call(id,action,...)
-    if ({turnOff=true,turnOn=true,on=true,toggle=true,off=true,setValue=true})[action] then lastID[id]={script=true,time=os.time()} end
+    if ({turnOff=true,turnOn=true,on=true,toggle=true,off=true,setValue=true})[action] then 
+      lastID[id]={script=true,time=os.time()} 
+    end
     if action=='setValue' and switchMap[id]==nil then
       local actions = (__fibaro_get_device(id) or {}).actions or {}
       switchMap[id] = actions.turnOff and not actions.setValue
@@ -934,6 +936,7 @@ end
     if ev.type=='device' and ev.property=='value' then
       local last = lastID[ev.id]
       local _,t = fibaro.get(ev.id,'value')
+      local v = t-last.time
       if not(last and last.script and t-last.time <= 2) then
         lastID[ev.id]={script=false, time=t}
       end

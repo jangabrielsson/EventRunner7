@@ -6,7 +6,7 @@
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
 --%%file:Sim.lua,sim
---%%time:2026/04/28 12:00:00
+--%% time:2026/04/28 12:00:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into
 -- eventrunner_test.lua once we have a stable set of features to test.
@@ -20,7 +20,6 @@ local function main(er) ER = er
   -- function foo() error("err") end
   -- rule("#device => foo('err'); log('Event %s',event)")
 
-  rule("46:value => return 1 --foo")
 end
 
 function QuickApp:onInit()

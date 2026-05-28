@@ -49,6 +49,7 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Math Functions](#math-functions)
     - [Global Variable Functions](#global-variable-functions)
     - [Lambda Functions](#lambda-functions)
+    - [List Comprehension](#list-comprehension)
     - [Table Functions](#table-functions)
     - [Rule Functions](#rule-functions)
     - [HTTP Functions](#http-functions)
@@ -719,6 +720,46 @@ double(7)                               -- 14
 local evens = filter({1,2,3,4,5}, x -> x % 2 == 0)
 local squares = map({1,2,3}, x -> x ^ 2)
 local total = reduce({1,2,3,4}, (a,b) -> a + b, 0)
+```
+
+### List Comprehension
+
+List comprehensions provide a concise expression syntax for building filtered and transformed arrays without explicit loops:
+
+```lua
+[expr for var in iter]           -- map: apply expr to every element
+[expr for var in iter if guard]  -- filter+map: only include elements where guard is true
+```
+
+- `expr` — the value to collect for each element (may reference `var`)
+- `var` — loop variable, bound to each element in turn
+- `iter` — an array iterated with `ipairs`
+- `if guard` — optional predicate; element is included only when `guard` is truthy
+
+**Examples:**
+```lua
+-- Double every value
+[x * 2 for x in {1, 2, 3}]                        -- {2, 4, 6}
+
+-- Keep only even numbers
+[x for x in {1,2,3,4,5} if x % 2 == 0]           -- {2, 4}
+
+-- Extract a property from each device in a list
+local names = [d:name for d in devices]
+
+-- Only names of devices that are online
+local online = [d:name for d in devices if d:dead == false]
+
+-- Nested: temperatures above threshold, converted to strings
+local msgs = [fmt("%.1f°", t) for t in temps if t > 25]
+```
+
+List comprehensions desugar to a `for … in ipairs(iter)` loop with an accumulator array — they are equivalent to `map`/`filter` chains but often more readable:
+
+```lua
+-- These two are equivalent:
+[x * 2 for x in t if x > 0]
+map(filter(t, x -> x > 0), x -> x * 2)
 ```
 
 ### Table Functions
