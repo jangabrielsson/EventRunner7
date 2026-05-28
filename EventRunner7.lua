@@ -8,10 +8,14 @@
 
 local function main(er)
   local rule,var = er.eval,er.variables
-  er.opts = { started = true, check = true, result = true, triggers=true}
+  er.opts = { started = true, check = true, result = true, triggers=true }
 
   rule("@@00:00:05 => log('tick')",{check=false})
-  
+
+  rule([[@now+1 => 
+      a=nil; a:value
+      ]])
+
 end
 
 function QuickApp:onInit()

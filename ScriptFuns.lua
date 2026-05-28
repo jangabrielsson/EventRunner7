@@ -28,6 +28,7 @@ local function getProp(obj, key, ctx)
       end, obj)
   end
   obj = ER.resolvePropObject(obj,key)
+  assert(obj,"No object found for property access :"..tostring(key))
   assert(obj:hasGetProp(key), "no such property :"..tostring(key).." (get)")
   return obj:_getProp(key, event)
 end
@@ -41,6 +42,7 @@ local function setProp(obj, key, value, ctx)
     return true
   end
   obj = ER.resolvePropObject(obj,key)
+  assert(obj,"No object found for property access :"..tostring(key))
   assert(obj:hasSetProp(key), "no such property :"..tostring(key).." (set)")
   --obj = ER.resolvePropObject(obj,key)
   obj:_setProp(key, value, event)
