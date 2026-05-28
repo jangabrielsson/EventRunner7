@@ -1,7 +1,7 @@
 --%%name:Test ground
 --%%type:com.fibaro.deviceController
 --%%headers:EventRunner.inc
---%%offline:true
+--%% offline:true
 -- %%save:dist/EventRunner7.fqa
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
@@ -20,7 +20,7 @@ local function main(er) ER = er
   -- function foo() error("err") end
   -- rule("#device => foo('err'); log('Event %s',event)")
 
-  rule("46:value => return 1").start()
+  rule("46:value => return 1 --foo")
 end
 
 function QuickApp:onInit()

@@ -177,6 +177,7 @@ end
   return {type=k.type, value=k.value, tk=t}
 end
 },
+{"-","%-%-[^\n]*)\n?", function(s) return nil end},  -- skip comments
 {" \t\n","%s+",function(t) 
   return nil end
 },
