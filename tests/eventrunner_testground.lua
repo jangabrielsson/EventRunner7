@@ -58,56 +58,56 @@ local function main(er) ER = er
   -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
   -- rule("disable('morning')")
 
---   er.createSimGlobal("Weer_Bewolking","Zwaar_Bewolkt")
---   er.createSimGlobal("Gordijn_Licht","Ochtöend")
---   er.createSimGlobal("Gordijn_Bewolking","")
---   local var = er.variables
---   var.Gordijn_Bewolking = "fopp"
+  er.createSimGlobal("Hand_Instelling_Ysemar_Logeert","Nee")
+  er.createSimGlobal("Verlichting_Appartement","Aanwezig_Aan")
+  er.createSimGlobal("Bezetting_Logeerkamer","Bezet")
+  er.createSimGlobal("Verlichting_Dagdeel","Ochtend")
+  local var = er.variables
+  var.dimmer_logeerkamer = false
 
--- rule([[@{05:00, catch} & now < 09:30 & $Gordijn_Licht == 'Ochtend' & Gordijn_Bewolking ~= 'Ochtend' =>
---         log.byzantine('gordijn_Bewolking_Ochtend = Vertraagd wordt ingesteld - 54-n');
---         log.limegreen('$Weer_Bewolking is %s',$Weer_Bewolking);case
---     || $Weer_Bewolking == 'Onbewolkt' >> 
---         post(#gordijn_Bewolking_Ochtend,+/00:01);
---         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
---         log.pink('$Gordijn_Bewolking = Ochtend');
---         log('54-N2');
--- wait(0)
---     || $Weer_Bewolking == 'Geen_Bewolking' >> 
---         post(#gordijn_Bewolking_Ochtend,+/00:01);
---         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
---         log.pink('$Gordijn_Bewolking = Ochtend');
---         log('54-N4');
--- wait(0)
--- 	|| $Weer_Bewolking == 'Licht_Bewolkt' >> 
---         post(#gordijn_Bewolking_Ochtend,+/00:05);
---         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
---         log.pink('$Gordijn_Bewolking = Ochtend');
---         log('54-N6');
--- wait(0)
--- 	|| $Weer_Bewolking == 'Half_Bewolkt' >> 
---         post(#gordijn_Bewolking_Ochtend,+/00:10);
---         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
---         log.pink('$Gordijn_Bewolking = Ochtend');
---         log('54-N8');
--- wait(0)
---     || $Weer_Bewolking == 'Geheel_Bewolkt' >>  
---         post(#gordijn_Bewolking_Ochtend,+/00:12);
---         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
---         log.pink('$Gordijn_Bewolking = Ochtend');
---         log('54-N10');
--- wait(0) 
---     || $Weer_Bewolking == 'Zwaar_Bewolkt' >> 
---         post(#gordijn_Bewolking_Ochtend,+/00:14);
---         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
---         log.pink('$Gordijn_Bewolking = Ochtend');
---         log('54-N12');
--- wait(0)
--- end
--- ]])
+logeerkamer = {}
+logeerkamer.pir = loadDevice("motionSensor")
 
-   rule("#foo{fun='$f'} => log('got fun: %s', f())", {result=true})
-   rule("a = () -> 77; post(#foo{fun=a})",{result=true})
+rule([[($Bezetting_Logeerkamer == 'Bezet' | logeerkamer.deur:isOpen | logeerkamer.pir:breached) & dimmer_logeerkamer == false  & $Verlichting_Appartement == 'Aanwezig_Aan'  & $Hand_Instelling_Ysemar_Logeert == 'Nee'  =>
+        log.byzantine('Logeerkamer gordijn:isClosed & logeerkamer.deur open of radar is On'); 
+wait(0); case
+    || $Verlichting_Dagdeel == 'Opstaan_Sjaak' >>
+        logeerkamer.Logeerkamer_Spots:value = 70;
+       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A2');
+wait(0)
+    || $Verlichting_Dagdeel == 'Opstaan_Beide' >>
+        logeerkamer.Logeerkamer_Spots:value = 70;
+       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A4');
+wait(0)
+    || $Verlichting_Dagdeel == 'Ochtend' >>
+        logeerkamer.Logeerkamer_Spots:value = 70;
+       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A6');
+wait(0)
+    || $Verlichting_Dagdeel == 'Middag_Laat' >>
+        logeerkamer.Logeerkamer_Spots:value = 70;
+       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A8');
+wait(0)
+    || $Verlichting_Dagdeel == 'Avond_Vroeg' >>
+        logeerkamer.Logeerkamer_Spots:value = 100;
+       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A10');
+wait(0)
+    || $Verlichting_Dagdeel == 'Avond_Laat' >>
+        logeerkamer.Logeerkamer_Spots:value = 70;
+       log.khaki('logeerkamer.Logeerkamer_Lampen "> 0 Aan" nu >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A12');
+wait(0)
+    || $Verlichting_Dagdeel == 'Slapen' >>
+        logeerkamer.Logeerkamer_Spots:off;
+       log.beige('logeerkamer.Logeerkamer_Lampen = 0  "Uit" >>> %s',logeerkamer.Logeerkamer_Lampenn:value);
+            log('62-A14');
+wait(0)
+end
+]]).start()
 
 end
 

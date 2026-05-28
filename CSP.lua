@@ -750,9 +750,35 @@ end
 local function resume(token, ...)
   local outer = _ctx:snapshot()
   _ctx:restore(token.ctx)     -- restore this expression's saved context
-  local result = table.pack(trampoline(token.resumeFn(...)))
+  local args = table.pack(...)
+  local packed = table.pack(pcall(function()
+    return trampoline(token.resumeFn(table.unpack(args, 1, args.n)))
+  end))
+  local ok = table.remove(packed, 1); packed.n = packed.n - 1
+
+  local curpos = _ctx:getCurpos()  -- read before restore wipes it
   _ctx:restore(outer)
-  return table.unpack(result, 1, result.n)
+
+  if not ok then
+    local enriched = tostring(packed[1])
+    local opts = token.ctx.opts
+    local src = opts and (opts.src or (opts.rule and opts.rule.src))
+    if src then
+      if curpos then
+        enriched = enriched .. ER.sourceMarker(src, curpos.pos, curpos.len)
+      else
+        enriched = enriched .. "</br>  source: " .. src
+      end
+    end
+    for _,p in ipairs(taggableErrors) do
+      if enriched:find(p) then
+        enriched = "#"..(enriched:match(".*:%d+: (.*)") or enriched)
+        break
+      end
+    end
+    error(enriched, 0)
+  end
+  return table.unpack(packed, 1, packed.n)
 end
 
 -- MAKETABLE builds a fresh table from alternating key/value expression pairs.
