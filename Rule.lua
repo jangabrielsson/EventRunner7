@@ -354,7 +354,7 @@ function HOPS.GETPROP(ast,trs)
   local key = ast[3]
   if type(obj) ~= 'table' then obj = {obj} end
   for _,o in pairs(obj) do
-    local gp = ER.resolvePropObject(o)
+    local gp = ER.resolvePropObject(o,key)
     assert(gp, "GETPROP: cannot resolve object: "..tostring(o))
     if not gp:hasGetProp(key) then
       error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp))

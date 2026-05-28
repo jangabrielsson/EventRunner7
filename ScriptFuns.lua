@@ -11,23 +11,23 @@ local function getProp(obj, key, ctx)
   end
   if type(obj) == 'table' then
     assert(obj[1], "#invalid property access on table without objects :"..tostring(key))
-    local fobj = ER.resolvePropObject(obj[1])
+    local fobj = ER.resolvePropObject(obj[1],key)
     if not fobj:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
     local reduce = fobj:hasReduce(key)
     if not reduce then 
       return table.map(function(o) 
-        o = ER.resolvePropObject(o)
+        o = ER.resolvePropObject(o,key)
         if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
         return o:_getProp(key, event)
       end, obj)
     end
     return reduce(function(o) 
-        o = ER.resolvePropObject(o)
+        o = ER.resolvePropObject(o,key)
         if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
         return o:_getProp(key, event)
       end, obj)
   end
-  obj = ER.resolvePropObject(obj)
+  obj = ER.resolvePropObject(obj,key)
   assert(obj:hasGetProp(key), "no such property :"..tostring(key).." (get)")
   return obj:_getProp(key, event)
 end
@@ -40,9 +40,9 @@ local function setProp(obj, key, value, ctx)
     end
     return true
   end
-  obj = ER.resolvePropObject(obj)
+  obj = ER.resolvePropObject(obj,key)
   assert(obj:hasSetProp(key), "no such property :"..tostring(key).." (set)")
-  --obj = ER.resolvePropObject(obj)
+  --obj = ER.resolvePropObject(obj,key)
   obj:_setProp(key, value, event)
   return true
 end
@@ -480,14 +480,14 @@ local function setupFuns()
   Scene.getProp.activate = function(self, _prop)
     for _, e in ipairs(self._activate) do
       local val = type(e[3]) == 'function' and e[3]() or e[3]
-      ER.resolvePropObject(e[1]):_setProp(e[2], val)
+      ER.resolvePropObject(e[1],_prop):_setProp(e[2], val)
     end
   end
   Scene.getProp.deactivate = function(self, _prop)
     assert(self._deactivate, "#Scene has no deactivate body")
     for _, e in ipairs(self._deactivate) do
       local val = type(e[3]) == 'function' and e[3]() or e[3]
-      ER.resolvePropObject(e[1]):_setProp(e[2], val)
+      ER.resolvePropObject(e[1],_prop):_setProp(e[2], val)
     end
   end
   builtin.Scene = function(entries)
