@@ -906,7 +906,7 @@ rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
         <div>
           <div class="kw-group-label mods">Rule modifiers</div>
           <div class="kw-pills">
-            <span class="kw-pill mod">restart</span>
+            <span class="kw-pill mod">single</span>
             <span class="kw-pill mod">since</span>
             <span class="kw-pill mod">debounce</span>
             <span class="kw-pill mod">cooldown</span>
@@ -915,7 +915,7 @@ rule("tempSensor:value &lt; 5 =&gt; log('Frost warning!')")</code></pre>
           </div>
         </div>
       </div>
-      <p class="kw-note reveal">These words cannot be used as variable or function names, nor after <code>.</code> in a method call. If a Lua API method has a clashing name, use index syntax: <code>plugin["restart"]()</code> instead of <code>plugin.restart()</code>.</p>
+      <p class="kw-note reveal">These words cannot be used as variable or function names, nor after <code>.</code> in a method call. If a Lua API method has a clashing name, use index syntax: <code>obj["single"]()</code> instead of <code>obj.single()</code>.</p>
       <div class="slide-num">03b</div>
     </div>
     <div class="tabs">

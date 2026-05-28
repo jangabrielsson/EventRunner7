@@ -712,7 +712,7 @@ local function makeParser(src)
   end
 
   local function parseScript()
-    -- script ::= exp {modifier} '=>' action   →  {'RULE', cond, action [,{restart=true}]}
+    -- script ::= exp {modifier} '=>' action   →  {'RULE', cond, action [,{single=true}]}
     --          | block                         →  {'SCRIPT', block}
     -- Speculatively parse a leading expression; if modifiers and/or '=>' follow it's a rule.
     -- On failure or no '=>', restore and re-parse as a plain block.
@@ -739,8 +739,8 @@ local function makeParser(src)
       local consumedModifier = false
       while peek(1) do
         local tok = peek(1)
-        if tok.type == 'restart' then
-          next(); modifiers.restart = true; consumedModifier = true
+        if tok.type == 'single' then
+          next(); modifiers.single = true; consumedModifier = true
         elseif tok.type == 'since' then
           next()
           if not peek(1) or peek(1).type == 'rule' then
@@ -755,7 +755,7 @@ local function makeParser(src)
             parseError("'debounce' requires a duration (e.g. debounce 5)")
           end
           local T = parseExp()
-          modifiers.restart = true; modifiers.debounce = T; consumedModifier = true
+          modifiers.single = true; modifiers.debounce = T; consumedModifier = true
         elseif tok.type == 'cooldown' then
           next()
           if not peek(1) or peek(1).type == 'rule' then
@@ -794,7 +794,7 @@ local function makeParser(src)
         end
         if peek(1) then parseError("Unexpected token after rule action") end
         local node = {'RULE', cond, action}
-        if modifiers.restart then node[4] = {restart=true} end
+        if modifiers.single then node[4] = {single=true} end
         return node
       elseif consumedModifier then
         parseError("Expected '=>' after rule modifiers")

@@ -1210,16 +1210,16 @@ condition [modifier...] => action
 
 | Modifier | Syntax | Effect |
 |----------|--------|--------|
-| `restart` | `cond restart =>` | Cancel all pending timers/waits from the current run and start fresh when condition re-fires |
+| `single` | `cond single =>` | Cancel all pending timers/waits from the current run and start fresh when condition re-fires |
 | `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (alias for `trueFor`) |
-| `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `restart`) |
+| `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `single`) |
 | `cooldown` | `cond cooldown duration =>` | After action completes, ignore re-triggers for `duration` seconds |
 | `every` | `cond every n =>` | Fire only on every `n`-th true evaluation |
 | `first_in` | `cond first_in T1..T2 =>` | Fire only the first time the trigger is true within the time window `T1..T2`; resets at window end |
 
 **Examples:**
 ```lua
-rule("doorbell:pressed restart => wait(0.5); chime:play")
+rule("doorbell:pressed single => wait(0.5); chime:play")
 -- Re-starts chime if pressed again mid-play (0.5 = 500 ms).
 
 rule("motion:breached since 00:02 => alarm:on")
@@ -1238,12 +1238,12 @@ rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
 rule("sensor:breached first_in 07:00..08:00 => radio:play")
 
 -- Modifiers compose:
-rule("button:pressed restart cooldown 2 => wait(0.1); light:toggle")
+rule("button:pressed single cooldown 2 => wait(0.1); light:toggle")
 ```
 
 ## Reserved Keywords
 
-The following identifiers are reserved by the EventScript language and cannot be used as variable names, function names, or after `.` in a property access. If a device or object has a method whose name clashes (e.g. `plugin.restart()`), use bracket notation instead: `plugin["restart"]()`.
+The following identifiers are reserved by the EventScript language and cannot be used as variable names, function names, or after `.` in a property access. If a device or object has a method whose name clashes (e.g. `obj.single()`), use bracket notation instead: `obj["single"]()`.
 
 ### Language control keywords
 
@@ -1251,16 +1251,16 @@ The following identifiers are reserved by the EventScript language and cannot be
 
 ### Rule modifier keywords
 
-`restart`, `since`, `debounce`, `cooldown`, `every`, `first_in`
+`single`, `since`, `debounce`, `cooldown`, `every`, `first_in`
 
 **Workaround for clashing names:** Use bracket-index syntax to access any method or property whose name is a keyword:
 
 ```lua
--- Wrong — 'restart' is a reserved keyword:
--- plugin.restart()
+-- Wrong — 'single' is a reserved keyword:
+-- obj.single()
 
 -- Correct:
-plugin["restart"]()
+obj["single"]()
 ```
 
 ## BREAK — stop rule dispatch early

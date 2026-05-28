@@ -25,7 +25,7 @@
     - [Send notification if door is left open for more than 5 minutes](#send-notification-if-door-is-left-open-for-more-than-5-minutes)
     - [Notification on last Monday in week](#notification-on-last-monday-in-week)
   - [Rule modifiers](#rule-modifiers)
-    - [Extend a motion light with restart](#extend-a-motion-light-with-restart)
+    - [Extend a motion light with single](#extend-a-motion-light-with-single)
     - [Ignore rapid re-triggers with debounce](#ignore-rapid-re-triggers-with-debounce)
     - [Condition must hold for N seconds (since)](#condition-must-hold-for-n-seconds-since)
     - [Suppress repeat notifications with cooldown](#suppress-repeat-notifications-with-cooldown)
@@ -260,12 +260,12 @@ rule([[@18:00 & day('lastw-last') & wday('mon') =>
 
 Modifiers are placed between the condition and `=>` and adjust *when* and *how* the action fires.
 
-### Extend a motion light with restart
+### Extend a motion light with single
 
-Without `restart`, a second motion event arrives while the light-off wait is already pending — the new run is blocked by the ongoing wait. With `restart`, the pending wait is cancelled and the timer restarts from zero:
+Without `single`, a second motion event arrives while the light-off wait is already pending — the new run is blocked by the ongoing wait. With `single`, the pending wait is cancelled and the timer restarts from zero:
 
 ```lua
-rule([[motion:breached restart =>
+rule([[motion:breached single =>
   hallwayLight:on;
   wait(00:05);
   hallwayLight:off
@@ -276,7 +276,7 @@ Every new motion event extends the on-period by another 5 minutes.
 
 ### Ignore rapid re-triggers with debounce
 
-`debounce T` waits for T seconds of silence before running the action (implies `restart`). Useful for sensors that fire multiple events in quick succession:
+`debounce T` waits for T seconds of silence before running the action (implies `single`). Useful for sensors that fire multiple events in quick succession:
 
 ```lua
 -- Door bell: wait for 3 s of silence before notifying

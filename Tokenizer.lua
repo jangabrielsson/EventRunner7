@@ -52,7 +52,7 @@ local keywords = {
   ['and'] = {type='op',value='and'},
   ['or'] = {type='op',value='or'},
 
-  ['restart']  = {type='restart',  value='restart'},
+  ['single']   = {type='single',   value='single'},
   ['since']    = {type='since',    value='since'},
   ['debounce'] = {type='debounce', value='debounce'},
   ['cooldown'] = {type='cooldown', value='cooldown'},

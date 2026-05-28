@@ -102,12 +102,12 @@ Modifiers are optional keywords placed between the condition expression and `=>`
 condition [modifier...] => action
 ```
 
-### `restart`
+### `single`
 
 If the condition re-fires while the action has pending timers (e.g. suspended in a `wait` or a scheduled `post`), cancel all those pending timers and start a fresh run. The currently-executing synchronous portion of the action is not interrupted — only the timed continuations are dropped.
 
 ```lua
-rule("doorbell:pressed restart => wait(0.5); chime:play")
+rule("doorbell:pressed single => wait(0.5); chime:play")
 -- If doorbell fires again while waiting the 500 ms, the wait is cancelled
 -- and a new 500 ms wait starts, so the chime always plays 500 ms
 -- after the *last* press.
@@ -124,7 +124,7 @@ rule("motion:breached since 00:02 => alarm:on")
 
 ### `debounce <duration>`
 
-Wait `<duration>` seconds after the *last* true evaluation before running the action. If the condition re-fires during the wait the timer resets (implies `restart`).
+Wait `<duration>` seconds after the *last* true evaluation before running the action. If the condition re-fires during the wait the timer resets (implies `single`).
 
 ```lua
 rule("search:keypress debounce 0.5 => searchAPI(query)")
@@ -154,8 +154,8 @@ rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
 Modifiers compose left-to-right. Common combinations:
 
 ```lua
-rule("button:pressed restart cooldown 2 => wait(100); light:toggle")
--- Restarts on rapid-press; after toggle completes, silent for 2 s.
+rule("button:pressed single cooldown 2 => wait(100); light:toggle")
+-- Cancels earlier run on rapid-press; after toggle completes, silent for 2 s.
 
 rule("noise:detected since 00:01 cooldown 00:10 => sendAlert()")
 -- Sustained noise for 1 min triggers alert; won't re-alert for 10 min.
@@ -367,7 +367,7 @@ testAsync("via post",
 
 ## Reserved keywords
 
-The following words cannot be used as identifiers (variable names, function names, or after `.` in a method call) in EventScript. If you get the error `'restart' is a reserved keyword`, rename the symbol or access it via `obj["restart"]` index syntax instead of `obj.restart`.
+The following words cannot be used as identifiers (variable names, function names, or after `.` in a method call) in EventScript. If you get the error `'single' is a reserved keyword`, rename the symbol or access it via `obj["single"]` index syntax instead of `obj.single`.
 
 ### Word keywords — clash with identifiers
 
@@ -382,7 +382,7 @@ The following words cannot be used as identifiers (variable names, function name
 | `nil` / `true` / `false` | literals |
 | `not` / `and` / `or` | logical operators (also written `!` / `&` / `\|`) |
 | `case` | case expression |
-| `restart` | rule modifier — restart a running async action |
+| `single` | rule modifier — enforce one instance; cancel any pending prior run |
 | `since` | rule modifier — condition must be true for a duration |
 | `debounce` | rule modifier — delay action until condition settles |
 | `cooldown` | rule modifier — minimum time between successive firings |

@@ -300,7 +300,7 @@ local function setupFuns()
     r:dumpTriggers("  ")
     -- modifier flags (compile-time)
     local mods = {}
-    if r.modifiers.restart  then mods[#mods+1] = "restart" end
+    if r.modifiers.single   then mods[#mods+1] = "single" end
     if r.modifiers.debounce then mods[#mods+1] = fmt("debounce(%s)", r.modifiers.debounce) end
     if #mods > 0 then print(fmt("   modifiers: %s", table.concat(mods, ", "))) end
     -- modifier runtime state

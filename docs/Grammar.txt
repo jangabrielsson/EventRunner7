@@ -5,10 +5,10 @@ script ::= exp {modifier} '=>' action |
            block
 
 -- Rule modifiers appear between the condition expression and '=>'.
--- Multiple modifiers may be combined (e.g. condition restart cooldown 5 => ...).
-modifier ::= 'restart'              -- restart pending action when condition re-fires
+-- Multiple modifiers may be combined (e.g. condition single cooldown 5 => ...).
+modifier ::= 'single'               -- cancel any pending waits/timers from prior run before starting fresh
            | 'since' exp            -- condition must have been true for exp seconds
-           | 'debounce' exp         -- wait exp seconds after last fire before running action (implies restart)
+           | 'debounce' exp         -- wait exp seconds after last fire before running action (implies single)
            | 'cooldown' exp         -- suppress re-firing for exp seconds after action runs
            | 'every' exp            -- fire only on every exp-th true evaluation
 

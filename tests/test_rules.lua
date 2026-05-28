@@ -99,13 +99,13 @@ test("every", function(er, rule, vars, tv, er)
   rule("y >= 2 => done()")
 end)
 
--- restart: re-trigger during action cancels and restarts it
-test("restart", function(er, rule, vars, tv, er)
+-- single: re-trigger during action cancels earlier instance
+test("single", function(er, rule, vars, tv, er)
   er.opts = opts
   tv.x = 1
-  -- triggers arrive every 1s; action needs 2s → each trigger restarts the wait
+  -- triggers arrive every 1s; action needs 2s → each trigger cancels the pending wait
   -- only the final wait(2) (after x=3 with no further trigger) completes
-  rule("x > 0 restart => wait(2); done()")
+  rule("x > 0 single => wait(2); done()")
   rule("x = 1; x = 2; x = 3")
 end, {timeout=1000*5})
 
