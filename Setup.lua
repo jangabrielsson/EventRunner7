@@ -12,6 +12,8 @@ local function preSetup(er)
     var.uptimeStr = uptimeStr
     var.uptimeMinutes = uptime // 60
     
+    function fibaro.post(ev,time) return (ER.sourceTrigger:post(ev,time)) end
+
     -- Sync http call
     
     local function httpCall(cb,url,options,data,dflt)

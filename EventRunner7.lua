@@ -11,8 +11,7 @@ local function main(er)
   er.opts = { started = true, check = true, result = true, triggers=true}
 
   rule("@@00:00:05 => log('tick')",{check=false})
-
-  rule("once(46:safe) => log('morning')",{group='morning', verbosity='verbose'}).start()
+  
 end
 
 function QuickApp:onInit()

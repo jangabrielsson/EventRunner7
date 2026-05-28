@@ -58,53 +58,56 @@ local function main(er) ER = er
   -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
   -- rule("disable('morning')")
 
-  er.createSimGlobal("Weer_Bewolking","Zwaar_Bewolkt")
-  er.createSimGlobal("Gordijn_Licht","Ochtöend")
-  er.createSimGlobal("Gordijn_Bewolking","")
-  local var = er.variables
-  var.Gordijn_Bewolking = "fopp"
+--   er.createSimGlobal("Weer_Bewolking","Zwaar_Bewolkt")
+--   er.createSimGlobal("Gordijn_Licht","Ochtöend")
+--   er.createSimGlobal("Gordijn_Bewolking","")
+--   local var = er.variables
+--   var.Gordijn_Bewolking = "fopp"
 
-rule([[@{05:00, catch} & now < 09:30 & $Gordijn_Licht == 'Ochtend' & Gordijn_Bewolking ~= 'Ochtend' =>
-        log.byzantine('gordijn_Bewolking_Ochtend = Vertraagd wordt ingesteld - 54-n');
-        log.limegreen('$Weer_Bewolking is %s',$Weer_Bewolking);case
-    || $Weer_Bewolking == 'Onbewolkt' >> 
-        post(#gordijn_Bewolking_Ochtend,+/00:01);
-        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
-        log.pink('$Gordijn_Bewolking = Ochtend');
-        log('54-N2');
-wait(0)
-    || $Weer_Bewolking == 'Geen_Bewolking' >> 
-        post(#gordijn_Bewolking_Ochtend,+/00:01);
-        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
-        log.pink('$Gordijn_Bewolking = Ochtend');
-        log('54-N4');
-wait(0)
-	|| $Weer_Bewolking == 'Licht_Bewolkt' >> 
-        post(#gordijn_Bewolking_Ochtend,+/00:05);
-        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
-        log.pink('$Gordijn_Bewolking = Ochtend');
-        log('54-N6');
-wait(0)
-	|| $Weer_Bewolking == 'Half_Bewolkt' >> 
-        post(#gordijn_Bewolking_Ochtend,+/00:10);
-        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
-        log.pink('$Gordijn_Bewolking = Ochtend');
-        log('54-N8');
-wait(0)
-    || $Weer_Bewolking == 'Geheel_Bewolkt' >>  
-        post(#gordijn_Bewolking_Ochtend,+/00:12);
-        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
-        log.pink('$Gordijn_Bewolking = Ochtend');
-        log('54-N10');
-wait(0) 
-    || $Weer_Bewolking == 'Zwaar_Bewolkt' >> 
-        post(#gordijn_Bewolking_Ochtend,+/00:14);
-        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
-        log.pink('$Gordijn_Bewolking = Ochtend');
-        log('54-N12');
-wait(0)
-end
-]])
+-- rule([[@{05:00, catch} & now < 09:30 & $Gordijn_Licht == 'Ochtend' & Gordijn_Bewolking ~= 'Ochtend' =>
+--         log.byzantine('gordijn_Bewolking_Ochtend = Vertraagd wordt ingesteld - 54-n');
+--         log.limegreen('$Weer_Bewolking is %s',$Weer_Bewolking);case
+--     || $Weer_Bewolking == 'Onbewolkt' >> 
+--         post(#gordijn_Bewolking_Ochtend,+/00:01);
+--         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+--         log.pink('$Gordijn_Bewolking = Ochtend');
+--         log('54-N2');
+-- wait(0)
+--     || $Weer_Bewolking == 'Geen_Bewolking' >> 
+--         post(#gordijn_Bewolking_Ochtend,+/00:01);
+--         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+--         log.pink('$Gordijn_Bewolking = Ochtend');
+--         log('54-N4');
+-- wait(0)
+-- 	|| $Weer_Bewolking == 'Licht_Bewolkt' >> 
+--         post(#gordijn_Bewolking_Ochtend,+/00:05);
+--         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+--         log.pink('$Gordijn_Bewolking = Ochtend');
+--         log('54-N6');
+-- wait(0)
+-- 	|| $Weer_Bewolking == 'Half_Bewolkt' >> 
+--         post(#gordijn_Bewolking_Ochtend,+/00:10);
+--         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+--         log.pink('$Gordijn_Bewolking = Ochtend');
+--         log('54-N8');
+-- wait(0)
+--     || $Weer_Bewolking == 'Geheel_Bewolkt' >>  
+--         post(#gordijn_Bewolking_Ochtend,+/00:12);
+--         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+--         log.pink('$Gordijn_Bewolking = Ochtend');
+--         log('54-N10');
+-- wait(0) 
+--     || $Weer_Bewolking == 'Zwaar_Bewolkt' >> 
+--         post(#gordijn_Bewolking_Ochtend,+/00:14);
+--         log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+--         log.pink('$Gordijn_Bewolking = Ochtend');
+--         log('54-N12');
+-- wait(0)
+-- end
+-- ]])
+
+   rule("#foo{fun='$f'} => log('got fun: %s', f())", {result=true})
+   rule("a = () -> 77; post(#foo{fun=a})",{result=true})
 
 end
 
