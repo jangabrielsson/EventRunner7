@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.1.24] - 2026-05-28
+
+## Changes in v0.1.24
+
+- ✨ **Feature**: Update time in eventrunner_testground.lua and correct Gordijn_Licht variable value
+- ✨ **Feature**: Add release notes for v0.1.23, implement lambda functions in EventScript, and enhance tests
+  - Created release notes for EventRunner7 v0.1.23 in HTML format.
+  - Introduced Lambda Functions section in EventScript documentation, detailing syntax and examples.
+  - Updated Grammar.txt to include lambda expressions in the language grammar.
+  - Enhanced eventrunner_testground.lua with new simulation global variables and rules.
+  - Added a new lambda_test.lua file for smoke testing arrow-lambda syntax and built-in functions (map, filter, reduce).
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.23] - 2026-05-28
 
 ## Changes in v0.1.23
