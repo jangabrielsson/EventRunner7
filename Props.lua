@@ -506,7 +506,7 @@ local function resolvePropObject(obj,prop)
   elseif type(obj) == 'number' then -- Create a PropObject for this device id, or return the existing one if we've already created it
     if numObjects[obj] then return numObjects[obj]
     else
-      if not (ER.devices:isDevice(obj) or simDevices[obj] or noDevProps[prop] or not fibaro.dontCheckDevices) then 
+      if not (ER.devices:isDevice(obj) or simDevices[obj] or noDevProps[prop] or fibaro.dontCheckDevices) then 
         error("#No such device: "..tostring(obj)) 
       end
       local po = NumberProp(obj)

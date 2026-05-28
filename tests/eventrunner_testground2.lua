@@ -20,7 +20,7 @@ local function main(er) ER = er
   -- function foo() error("err") end
   -- rule("#device => foo('err'); log('Event %s',event)")
 
-  rule("return 7 / nil")
+  rule("46:value => return 1").start()
 end
 
 function QuickApp:onInit()

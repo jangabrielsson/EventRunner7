@@ -332,8 +332,10 @@ end
 -- Used for both 'obj.field' (key is a CONST string) and 'obj[expr]' indexing.
 local function INDEX(obj_expr, key_expr)
   return function(cont)
+    local idx_pos = _ctx:getCurpos()  -- capture pos set by maybeWrap (e.g. field name)
     return obj_expr(TR(function(obj)
       return key_expr(TR(function(key)
+        _ctx:setCurpos(idx_pos)  -- restore: inner GET evaluation clobbers curpos
         trace("INDEX", tostring(obj), "[", tostring(key), "]")
         -- print(type(obj))
         -- print(obj.__USERDATA)

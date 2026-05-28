@@ -176,7 +176,7 @@ local function main(er)
     false)
 
   testRuleError("undefined device",
-    "20000:value => return 1",
+    "200000:value => return 1",
     "No such device")
 
   testRuleError("no triggers",
@@ -226,6 +226,31 @@ local function main(er)
     "throw({code=42, msg='oops'})",
     "code",
     false)
+
+  -- ── Cursor placement: nil field access (a.b:value where a.b = nil) ────────
+  -- Cursor should land on 'b' (col 4 in "a.b:value"), not on 'a' (col 1).
+  do
+    local src = "a.b:value"
+    local ok, err = pcall(function()
+      local ast        = parse(src)
+      local tree, smap = compileASTWithMap(ast)
+      local code       = vm.compile(tree, smap)
+      vm.eval(code, { src = src, vars = {a = {b = nil}} })
+    end)
+    local msg = dehtml(tostring(err))
+    local marker = msg:match("\n([%s%^]+)$") or msg:match("\n([%s%^]+)\n?$")
+    local col = marker and (marker:find("%^") or 0) or 0
+    if not ok and col >= 3 then
+      passed = passed + 1
+      print("PASS: cursor on nil field 'b' (col " .. col .. ")")
+    elseif not ok then
+      failed = failed + 1
+      print("FAIL: cursor position wrong for nil field access (col=" .. col .. ")\n  " .. msg)
+    else
+      failed = failed + 1
+      print("FAIL: expected error for 'a.b:value' with a.b=nil")
+    end
+  end
 
   -- ── Summary ───────────────────────────────────────────────────────────────
 

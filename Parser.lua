@@ -159,7 +159,8 @@ local function makeParser(src)
       elseif t.type == 'dot' then
         -- '.' Name
         next()
-        base = {'FIELD', base, expect('identifier').value}
+        local ident = expect('identifier')
+        base = P({'FIELD', base, ident.value}, ident)  -- pos at the field name
         isCall = false
       elseif t.type == 'colon' then
         -- ':' Name args  OR  ':' Name  (getprop)
