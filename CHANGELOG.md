@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.29] - 2026-05-28
+
+## Changes in v0.1.29
+
+- ♻️ **Refactor**: rename 'restart' modifier to 'single' and update related documentation
+- ✨ **Feature**: add list comprehension syntax to documentation and grammar; update test ground comments
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.28] - 2026-05-28
 
 ## Changes in v0.1.28
