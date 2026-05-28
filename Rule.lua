@@ -616,7 +616,17 @@ local function eval(src,opts)
   setmetatable(ER.er.opts, {__index = dfltPrefix}) -- override default options with provided ones, need to do it here as user may have reassigned ER.er.opts
   setmetatable(opts, {__index = ER.er.opts})       -- inherit default options
   opts.src = src  -- store source text for runtime error enrichment
-  local ast    = ER.parse(src)           -- parse error propagates immediately
+  local ast
+  do
+    local ok, err = pcall(function() ast = ER.parse(src) end)
+    if not ok then
+      if not opts.throw then
+        print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+        return
+      end
+      error(err, 0)
+    end
+  end
   local isRule = (ast[1] == 'RULE')
   local result
 
