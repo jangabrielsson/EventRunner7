@@ -122,6 +122,7 @@ local function compRule(r, opts, src)
   setmetatable(rule, {
     __tostring = function(self) return self.name end
   })
+  rule.stats = { runs = 0, successes = 0, failures = 0 }
   rule.historyOn = false
   rule.historySize = opts.historySize or 10
   rule.history = {}
@@ -180,6 +181,7 @@ local function compRule(r, opts, src)
       rule.timers = {}
       for ref in pairs(old) do sourceTrigger:cancel(ref) end
     end
+    rule.stats.runs = rule.stats.runs + 1
     return ruleRunner(rule.fun, rule, ...)
   end
 
@@ -215,7 +217,6 @@ local function compRule(r, opts, src)
       end
     )
   end
-
 
   local skipDailys = false
   local intervalTimer
@@ -671,6 +672,7 @@ local function ruleGuard(success)
     ctx:log("normal", prefix, event)
   end
   local r = opts.rule
+  r.stats[success and "successes" or "failures"] = r.stats[success and "successes" or "failures"] + 1
   if r and r.historyOn then
     local entry = { time=os.time(), trigger=tostring(event), result=success }
     table.insert(r.history, entry)

@@ -138,6 +138,9 @@ local function setupFuns()
     return math.max(table.unpack(args))
   end
   function builtin.sort(t) table.sort(t) return t end
+  function builtin.map(t, f) local r={} for i,v in ipairs(t) do r[i]=f(v) end return r end
+  function builtin.filter(t, f) local r={} for _,v in ipairs(t) do if f(v) then r[#r+1]=v end end return r end
+  function builtin.reduce(t, f, acc) for _,v in ipairs(t) do acc=f(acc,v) end return acc end
   function builtin.osdate(a,b) return os.date(a,b) end
   function builtin.ostime(t) return os.time(t) end
   function builtin.nexttime(m,n) local t1 = m+n; return t1 > os.time() and t1 or t1+86400 end

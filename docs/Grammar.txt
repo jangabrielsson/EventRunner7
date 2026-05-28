@@ -88,7 +88,13 @@ unop ::= '-' | '!' | 't/' | 'n/' | '+/'
 powexp ::= primaryexp ['^' unaryexp]
 
 primaryexp ::= nil | false | true | Number | String | '...' |
-               function | tableconstructor | prefixexp
+               function | lambdaexp | tableconstructor | prefixexp
+
+-- Arrow-lambda: concise anonymous function with a single expression body.
+-- Single-param form needs no parentheses; multi-param and zero-param forms
+-- require parentheses to avoid ambiguity with grouped expressions.
+lambdaexp ::= Name '->' exp
+            | '(' [namelist] ')' '->' exp
 
 -- Prefix expressions with eliminated left recursion.
 -- All suffix forms are handled uniformly by postfix.

@@ -335,6 +335,8 @@ local function INDEX(obj_expr, key_expr)
     return obj_expr(TR(function(obj)
       return key_expr(TR(function(key)
         trace("INDEX", tostring(obj), "[", tostring(key), "]")
+        -- print(type(obj))
+        -- print(obj.__USERDATA)
         if type(obj) ~= 'table' then
           return rterror("#Attempt to index a non-table value: " .. tostring(obj).. " with key '"..tostring(key).."'" )
         end

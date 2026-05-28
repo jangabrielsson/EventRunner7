@@ -72,6 +72,7 @@ local keywords = {
   ['==='] = {type='match',value='match'}, -- binary, string match
   ['??'] = {type='op',value='nilco'}, -- binary, nil coalescing
   ['+='] = {type='incvar',value='plus'}, -- binary, variable increment, var += exp
+  ['->'] = {type='lambda_arrow',value='lambda_arrow'}, -- lambda arrow, x -> expr
   ['-='] = {type='incvar',value='minus'}, -- binary, variable decrement, var -= exp
   ['*='] = {type='incvar',value='multiply'}, -- binary, variable multiplication assignment, var *= exp
   ['/='] = {type='incvar',value='divide'}, -- binary, variable division assignment, var /= exp
@@ -168,6 +169,7 @@ end},
   return {type=k.type, value=k.value, tk=t}
 end
 },
+{"-","%->" ,kwHandler},   -- '->' lambda arrow (must follow compound-assignment group)
 {"|",'||?',  kwHandler},  -- '||' case_bar (before single '|' catch-all)
 {"+-*/(){}&|!:;,.<>=[]%",".",function(t) 
   local k = keywords[t]

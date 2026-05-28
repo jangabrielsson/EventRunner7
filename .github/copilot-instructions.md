@@ -107,6 +107,7 @@ Type a slash command in Copilot chat for detailed reference:
 - `/plua-setup` — install, HC3 credentials, --init-qa, VS Code integration, CLI flags, **`Lua.diagnostics.globals`**
 - `/quickapp-troubleshooting` — HTML in labels, UI callbacks, property persistence, HC3 vs plua differences
 - `/hc3vfs` — editing QA files in the VS Code hc3:// virtual filesystem (requires hc3-vfs extension)
+- `/eventrunner-testing` — writing parser/eval/integration tests, builtin availability (`setupFuns`), valid statement forms, compile function names
 
 Always read the relevant skill **before** constructing an answer from scratch.
 

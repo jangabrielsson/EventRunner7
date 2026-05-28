@@ -27,6 +27,9 @@ local function makeParser(src)
   -- Forward declarations
   local parseExp, parseBlock, parseTableConstructor
 
+  -- Gensym counter for list-comprehension accumulator variables.
+  local _lc_count = 0
+
   --------------------------------------------------------------------------
   -- Helpers
   --------------------------------------------------------------------------
@@ -215,6 +218,78 @@ local function makeParser(src)
         end
       end
       return {'TABLE', table.unpack(fields)}
+    elseif ty == 'identifier' and peek(2) and peek(2).type == 'lambda_arrow' then
+      -- lambda: x -> expr  (single-param, no parens)
+      local param = next().value  -- consume identifier
+      next()                      -- consume '->'
+      local body = parseExp()
+      return P({'FUNCTION', {param}, body}, t)
+    elseif ty == 'lpar' then
+      -- Try to parse (() -> expr) or ((x, y) -> expr); fall back to parsePrefixexpFull
+      local saved = savePos()
+      local params = {}
+      local is_lambda = false
+      next()  -- consume '('
+      if peek(1) and peek(1).type == 'rpar' then
+        next()  -- consume ')' — zero-param lambda candidate
+        if peek(1) and peek(1).type == 'lambda_arrow' then is_lambda = true end
+      elseif peek(1) and peek(1).type == 'identifier' then
+        table.insert(params, next().value)
+        local ok = true
+        while peek(1) and peek(1).type == 'comma' do
+          next()  -- consume ','
+          if peek(1) and peek(1).type == 'identifier' then
+            table.insert(params, next().value)
+          else ok = false; break end
+        end
+        if ok and peek(1) and peek(1).type == 'rpar' then
+          next()  -- consume ')'
+          if peek(1) and peek(1).type == 'lambda_arrow' then is_lambda = true end
+        end
+      end
+      if is_lambda then
+        next()  -- consume '->'
+        local body = parseExp()
+        return P({'FUNCTION', params, body}, t)
+      else
+        restorePos(saved)
+        return parsePrefixexpFull()
+      end
+    elseif ty == 'lsqb' then
+      -- List comprehension: [expr for var in iter [if guard]]
+      -- Desugars inline (no wrapping lambda) so nested comprehensions share scope.
+      -- Compiles to: LET(acc, {}, PROGN(FOR_IN_LOOP, GET(acc)))
+      next()  -- consume '['
+      local expr1 = parseExp()
+      expect('for')
+      local var = expect('identifier').value
+      expect('in')
+      local expr2 = parseExp()
+      local guard = nil
+      if peek(1) and peek(1).type == 'if' then
+        next()  -- consume 'if'
+        guard = parseExp()
+      end
+      expect('rsqb')  -- consume ']'
+      _lc_count = _lc_count + 1
+      local acc   = '_lc' .. _lc_count
+      local dummy = '_lc_' .. _lc_count
+      local addCall = {'CALL', {'NAME','adde'}, {'NAME',acc}, expr1}
+      local loopBody
+      if guard then
+        loopBody = {'BLOCK', {'IF', guard, {'BLOCK', addCall}, {}, nil}}
+      else
+        loopBody = {'BLOCK', addCall}
+      end
+      local forNode = {'FOR_IN', {dummy, var},
+                       {{'CALL', {'NAME','ipairs'}, expr2}},
+                       loopBody}
+      -- BLOCK ends with {'NAME',acc} — compiles to GET(acc), the expression value.
+      return P({'BLOCK',
+        {'LOCAL', {acc}, {{'TABLE'}}},
+        forNode,
+        {'NAME', acc}
+      }, t)
     else
       -- number literals also go through parsePrefixexpFull so that
       -- 88:field postfix syntax is handled correctly

@@ -6,7 +6,7 @@
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
 --%%file:Sim.lua,sim
---%%time:2026/04/28 12:00:00
+--%%time:2026/04/28 05:10:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into
 -- eventrunner_test.lua once we have a stable set of features to test.
@@ -57,10 +57,55 @@ local function main(er) ER = er
 
   -- rule("@10:00 => log('tick')",{group='morning', verbosity='verbose'})
   -- rule("disable('morning')")
-  er.triggerVars.a = 0
-  rule("a == 1 => log('OK1'); return BREAK") -- prevents rule engine from processing any more rules for this trigger, so "OK2" won't be logged
-  rule("a == 1 => log('OK2')")
-  rule("a = 1")
+
+  er.createSimGlobal("Weer_Bewolking","Zwaar_Bewolkt")
+  er.createSimGlobal("Gordijn_Licht","Ochtend")
+  er.createSimGlobal("Gordijn_Bewolking","")
+  local var = er.variables
+  var.Gordijn_Bewolking = "fopp"
+
+rule([[@{05:00, catch} & now < 09:30 & $Gordijn_Licht == 'Ochtend' & Gordijn_Bewolking ~= 'Ochtend' =>
+        log.byzantine('gordijn_Bewolking_Ochtend = Vertraagd wordt ingesteld - 54-n');
+        log.limegreen('$Weer_Bewolking is %s',$Weer_Bewolking);case
+    || $Weer_Bewolking == 'Onbewolkt' >> 
+        post(#gordijn_Bewolking_Ochtend,+/00:01);
+        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+        log.pink('$Gordijn_Bewolking = Ochtend');
+        log('54-N2');
+wait(0)
+    || $Weer_Bewolking == 'Geen_Bewolking' >> 
+        post(#gordijn_Bewolking_Ochtend,+/00:01);
+        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+        log.pink('$Gordijn_Bewolking = Ochtend');
+        log('54-N4');
+wait(0)
+	|| $Weer_Bewolking == 'Licht_Bewolkt' >> 
+        post(#gordijn_Bewolking_Ochtend,+/00:05);
+        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+        log.pink('$Gordijn_Bewolking = Ochtend');
+        log('54-N6');
+wait(0)
+	|| $Weer_Bewolking == 'Half_Bewolkt' >> 
+        post(#gordijn_Bewolking_Ochtend,+/00:10);
+        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+        log.pink('$Gordijn_Bewolking = Ochtend');
+        log('54-N8');
+wait(0)
+    || $Weer_Bewolking == 'Geheel_Bewolkt' >>  
+        post(#gordijn_Bewolking_Ochtend,+/00:12);
+        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+        log.pink('$Gordijn_Bewolking = Ochtend');
+        log('54-N10');
+wait(0) 
+    || $Weer_Bewolking == 'Zwaar_Bewolkt' >> 
+        post(#gordijn_Bewolking_Ochtend,+/00:14);
+        log.magenta('gordijn_Bewolking_Ochtend - vertraagd');
+        log.pink('$Gordijn_Bewolking = Ochtend');
+        log('54-N12');
+wait(0)
+end
+]])
+
 end
 
 

@@ -48,6 +48,7 @@ EventScript is the rule-based automation language used by EventRunner7 for creat
     - [Event Functions](#event-functions)
     - [Math Functions](#math-functions)
     - [Global Variable Functions](#global-variable-functions)
+    - [Lambda Functions](#lambda-functions)
     - [Table Functions](#table-functions)
     - [Rule Functions](#rule-functions)
     - [HTTP Functions](#http-functions)
@@ -681,19 +682,76 @@ rule("@startup => systemStatus = 'running'")
 rule("@shutdown => deleteglobal('temporaryFlag')")
 ```
 
+### Lambda Functions
+
+EventScript supports two syntaxes for creating anonymous functions (lambdas):
+
+**Arrow syntax (concise):**
+```lua
+-- Single parameter
+x -> x * 2
+
+-- Multiple parameters
+(x, y) -> x + y
+
+-- Zero parameters
+() -> 42
+```
+
+**Keyword syntax (Lua-style, for multi-statement bodies):**
+```lua
+function(x) return x * 2 end
+function(x, y) return x + y end
+```
+
+Arrow lambdas take a single expression as their body. Use the `function ... end` form when you need multiple statements or explicit `return`.
+
+**Examples:**
+```lua
+-- Immediately invoke a lambda
+(x -> x * 2)(5)                         -- 10
+
+-- Store in a local variable
+local double = x -> x * 2
+double(7)                               -- 14
+
+-- Pass to higher-order functions
+local evens = filter({1,2,3,4,5}, x -> x % 2 == 0)
+local squares = map({1,2,3}, x -> x ^ 2)
+local total = reduce({1,2,3,4}, (a,b) -> a + b, 0)
+```
+
 ### Table Functions
 
 Utility functions for working with tables and arrays.
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `adde(t, v)` | Add value to end of table | `adde(logEntries, newEntry)` |
-| `remove(t, v)` | Remove value from table | `remove(activeDevices, deviceId)` |
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `adde(t, v)` | `adde(table, value)` | Append value to end of table |
+| `remove(t, v)` | `remove(table, value)` | Remove first occurrence of value |
+| `sort(t)` | `sort(table)` | Sort table in-place, returns table |
+| `size(t)` | `size(table)` | Return number of elements (`#t`) |
+| `map(t, f)` | `map(table, func)` | Return new table with `f` applied to each element |
+| `filter(t, f)` | `filter(table, pred)` | Return new table of elements where `pred(v)` is true |
+| `reduce(t, f, init)` | `reduce(table, func, initial)` | Fold table left using `func(acc, v)`, starting from `init` |
+| `sum(t)` | `sum(table)` | Return sum of all elements |
 
 **Examples:**
 ```lua
 rule("motion:breached => adde(motionLog, now)")
 rule("device:offline => remove(activeDevices, device:id)")
+
+-- map: double every value
+local doubled = map({1, 2, 3}, x -> x * 2)    -- {2, 4, 6}
+
+-- filter: keep only values above a threshold
+local hot = filter(temps, x -> x > 25)         -- elements > 25
+
+-- reduce: compute a total
+local total = reduce({10, 20, 30}, (a,b) -> a + b, 0)  -- 60
+
+-- chain: sum of squares of even numbers
+local result = sum(map(filter({1,2,3,4,5}, x -> x % 2 == 0), x -> x ^ 2))  -- 20
 ```
 
 ### Rule Functions
