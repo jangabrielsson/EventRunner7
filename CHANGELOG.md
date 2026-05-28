@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.30] - 2026-05-28
+
+## Changes in v0.1.30
+
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.29 and update test scripts
+  - Created a new HTML file for the forum post of EventRunner7 v0.1.29, detailing changes, download links, and documentation.
+  - Refactored the eventrunner_testground.lua script to simplify variable handling and removed commented-out code for clarity.
+  - Updated eventrunner_testground2.lua to define devices more clearly and adjusted the simulation time handling.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.29] - 2026-05-28
 
 ## Changes in v0.1.29
