@@ -12,12 +12,7 @@ local function main(er)
 
   -- rule("@@00:00:05 => log('tick')",{check=false})
 
-  rule([[#keuken_Apparatuur_Aan => 
-        for _,id in pairs(keuken_apparatuur) do id:on; wait(00:00:02) end;
-            log.yellow('keuken_apparatuur = Aan');
-            log('19-A');
-        wait(0)
-            ]])
+rule([[ @23:30+rnd(-00:15,00:15) & $Locatie_Bewoners == 'Afwezig' => log('tick')]],{check=false})
 end
 
 function QuickApp:onInit()

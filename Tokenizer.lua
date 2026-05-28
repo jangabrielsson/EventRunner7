@@ -18,6 +18,7 @@ local keywords = {
   ["-"] = {type='op',value='minus'},
   ["*"] = {type='op',value='multiply'},
   ["/"] = {type='op',value='divide'},
+  ["%"] = {type='op',value='modulo'},
   ["{"] = {type='lbra',value='table_start'},
   ["}"] = {type='rbra',value='table_end'},
   [":"] = {type='colon',value='colon'},
@@ -74,6 +75,7 @@ local keywords = {
   ['-='] = {type='incvar',value='minus'}, -- binary, variable decrement, var -= exp
   ['*='] = {type='incvar',value='multiply'}, -- binary, variable multiplication assignment, var *= exp
   ['/='] = {type='incvar',value='divide'}, -- binary, variable division assignment, var /= exp
+  ['%='] = {type='incvar',value='modulo'}, -- binary, variable modulo assignment, var %= exp
   ['case'] = {type='case',value='case'},   -- case statement keyword
   ['||'] = {type='case_bar',value='case_bar'}, -- case branch separator
   ['>>'] = {type='case_arrow',value='case_arrow'}, -- case branch arrow (condition >> block)
@@ -106,6 +108,19 @@ local tknsStrs = {
   {"t",  "t/",    kwHandler},   -- t/HH:MM  today-at
   {"n",  "n/",    kwHandler},   -- n/HH:MM  next-occurrence
   {"+",  "%+[+/]",kwHandler},   -- ++  string concat  |  +/HH:MM  plus-from-now
+  -- Long date literals → epoch (must precede plain number patterns)
+  {"0123456789", "%d%d%d%d/%d%d/%d%d/%d%d:%d%d:%d%d", function(s)
+    local y,mo,d,h,mi,se = s:match("(%d+)/(%d+)/(%d+)/(%d+):(%d+):(%d+)")
+    return {type='number', value=os.time({year=tonumber(y),month=tonumber(mo),day=tonumber(d),hour=tonumber(h),min=tonumber(mi),sec=tonumber(se)})}
+  end},
+  {"0123456789", "%d%d%d%d/%d%d/%d%d/%d%d:%d%d", function(s)
+    local y,mo,d,h,mi = s:match("(%d+)/(%d+)/(%d+)/(%d+):(%d+)")
+    return {type='number', value=os.time({year=tonumber(y),month=tonumber(mo),day=tonumber(d),hour=tonumber(h),min=tonumber(mi),sec=0})}
+  end},
+  {"0123456789", "%d%d%d%d/%d%d/%d%d", function(s)
+    local y,mo,d = s:match("(%d+)/(%d+)/(%d+)")
+    return {type='number', value=os.time({year=tonumber(y),month=tonumber(mo),day=tonumber(d),hour=0,min=0,sec=0})}
+  end},
   -- HH:MM:SS time literal → seconds since midnight (must precede plain number)
   {"0123456789", "%d%d:%d%d:%d%d", function(s)
     local h,m,sec = s:match("(%d+):(%d+):(%d+)")
@@ -134,14 +149,27 @@ end
 },
 {".","%.%.",  kwHandler},   -- .. between operator (must precede single '.')
 {"?","%?%?",  kwHandler},   -- nilco, nil coalescing
-{"+-*/",".=",function(t) 
+-- Abbreviated long dates: /MM/DD[/HH:MM[:SS]] → epoch (current year). Must precede '/' single-char.
+{"/", "/%d%d/%d%d/%d%d:%d%d:%d%d", function(s)
+  local mo,d,h,mi,se = s:match("/(%d+)/(%d+)/(%d+):(%d+):(%d+)")
+  return {type='number', value=os.time({year=os.date("*t").year,month=tonumber(mo),day=tonumber(d),hour=tonumber(h),min=tonumber(mi),sec=tonumber(se)})}
+end},
+{"/", "/%d%d/%d%d/%d%d:%d%d", function(s)
+  local mo,d,h,mi = s:match("/(%d+)/(%d+)/(%d+):(%d+)")
+  return {type='number', value=os.time({year=os.date("*t").year,month=tonumber(mo),day=tonumber(d),hour=tonumber(h),min=tonumber(mi),sec=0})}
+end},
+{"/", "/%d%d/%d%d", function(s)
+  local mo,d = s:match("/(%d+)/(%d+)")
+  return {type='number', value=os.time({year=os.date("*t").year,month=tonumber(mo),day=tonumber(d),hour=0,min=0,sec=0})}
+end},
+{"+-*/%",".=",function(t) 
   local k = keywords[t]
   if not k then error("Bad token:"..t) end
   return {type=k.type, value=k.value, tk=t}
 end
 },
 {"|",'||?',  kwHandler},  -- '||' case_bar (before single '|' catch-all)
-{"+-*/(){}&|!:;,.<>=[]",".",function(t) 
+{"+-*/(){}&|!:;,.<>=[]%",".",function(t) 
   local k = keywords[t]
   if not k then error("Bad token:"..t) end
   return {type=k.type, value=k.value, tk=t}

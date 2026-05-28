@@ -74,7 +74,7 @@ local function compileTarget(var, val_csp)
   return result
 end
 
-local IncOpMap = { plus='ADD', minus='SUB', multiply='MUL', divide='DIV' }
+local IncOpMap = { plus='ADD', minus='SUB', multiply='MUL', divide='DIV', modulo='MOD' }
 local function compIncvar(ast)
   local var = ast[2]
   local exp = compile(ast[3])

@@ -249,7 +249,7 @@ local function makeParser(src)
 
   -- mulexp ::= unaryexp {mulop unaryexp}
   -- mulop ::= '*' | '/'
-  local mulops = { multiply = 'MUL', divide = 'DIV' }
+  local mulops = { multiply = 'MUL', divide = 'DIV', modulo = 'MOD' }
   local function parseMulexp()
     local left = parseUnaryexp()
     while true do

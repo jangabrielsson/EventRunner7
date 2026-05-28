@@ -344,7 +344,7 @@ end
 -- Std Head Ops: just scan their children
 local stdHOPS = {
   "RETURN", "NOT", "AND", "OR", "CALL","ADD",
-  "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW"
+  "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW","NEG"
 }
 local HOPS = {}
 for _,op in ipairs(stdHOPS) do HOPS[op] = stdScan end
