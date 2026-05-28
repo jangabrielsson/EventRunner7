@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.1.28] - 2026-05-28
+
+## Changes in v0.1.28
+
+- 🐛 **Fix**: skip comments in tokenizer and adjust rule syntax in test ground
+- 🐛 **Fix**: improve cursor positioning for nil field access and update error test cases
+- ✨ **Feature**: Add release notes for v0.1.27 and update event runner test script
+  - Created a new HTML file for release notes of EventRunner7 v0.1.27, including download links and a copy functionality for forum posts.
+  - Updated the event runner test script to include new simulation globals and refined rules for lighting control based on occupancy and time of day.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.27] - 2026-05-28
 
 ## Changes in v0.1.27
