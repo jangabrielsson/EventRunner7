@@ -29,6 +29,9 @@ local function makeParser(src)
 
   -- Gensym counter for list-comprehension accumulator variables.
   local _lc_count = 0
+  -- Tracks whether we are currently inside a 'case' body so that '||'
+  -- at expression end is not mistaken for a bad OR operator.
+  local inCase = 0
 
   --------------------------------------------------------------------------
   -- Helpers
@@ -423,7 +426,7 @@ local function makeParser(src)
       local op = next()
       left = P({'OR', left, parseAndexp()}, op)
     end
-    if peek(1) and peek(1).type == 'case_bar' then
+    if peek(1) and peek(1).type == 'case_bar' and inCase == 0 then
       parseError("Use '|' for OR (not '||') in EventScript expressions")
     end
     return left
@@ -563,11 +566,13 @@ local function makeParser(src)
       -- Syntactic sugar for if-elseif chain: each '|| exp >> block' becomes a branch.
       next()
       local branches = {}
+      inCase = inCase + 1
       while match('case_bar') do
         local cond = parseExp()
         expect('case_arrow')
         table.insert(branches, {cond, parseBlock()})
       end
+      inCase = inCase - 1
       expect('end')
       if #branches == 0 then
         return {'BLOCK'}
