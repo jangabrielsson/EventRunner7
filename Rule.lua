@@ -200,6 +200,7 @@ local function compRule(r, opts, src)
       enable = {function(arg) ER.enable(arg or rule,true) end},
       disable = {function(arg) ER.enable(arg or rule,false) end},
     }
+    vars.env = { event = vars.event }
     for k,v in pairs(ev.p or {}) do vars[k] = {v} end
     return vars
   end
