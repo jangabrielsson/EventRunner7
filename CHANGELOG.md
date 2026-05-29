@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.33] - 2026-05-29
+
+## Changes in v0.1.33
+
+- ✨ **Feature**: add error and warning logging functions; update tests for appPhone device
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.32] - 2026-05-29
 
 ## Changes in v0.1.32
