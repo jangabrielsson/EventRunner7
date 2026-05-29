@@ -198,6 +198,7 @@ local function setupFuns()
   end
 
   function builtin.adde(t,v) table.insert(t,v) return t end
+  function builtin.addf(t,v) table.insert(t,1,v) return t end
   function builtin.remove(t,v) 
     for i=#t,1,-1 do if t[i]==v then table.remove(t,i) end end 
     return t

@@ -266,7 +266,19 @@ local function makeParser(src)
       next()  -- consume '['
       local expr1 = parseExp()
       expect('for')
-      local var = expect('identifier').value
+      local firstName = expect('identifier').value
+      local keyVar, valVar
+      if peek(1) and peek(1).type == 'comma' then
+        next()  -- consume ','
+        keyVar = firstName
+        valVar = expect('identifier').value
+      else
+        -- single-var form: implicit gensym key
+        _lc_count = _lc_count + 1
+        keyVar = '_lc_' .. _lc_count
+        valVar = firstName
+        _lc_count = _lc_count - 1  -- will be bumped again below
+      end
       expect('in')
       local expr2 = parseExp()
       local guard = nil
@@ -276,8 +288,9 @@ local function makeParser(src)
       end
       expect('rsqb')  -- consume ']'
       _lc_count = _lc_count + 1
-      local acc   = '_lc' .. _lc_count
-      local dummy = '_lc_' .. _lc_count
+      local acc = '_lc' .. _lc_count
+      -- if we used a gensym above, fix it up to match the new count
+      if keyVar:match('^_lc_') then keyVar = '_lc_' .. _lc_count end
       local addCall = {'CALL', {'NAME','adde'}, {'NAME',acc}, expr1}
       local loopBody
       if guard then
@@ -285,8 +298,8 @@ local function makeParser(src)
       else
         loopBody = {'BLOCK', addCall}
       end
-      local forNode = {'FOR_IN', {dummy, var},
-                       {{'CALL', {'NAME','ipairs'}, expr2}},
+      local forNode = {'FOR_IN', {keyVar, valVar},
+                       {{'CALL', {'NAME','pairs'}, expr2}},
                        loopBody}
       -- BLOCK ends with {'NAME',acc} — compiles to GET(acc), the expression value.
       return P({'BLOCK',
