@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.34] - 2026-05-29
+
+## Changes in v0.1.34
+
+- ✨ **Feature**: add environment variable to compRule function for event handling
+- ✨ **Feature**: Add logo image to the documentation
+- 📚 **Docs**: update list comprehension syntax and grammar explanations in EventScript documentation
+- ✨ **Feature**: Add release notes for EventRunner7 v0.1.33 with download links and logging feature details
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.33] - 2026-05-29
 
 ## Changes in v0.1.33
