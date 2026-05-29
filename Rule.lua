@@ -58,6 +58,8 @@ local cfg = { -- internal config, not user customizable
 -- Every execution context (rule or expression) exposes ctx:log(level, prefix, ...)
 -- so callers never need to branch on "is this a rule or an expression?".
 local VERBOSITY = { silent = 0, normal = 1, verbose = 2 }
+local function printErr(...) fibaro.error(__TAG,...) end
+local function printWarn(...) fibaro.warning(__TAG,...) end
 
 local function trimErr(str)
   return str:match("^#(.+)") or str:match("%d+: #(.*)$") or str
@@ -72,7 +74,7 @@ local function makeExprCtx(opts)
     if level < min then return end
     if prefix == self.opts.errorPrefix and self.opts.src then
       a1 = trimErr(a1 or "")
-      print(prefix, a1, ..., "</br>  src: "..self.opts.src)
+      printErr(prefix, a1, ..., "</br>  src: "..self.opts.src)
     else
       print(prefix, a1, ...)
     end
@@ -135,7 +137,7 @@ local function compRule(r, opts, src)
     if level < min then return end
     if prefix == self.opts.errorPrefix and self.src then
       a1 = trimErr(a1 or "")
-      print(prefix, tostring(self)..":", a1,..., "</br>  src: "..self.src)
+      printErr(prefix, tostring(self)..":", a1,..., "</br>  src: "..self.src)
     else
       print(prefix, tostring(self)..":", a1,...)
     end
@@ -625,7 +627,7 @@ local function eval(src,opts)
     local ok, err = pcall(function() ast = ER.parse(src) end)
     if not ok then
       if not opts.throw then
-        print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+        printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
         return
       end
       error(err, 0)
@@ -647,7 +649,7 @@ local function eval(src,opts)
 
   if not ok then
     if not opts.throw then
-      print(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+      printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
     end
     if opts.throw then error(err, 0) end
   end

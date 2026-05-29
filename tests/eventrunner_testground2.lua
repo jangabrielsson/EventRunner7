@@ -21,26 +21,12 @@ local function main(er) ER = er
     blinds_living_room = loadDevice("rollerShutter"),
     blind_Nr_4  = loadDevice("rollerShutter"),
     door_bow_tie = loadDevice("doorSensor"),
+    appPhone = { alarm_Ring = loadDevice("binarySwitch") }
   }
 
-  var.HT = HT
-  er.createSimGlobal("Present_Kai", "away")
-  er.createSimGlobal("Present_Katharina", "away")
-  rule("HT.blind_Nr_4:value=99")
-  rule("HT.door_bow_tie:value=false")
+  er.defvars(HT)
 
-  setTimeout(function()
-
-rule("@22:00+rnd(-00:08,00:03) & ($Present_Kai=='away' & $Present_Katharina=='away' & HT.blind_Nr_4:isOpen & HT.door_bow_tie:safe) => log('X'); HT.blinds_living_room:close",{check=true, started=true})
-
-  rule([[HT.door_bow_tie:value=true;
-        wait(5);
-        HT.door_bow_tie:value=false;
-        
-  ]])
-
-  end, 1000)
-
+ rule([[appPhone.alarm_Ring:isOn => log.yellow("appPhone.alarm_Ring == Aan"); log('40-A'); wait(0)]])
 end
 
 function QuickApp:onInit()
