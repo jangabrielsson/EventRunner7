@@ -284,7 +284,8 @@ local function DAILY(a)
   return function(cont)
     return a(TR(function(v)
       trace("DAILY", v)
-      return cont(true)
+      local _,b = _ctx:getVar('event')
+      return cont((b or {}).type == 'DAILY')
     end))
   end
 end

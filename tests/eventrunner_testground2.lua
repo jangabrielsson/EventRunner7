@@ -7,7 +7,7 @@
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
 --%%file:Sim.lua,sim
---%% time:2026/04/28 12:00:00
+--%%time:2026/04/28 07:00:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into
 -- eventrunner_test.lua once we have a stable set of features to test.
@@ -18,18 +18,28 @@ local function main(er) ER = er
   local function loadDevice(name) return er.loadSimDevice(name) end
 
   local HT = {
-    motion = loadDevice("motionSensor"),
-    light  = loadDevice("multilevelSwitch"),
+    blinds_living_room = loadDevice("rollerShutter"),
+    blind_Nr_4  = loadDevice("rollerShutter"),
+    door_bow_tie = loadDevice("doorSensor"),
   }
 
-  er.defvars(HT)
+  var.HT = HT
+  er.createSimGlobal("Present_Kai", "away")
+  er.createSimGlobal("Present_Katharina", "away")
+  rule("HT.blind_Nr_4:value=99")
+  rule("HT.door_bow_tie:value=false")
 
-  -- rule("t0=now")
-  -- rule("motion:breached single => light:on; wait(00:05); light:off; log('T:%s',HMS(now-t0))")
+  setTimeout(function()
 
-  -- rule("motion:value=true; wait(00:02); motion:value=false; wait(1); motion:value=true")
+rule("@22:00+rnd(-00:08,00:03) & ($Present_Kai=='away' & $Present_Katharina=='away' & HT.blind_Nr_4:isOpen & HT.door_bow_tie:safe) => log('X'); HT.blinds_living_room:close",{check=true, started=true})
 
-  rule("@now+1 & wday('last') => log('tick')")
+  rule([[HT.door_bow_tie:value=true;
+        wait(5);
+        HT.door_bow_tie:value=false;
+        
+  ]])
+
+  end, 1000)
 
 end
 
