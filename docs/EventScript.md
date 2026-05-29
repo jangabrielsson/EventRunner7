@@ -727,18 +727,21 @@ local total = reduce({1,2,3,4}, (a,b) -> a + b, 0)
 List comprehensions provide a concise expression syntax for building filtered and transformed arrays without explicit loops:
 
 ```lua
-[expr for var in iter]           -- map: apply expr to every element
-[expr for var in iter if guard]  -- filter+map: only include elements where guard is true
+[expr for val in iter]                -- map: apply expr to every value (pairs)
+[expr for val in iter if guard]       -- filter+map: only include elements where guard is true
+[expr for key, val in iter]           -- expose both key and value
+[expr for key, val in iter if guard]  -- key+val with filter
 ```
 
-- `expr` — the value to collect for each element (may reference `var`)
-- `var` — loop variable, bound to each element in turn
-- `iter` — an array iterated with `ipairs`
+- `expr` — the value to collect for each element (may reference `val` and optionally `key`)
+- `val` — loop variable, bound to each value in turn
+- `key` — optional loop variable for the key (string or integer)
+- `iter` — any table, iterated with `pairs` (works for both arrays and dictionaries)
 - `if guard` — optional predicate; element is included only when `guard` is truthy
 
 **Examples:**
 ```lua
--- Double every value
+-- Double every value in an array
 [x * 2 for x in {1, 2, 3}]                        -- {2, 4, 6}
 
 -- Keep only even numbers
@@ -750,17 +753,26 @@ local names = [d:name for d in devices]
 -- Only names of devices that are online
 local online = [d:name for d in devices if d:dead == false]
 
--- Nested: temperatures above threshold, converted to strings
+-- Temperatures above threshold, converted to strings
 local msgs = [fmt("%.1f°", t) for t in temps if t > 25]
+
+-- Two-var form: build "key:value" strings from a dictionary
+local t = {a=1, b=2, c=3}
+local pairs = [k++':'++tostring(v) for k, v in t]  -- {"a:1", "b:2", "c:3"} (order unspecified)
+
+-- Two-var form with filter: collect keys whose value exceeds a threshold
+local hot = [k for k, v in sensors if v > 25]
 ```
 
-List comprehensions desugar to a `for … in ipairs(iter)` loop with an accumulator array — they are equivalent to `map`/`filter` chains but often more readable:
+List comprehensions desugar to a `for … in pairs(iter)` loop with an accumulator array — they are equivalent to `map`/`filter` chains but often more readable:
 
 ```lua
 -- These two are equivalent:
 [x * 2 for x in t if x > 0]
 map(filter(t, x -> x > 0), x -> x * 2)
 ```
+
+> **Note:** Iteration uses `pairs`, so the order of results for dictionary tables is unspecified. For arrays (`{1,2,3}`), Lua's `pairs` visits integer keys in ascending order in practice, but `ipairs`-style order is not guaranteed.
 
 ### Table Functions
 

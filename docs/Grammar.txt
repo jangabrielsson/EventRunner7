@@ -90,9 +90,10 @@ powexp ::= primaryexp ['^' unaryexp]
 primaryexp ::= nil | false | true | Number | String | '...' |
                function | lambdaexp | listcomp | tableconstructor | prefixexp
 
--- List comprehension: evaluates expr for each element of iter (via ipairs),
+-- List comprehension: evaluates expr for each element of iter (via pairs),
 -- collecting results into a new array.  The optional 'if' guard filters elements.
-listcomp ::= '[' exp 'for' Name 'in' exp ['if' exp] ']'
+-- One-var form uses an implicit gensym key; two-var form exposes both key and value.
+listcomp ::= '[' exp 'for' Name [',' Name] 'in' exp ['if' exp] ']'
 
 -- Arrow-lambda: concise anonymous function with a single expression body.
 -- Single-param form needs no parentheses; multi-param and zero-param forms
