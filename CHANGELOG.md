@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.32] - 2026-05-29
+
+## Changes in v0.1.32
+
+- ✨ **Feature**: update DAILY function to check event type and add roller shutter simulation
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.31] - 2026-05-28
 
 ## Changes in v0.1.31
