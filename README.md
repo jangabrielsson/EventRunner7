@@ -1,3 +1,7 @@
+<p align="center">
+    <img src="https://raw.githubusercontent.com/jangabrielsson/EventRunner6/main/doc/logo.png" alt="EventRunner6 Logo" width="320"/>
+</p>
+
 # EventRunner7
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -5,7 +9,7 @@
 
 <a href="https://www.buymeacoffee.com/rywnwpdvvni" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
-EventRunner7 is a powerful rule-based automation framework for Fibaro Home Center 3 (HC3). It provides an expressive domain-specific language (**EventScript**) for writing complex automation rules with advanced event handling, scheduling, rule modifiers, and named scenes.
+EventRunner7 is a powerful rule-based automation framework for Fibaro Home Center 3 (HC3). It provides an expressive domain-specific language DSL (**EventScript**) for writing complex automation rules with advanced event handling, scheduling, rule modifiers, and named scenes.
 
 > Successor to [EventRunner6](https://github.com/jangabrielsson/EventRunner6) — fully backward-compatible rule syntax with new features.
 
@@ -109,21 +113,21 @@ Modifiers go between the condition and `=>`:
 
 | Modifier | Effect |
 |----------|--------|
-| `restart` | Cancel current run and restart if condition re-fires |
+| `single` | Cancel current run and restart if condition re-fires |
 | `since T` | Condition must stay true for T seconds first (alias for `trueFor`) |
 | `debounce T` | Wait T s of silence; reset timer on each re-fire (implies `restart`) |
 | `cooldown T` | Suppress re-triggering for T s after action completes |
 | `every N` | Fire only on every N-th true evaluation |
 
 ```lua
-rule("doorbell:pressed restart => wait(500); chime:play")
+rule("doorbell:pressed single => wait(500); chime:play")
 rule("motion:breached since 00:02 => alarm:on")
 rule("keypress debounce 0.5 => searchAPI(query)")
 rule("motion:breached cooldown 00:05 => notify('Motion!')")
 rule("sensor:value every 4 => log('val: %d', sensor:value)")
 
 -- Modifiers compose:
-rule("button:pressed restart cooldown 2 => wait(100); light:toggle")
+rule("button:pressed single cooldown 2 => wait(100); light:toggle")
 ```
 
 ### Custom Events
