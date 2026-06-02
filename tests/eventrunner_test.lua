@@ -176,11 +176,11 @@ end
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
   local profile = require("tests/profile")
-  profile.start()
+  --profile.start()
   fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
     fibaro.EventRunner(main)
   end)
-  profile.stop()
+  --profile.stop()
   -- report for the top 10 functions, sorted by execution time
-  print(profile.report(10))
+  --print(profile.report(10))
 end

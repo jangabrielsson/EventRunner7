@@ -1,13 +1,14 @@
 --%%offline:true
 -- Compiler.lua: Compiles the EventScript parser AST to CSP table notation.
 -- Output is consumed by fibaro.CONT.compile() (CSP.lua's simple compiler).
---
+
 -- Pipeline:  source → Parser → AST → compileAST() → CSP tables → CSP.compile() → expr
 
 fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 
 local compile  -- forward-declared so handlers can call each other recursively
+local isCondition = false  -- flag to indicate when compiling a rule condition 
 
 -- _srcmap: when non-nil, maps CSP instruction table refs → {pos,len}.
 -- Declared at top-level so ALL functions below close over the same upvalue.
@@ -292,6 +293,13 @@ local function compCall(ast)
   return res
 end
 
+
+function compCfun(ast)
+  local res = {'CFUN', ast[2]}
+  for i = 3, #ast do res[#res + 1] = compile(ast[i]) end
+  return res
+end
+
 -- ── Built-in intrinsics ───────────────────────────────────────────────────
 -- wait(seconds)  →  YIELD('sleep', seconds)
 -- ms may be a numeric literal or any expression; time literals like 00:05
@@ -343,6 +351,7 @@ comp.REPEAT  = compRepeat
 comp.FOR_NUM = compFor
 comp.FOR_IN = compForIn
 comp.CALL   = compCall
+comp.CFUN   = compCfun
 
 function comp.RULE()
   error("Compiler: use ER.compileRuleBody() for RULE nodes — compileAST() does not support them")
@@ -357,12 +366,15 @@ comp.FUNCTION = function(ast)
   return {'LAMBDA', params, body}
 end
 
+local EVID = 1
 comp.TABLE = function(ast)
   local args = {'MAKETABLE'}
+  local isEvent = false
   local pos = 1
   for i = 2, #ast do
     local f = ast[i]
     if f[1] == 'TFIELD_NAME' then
+      if f[2] == 'type' then isEvent = true end
       args[#args+1] = f[2]           -- raw string key  (ca() wraps in CONST)
       args[#args+1] = compile(f[3])  -- compiled value
     elseif f[1] == 'TFIELD_EXPR' then
@@ -375,7 +387,11 @@ comp.TABLE = function(ast)
       pos = pos + 1
     end
   end
-  return args
+  if isCondition and isEvent then 
+    local id = "EV:"..EVID
+    EVID = EVID + 1
+    return {'TRIGGER_EVENT',args,id}
+  else return args end
 end
 
 -- FIELD: obj.name  →  INDEX(obj, CONST(name))
@@ -456,8 +472,13 @@ function ER.compileRuleBody(ast)
   _srcmap = {}
   local result
   local ok, err = pcall(function()
-    local cond = {"CALL", {'NAME','_ruleCondition'}, ast[2]}
-    result = compile({'IF', cond, ast[3], {}, {'RETURN', {'STRING', ER.ruleFail}}})
+    local cond = {"CFUN", ER.ruleCondition, ast[2]}
+    isCondition = true
+    local c_cond = compile(cond)
+    isCondition = false
+    local c_action = compile(ast[3])
+    local c_fail = compile({'RETURN', {'STRING', ER.ruleFail}})
+    result = {'IF', c_cond, c_action, c_fail}
     if _srcmap then result._srcmap = _srcmap end
     if ast[4] then result._modifiers = ast[4] end  -- preserve modifiers (single, debounce, etc.)
   end)

@@ -350,7 +350,7 @@ end
 
 -- Std Head Ops: just scan their children
 local stdHOPS = {
-  "RETURN", "NOT", "AND", "OR", "CALL","ADD",
+  "RETURN", "NOT", "AND", "OR", "CALL","ADD","CFUN",
   "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW","NEG"
 }
 local HOPS = {}
@@ -436,23 +436,14 @@ function HOPS.GET(ast,trs)
 end
 
 local EVID = 1
-function HOPS.MAKETABLE(ast,trs)
-  local tab = exprFun(ast)()
-  if type(tab)=='table' and type(tab.type)=='string' then
-    local id = "EV:"..EVID
-    EVID = EVID + 1
-    local c_ast = {}
-    for i,v in ipairs(ast) do c_ast[i] = v; ast[i] = nil end
-    ast[1] = "CFUN"
-    ast[2] = function(cont,ctx,id,tab)
-      local exist,evKey = ctx:getVar('_evKey')
-      return cont(exist and evKey == id and tab or false)
-    end
-    ast[3] = id
-    ast[4] = c_ast
-    trs.triggers[id] = tab
-  end
+function HOPS.TRIGGER_EVENT(ast,trs)
+  local tab = ast[2]
+  local id = ast[3]
+  local tab = exprFun(tab)() -- evaluate
+  trs.triggers[id] = tab
 end
+
+function HOPS.MAKETABLE(ast,trs) end -- table contains no triggers
 
 function scanHead(ast,trs)
   if type(ast) ~= 'table' then return end
@@ -667,10 +658,9 @@ local function eval(src,opts)
   return result and table.unpack(result, 1, result.n)
 end
 
-local function ruleGuard(success)
-  local cspCtx = ER._ctx
-  local opts = cspCtx:getOpts()
-  local _,event = cspCtx:getVar('event')
+function ER.ruleCondition(cont, ctx, success)
+  local opts = ctx:getOpts()
+  local _,event = ctx:getVar('event')
   event = event and setmetatable(event, ER.EventMT) or ""
   if opts.check then
     local ctx = opts.rule  -- the execution context (rule or exprCtx)
@@ -689,7 +679,7 @@ local function ruleGuard(success)
     local res = success and "✅ PASS" or "❌ FAIL"
     print(fmt("👁  [%s] %s  %s  %s", r.name, ts, res, tostring(event)))
   end
-  return success
+  return cont(success)
 end
 
 local function clearRules()
@@ -702,6 +692,139 @@ local function clearRules()
   vm.resetGlobals()
 end
 
+-- EventScript specific CSP functions
+local function addCSPfuns()
+  local TR = vm.expr.TR
+  local trace, ca = vm.trace, vm.ca
+  local ctx = vm.getCTX
+
+  -- GETPROP(obj_expr, key) reads a device property via ER._funs.getProp.
+  -- key is a plain string (not an expression).
+  local function GETPROP(obj_expr, key)
+    return function(cont)
+      return obj_expr(TR(function(obj)
+        trace("GETPROP", tostring(obj), key)
+        return cont(ER.getProp(obj, key, ctx()))
+      end))
+    end
+  end
+  
+  -- SETPROP(obj_expr, key, val_expr) writes a device property via ER._funs.setProp.
+  -- key is a plain string (not an expression).
+  local function SETPROP(obj_expr, key, val_expr)
+    return function(cont)
+      return obj_expr(TR(function(obj)
+        return val_expr(TR(function(v)
+          trace("SETPROP", tostring(obj), key, "=", tostring(v))
+          ER.setProp(obj, key, v, ctx())
+          return cont(v)
+        end))
+      end))
+    end
+  end
+  
+  -- GETVAR reads special vars.
+  local function GETVAR(typ,name)
+    return function(cont)
+      return name(TR(function(n)
+        local v = ER.getVar(typ,n)  -- errors propagate to eval()'s pcall
+        return cont(v)
+      end))
+    end
+  end
+  
+  -- SETVAR mutates special vars.
+  local function SETVAR(typ, name, val_expr)
+    return function(cont)
+      return name(TR(function(n)
+        return val_expr(TR(function(v)
+          ER.setVar(typ, n, v)  -- errors propagate to eval()'s pcall
+          return cont(v)
+        end))
+      end))
+    end
+  end
+  
+  -- DAILY is true if the rule was invoked by a DAILY event
+  local function DAILY(a)
+    return function(cont)
+      return a(TR(function(v)
+        trace("DAILY", v)
+        local _,b = ctx():getVar('event')
+        return cont((b or {}).type == 'DAILY')
+      end))
+    end
+  end
+  
+  -- INTERV wraps a time value into an Interval event descriptor {type='Interval', interval=v}.
+  local function INTERV(a)
+    return function(cont)
+      return a(TR(function(v)
+        trace("INTERV", v)
+        return cont({type='Interval', interval=v})
+      end))
+    end
+  end
+
+  local function TRIGGER_EVENT(tab_expr, id_expr)
+    return function(cont)
+      return tab_expr(TR(function(tab)
+        return id_expr(TR(function(id)
+          trace("TRIGGER_EVENT", id, "in", tostring(tab))
+          local exist,evKey = ctx():getVar('_evKey')
+          return cont(exist and evKey == id and tab or false)
+        end))
+      end))
+    end
+  end
+
+  -- BETW checks whether the current time falls within [start, stop].
+  -- Delegates to ER.betw which handles both epoch timestamps (arg > T2020)
+  -- and seconds-since-midnight values, including midnight wrap-around.
+  local function BETW(start_expr, stop_expr)
+    return function(cont)
+      return start_expr(TR(function(start)
+        return stop_expr(TR(function(stop)
+          trace("BETW", start, "..", stop)
+          return cont(ER.betw(start, stop))
+        end))
+      end))
+    end
+  end
+  
+  vm.registerInstructions({
+    GETPROP = {
+      impl = GETPROP,
+      compile = function(t) return GETPROP(ca(t[2]), t[3]) end
+    },
+    SETPROP = {
+      impl = SETPROP,
+      compile = function(t) return SETPROP(ca(t[2]), t[3], ca(t[4])) end
+    },
+    GETVAR = {
+      impl = GETVAR,
+      compile = function(t) return GETVAR(t[2], ca(t[3])) end
+    },
+    SETVAR = {
+      impl = SETVAR,
+      compile = function(t) return SETVAR(t[2], ca(t[3]), ca(t[4])) end
+    },
+    DAILY  = { impl = DAILY },   -- generic-arg: no special compiler needed
+    INTERV = { impl = INTERV },
+    TRIGGER_EVENT = { impl = TRIGGER_EVENT },
+    BETW   = { impl = BETW },    -- or could stay core with _host.betw()
+  })
+
+  function vm.host.isAsync(f) return ER.ASYNCFUNS and ER.ASYNCFUNS[f] end
+  function vm.host.onVarWrite(name, val) 
+    if ER._triggerVars and ER._triggerVars[name] then
+      ER.sourceTrigger:post({type='trigger-variable', name = name, value = val})
+      trace("SET trigger var", name, "=", val)
+    end
+  end
+  function vm.host.formatSource(src, pos, len) ER.sourceMarker(src, pos, len) end
+end
+
 local function bootEventRunner(cb)
   local silent = ER.silent
   generation = generation + 1
@@ -709,7 +832,6 @@ local function bootEventRunner(cb)
   local color = ER.color
   local er = {eval = eval, now = ER.now}
 
-  vm.defGlobal("_ruleCondition", ruleGuard)
   vm.defGlobal('catch', catchValue)
 
   er.triggerVars = setmetatable({}, {
@@ -752,6 +874,8 @@ local function bootEventRunner(cb)
     ER._midnightRunning = true
     midnightLoop()
   end
+
+  addCSPfuns()
 
   er.post = function(...) return sourceTrigger:post(...) end
   er.cancel = function(...) return sourceTrigger:cancel(...) end

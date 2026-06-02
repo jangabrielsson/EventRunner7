@@ -6,6 +6,7 @@ local unpack = table.unpack
 local YIELD_TAG = {}  -- unique sentinel for yield detection
 
 local _ctx   -- forward-declared so trace() can close over it
+local vm -- forward-declared 
 
 local function trace(label, ...)
   if _ctx:getTrace() then print("[TRACE]", label, ...) end
@@ -279,41 +280,6 @@ local function CONCAT(a, b)
   end
 end
 
--- DAILY is true if the rule was invoked by a DAILY event
-local function DAILY(a)
-  return function(cont)
-    return a(TR(function(v)
-      trace("DAILY", v)
-      local _,b = _ctx:getVar('event')
-      return cont((b or {}).type == 'DAILY')
-    end))
-  end
-end
-
--- INTERV wraps a time value into an Interval event descriptor {type='Interval', interval=v}.
-local function INTERV(a)
-  return function(cont)
-    return a(TR(function(v)
-      trace("INTERV", v)
-      return cont({type='Interval', interval=v})
-    end))
-  end
-end
-
--- BETW checks whether the current time falls within [start, stop].
--- Delegates to ER.betw which handles both epoch timestamps (arg > T2020)
--- and seconds-since-midnight values, including midnight wrap-around.
-local function BETW(start_expr, stop_expr)
-  return function(cont)
-    return start_expr(TR(function(start)
-      return stop_expr(TR(function(stop)
-        trace("BETW", start, "..", stop)
-        return cont(ER.betw(start, stop))
-      end))
-    end))
-  end
-end
-
 local function IF(i,t,e)
   return function(cont)
     return i(TR(function(iv)
@@ -381,37 +347,12 @@ local function SETFIELD(obj_expr, field, val_expr)
   end
 end
 
--- GETPROP(obj_expr, key) reads a device property via ER._funs.getProp.
--- key is a plain string (not an expression).
-local function GETPROP(obj_expr, key)
-  return function(cont)
-    return obj_expr(TR(function(obj)
-      trace("GETPROP", tostring(obj), key)
-      return cont(ER.getProp(obj, key, _ctx))
-    end))
-  end
-end
-
--- SETPROP(obj_expr, key, val_expr) writes a device property via ER._funs.setProp.
--- key is a plain string (not an expression).
-local function SETPROP(obj_expr, key, val_expr)
-  return function(cont)
-    return obj_expr(TR(function(obj)
-      return val_expr(TR(function(v)
-        trace("SETPROP", tostring(obj), key, "=", tostring(v))
-        ER.setProp(obj, key, v, _ctx)
-        return cont(v)
-      end))
-    end))
-  end
-end
-
 local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a Lua function
   local fargs = {...}
   return function(cont)
     return f_expr(TR(function(f)
       return evalArgs(fargs, 1, {}, 0, TR(function(...)
-        if ER.ASYNCFUNS and ER.ASYNCFUNS[f] then
+        if vm.host.isAsync(f) then
           local yvals = table.pack(...)
           return YIELD_TAG, function(...)
             trace("ASYNC", "resuming with", ...)
@@ -419,9 +360,7 @@ local function CALL(f_expr,...) -- f_expr is an expression that evaluates to a L
           end, "asyncFun",f,table.unpack(yvals, 1, yvals.n)
         end
         trace("CALL", tostring(f), ...)
-        ER._ctx = _ctx  -- make current context available to the called function
         local rets = table.pack(pcall(f, ...))
-        ER._ctx = nil
         if not rets[1] then 
           error(rets[2], 0) -- re-raise; eval()'s pcall enriches
         end  
@@ -594,10 +533,7 @@ local function SET(name, val_expr)
   return function(cont)
     return val_expr(TR(function(v)
       local found = _ctx:setVar(name, v)
-      if ER._triggerVars and ER._triggerVars[name] then
-        ER.sourceTrigger:post({type='trigger-variable', name = name, value = v})
-        trace("SET trigger var", name, "=", v)
-      end
+      vm.host.onVarWrite(name, v)
       if found then return cont(v) end
       return rterror("#Undefined variable: '" .. tostring(name) .. "'")
     end))
@@ -612,33 +548,9 @@ local function INCVAR(name, op, val_expr)
       if not found then return rterror("#Undefined variable: '" .. tostring(name) .. "'") end
       local result = OPS[op](currVal, v)
       _ctx:setVar(name, result)
-      if ER._triggerVars and ER._triggerVars[name] then
-        ER.sourceTrigger:post({type='trigger-variable', name = name, value = result})
-      end
+      vm.host.onVarWrite(name, result)
       trace("INCVAR  var", name, "=", result, op)
       return cont(result)
-    end))
-  end
-end
-
--- GETVAR reads special vars.
-local function GETVAR(typ,name)
-  return function(cont)
-    return name(TR(function(n)
-      local v = ER.getVar(typ,n)  -- errors propagate to eval()'s pcall
-      return cont(v)
-    end))
-  end
-end
-
--- SETVAR mutates special vars.
-local function SETVAR(typ, name, val_expr)
-  return function(cont)
-    return name(TR(function(n)
-      return val_expr(TR(function(v)
-        ER.setVar(typ, n, v)  -- errors propagate to eval()'s pcall
-        return cont(v)
-      end))
     end))
   end
 end
@@ -733,7 +645,7 @@ eval = function(expr, opts)   -- NOTE: forward-declared above for LAMBDA
     local src = opts and (opts.src or (opts.rule and opts.rule.src))
     if src then
       if curpos then
-        enriched = enriched .. ER.sourceMarker(src, curpos.pos, curpos.len)
+        enriched = enriched .. vm.host.formatSource(src, curpos.pos, curpos.len)
       else
         enriched = enriched .. "</br>  source: " .. src
       end
@@ -768,7 +680,7 @@ local function resume(token, ...)
     local src = opts and (opts.src or (opts.rule and opts.rule.src))
     if src then
       if curpos then
-        enriched = enriched .. ER.sourceMarker(src, curpos.pos, curpos.len)
+        enriched = enriched .. vm.host.formatSource(src, curpos.pos, curpos.len)
       else
         enriched = enriched .. "</br>  source: " .. src
       end
@@ -818,11 +730,9 @@ local expr = {
   CONST = CONST,
   ADD = ADD, SUB = SUB, MUL = MUL, DIV = DIV, MOD = MOD, POW = POW,
   EQ  = EQ,  LT  = LT,  LTE = LTE, GT  = GT,  GTE = GTE, NILCO = NILCO,
-  AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT, BETW = BETW,
+  AND = AND, OR  = OR,  NOT = NOT,  NEG = NEG,  CONCAT = CONCAT,
   INDEX = INDEX, SETINDEX = SETINDEX, SETFIELD = SETFIELD, INCVAR = INCVAR,
   MAKETABLE = MAKETABLE,
-  DAILY = DAILY,  INTERV = INTERV,
-  GETPROP = GETPROP,  SETPROP = SETPROP,
   IF    = IF,
   YIELD = YIELD,
   LOOP  = LOOP,  BREAK = BREAK,
@@ -830,11 +740,15 @@ local expr = {
   TRACE     = TRACE,
   PRINT     = PRINT,
   LET   = LET,   LETS = LETS, GET   = GET,   SET = SET,
-  GETVAR = GETVAR, SETVAR = SETVAR,
   TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
   CFUN  = CFUN,
   LAMBDA = LAMBDA,
-  NOW  = function() return CFUN(function(cb) return cb(ER.now()) end) end,
+  NOW  = function() 
+    return CFUN(function(cb) 
+      local t = os.date("*t")
+      return cb(t.hour*3600 + t.min*60 + t.sec) 
+    end) 
+  end,
 }
 
 local function checkProgn(t)
@@ -872,7 +786,28 @@ local function maybeWrap(f, t)
   return f
 end
 
-local function compile(t)
+local compile  -- forward-declared for recursive calls
+local specialCompilers = {}  -- specialCompilers[opcode] = function(t) -> compiled expr
+-- If present, this overrides the default compile() behavior for that opcode.
+-- Used for added inststructions in ER that need special handling, e.g. to support new syntax without
+
+-- helper: compile or auto-wrap a positional arg
+function ca(v)
+  local vt = type(v)
+  if vt == "number" or vt == "string" or vt == "boolean" or vt == "function" then
+    return CONST(v)
+  end
+  return compile(v)
+end
+
+local function cal(list,offset) -- compile a list of exprs - see LETS
+  local cargs = {}
+  offset = offset or 1
+  for i = offset,#list do cargs[#cargs+1] = ca(list[i]) end
+  return cargs
+end
+
+function compile(t)
   local tv = type(t)
   if tv == "number" or tv == "string" or tv == "boolean" or tv == "function" then
     return CONST(t)
@@ -883,35 +818,22 @@ local function compile(t)
   local op = t[1]
   assert(expr[op], "compile: unknown opcode: " .. tostring(op))
 
-  -- helper: compile or auto-wrap a positional arg
-  local function ca(v)
-    local vt = type(v)
-    if vt == "number" or vt == "string" or vt == "boolean" or vt == "function" then
-      return CONST(v)
-    end
-    return compile(v)
-  end
-  local function cal(list,offset) -- compile a list of exprs - see LETS
-    local cargs = {}
-    offset = offset or 1
-    for i = offset,#list do cargs[#cargs+1] = ca(list[i]) end
-    return cargs
+  local f
+
+  local special = specialCompilers[op]
+  if special then
+    return maybeWrap(special(t), t)
   end
 
-  local f
   -- ops where the first arg is a raw name string
   if     op == "CONST"     then f = CONST(t[2])
   elseif op == "GET"       then f = GET(t[2])
   elseif op == "SET"       then f = SET(t[2], ca(t[3]))
-  elseif op == "GETVAR"    then f = GETVAR(t[2], ca(t[3]))
-  elseif op == "SETVAR"    then f = SETVAR(t[2], ca(t[3]), ca(t[4]))
   elseif op == "SETFIELD"  then f = SETFIELD(ca(t[2]), t[3], ca(t[4]))
   elseif op == 'INCVAR'    then f = INCVAR(t[2], t[3], ca(t[4]))
   elseif op == "DEFGLOBAL" then f = DEFGLOBAL(t[2], ca(t[3]))
   elseif op == "LET"       then f = LET(t[2], ca(t[3]), ca(t[4]))
   elseif op == "LETS"      then f = LETS(t[2], cal(t[3]), ca(t[4]))
-  elseif op == "GETPROP"   then f = GETPROP(ca(t[2]), t[3])   -- t[3] is raw key string
-  elseif op == "SETPROP"   then f = SETPROP(ca(t[2]), t[3], ca(t[4]))  -- t[3] is raw key string
   elseif op == "CALL"      then
     -- all args including the function are compiled (scalars auto-wrapped in CONST)
     local cargs = cal(t, 2)
@@ -936,7 +858,7 @@ local function compile(t)
   return maybeWrap(f, t)
 end
 
-local vm = {
+vm = {
   eval      = eval,
   resume    = resume,
   compile   = function(tree, srcmap)
@@ -947,12 +869,34 @@ local vm = {
     return result
   end,
   expr      = expr,
+  ca        = ca,
+  trace     = trace,
   rterror   = rterror,
+  getCTX    = function() return _ctx end,
   defGlobal    = function(name, v) _ctx:defGlobal(name, v) end,
   getGlobal    = function(name)    return (_ctx:getGlobal(name)) end,
   lookupGlobal = function(name)    local _, v = _ctx:getGlobal(name); return v end,
   setGlobal    = function(name, v) return _ctx:setGlobal(name, v) end,
   resetGlobals = function()     _global_env = {} end,
+}
+
+vm.registerInstruction = function(name, impl, specialCompiler)
+  expr[name] = impl                    -- the CPS function
+  if specialCompiler then
+    specialCompilers[name] = specialCompiler  -- non-standard arg handling
+  end
+end
+
+vm.registerInstructions = function(table)
+  for name, def in pairs(table) do
+    vm.registerInstruction(name, def.impl, def.compile)
+  end
+end
+
+vm.host = {
+  isAsync = function(fn) return false end,
+  onVarWrite = function(name, val) end,
+  formatSource = function(src, pos, len) return src .. " :" .. pos end
 }
 
 fibaro.ER.csp = vm

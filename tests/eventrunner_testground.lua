@@ -15,14 +15,16 @@ local function main(er) ER = er
   local rule, var, tvar, test = er.eval, er.variables, er.triggerVars, er.test
   local function loadDevice(name) return er.loadSimDevice(name) end
 
-  tvar.x = 0
+  -- tvar.x = 0
 
-  rule("x single => wait(2); log('hup')")
+  -- rule("x single => wait(2); log('hup')")
 
-  rule([[
-     x=1; wait(1);
-     x=2
-  ]])
+  -- rule([[
+  --    x=1; wait(1);
+  --    x=2
+  -- ]])
+  rule("#foo => log('foo')")
+  rule("post(#foo)")
 
 end
 
