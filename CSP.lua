@@ -279,7 +279,7 @@ local function CONCAT(a, b)
   end
 end
 
--- DAILY wraps a time value into a Daily event descriptor {type='Daily', time=v}.
+-- DAILY is true if the rule was invoked by a DAILY event
 local function DAILY(a)
   return function(cont)
     return a(TR(function(v)
