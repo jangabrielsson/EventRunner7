@@ -197,10 +197,10 @@ local OPS = {
   MOD = function(left_hand, right_hand) return left_hand%right_hand end,
   POW = function(left_hand, right_hand) return left_hand^right_hand end,
   EQ = function(left_hand, right_hand) return msstr(left_hand)==msstr(right_hand) end,
-  LT = function(left_hand, right_hand) return left_hand<right_hand end,
-  LTE = function(left_hand, right_hand) return left_hand<=right_hand end,
-  GT = function(left_hand, right_hand) return left_hand>right_hand end,
-  GTE = function(left_hand, right_hand) return left_hand>=right_hand end,
+  LT = function(left_hand, right_hand) return msstr(left_hand)<msstr(right_hand) end,
+  LTE = function(left_hand, right_hand) return msstr(left_hand)<=msstr(right_hand) end,
+  GT = function(left_hand, right_hand) return msstr(left_hand)>msstr(right_hand) end,
+  GTE = function(left_hand, right_hand) return msstr(left_hand)>=msstr(right_hand) end,
   NILCO = function(left_hand, right_hand) if left_hand~=nil then return left_hand else return right_hand end end,
 }
 
@@ -274,7 +274,7 @@ local function CONCAT(a, b)
   return function(cont)
     return a(TR(function(av)
       return b(TR(function(bv)
-        return cont(tostring(av) .. tostring(bv))
+        return cont(tostring(msstr(av)) .. tostring(msstr(bv)))
       end))
     end))
   end
