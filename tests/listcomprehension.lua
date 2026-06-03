@@ -23,7 +23,7 @@ local function main(er) ER = er
 
   var.HT = HT
 
-  rule("return ([x.id for x in api.get('/devices') if x.properties.batteryLevel & x.id:bat < 20])", {result=true})
+  rule("return [x.id for x in api.get('/devices') if x.properties.batteryLevel & x.id:bat < 20]", {result=true})
 end
 
 function QuickApp:onInit()

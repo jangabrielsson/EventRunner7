@@ -116,6 +116,7 @@ local function makeParser(src)
   --------------------------------------------------------------------------
   -- Prefix expressions: calls, indexing, field access
   --------------------------------------------------------------------------
+  local parseListComprehension
 
   -- primaryprefix ::= Name | '$'Name | '$$'Name | '$$$'Name | '(' exp ')' | Number
   local function parsePrimaryprefix()
@@ -132,6 +133,8 @@ local function makeParser(src)
       next(); local id = expect('identifier'); local n = {'QV', id.value}; n._pos = t.pos; n._len = id.pos + id.len - t.pos; return n
     elseif t and t.type == 'pv' then
       next(); local id = expect('identifier'); local n = {'PV', id.value}; n._pos = t.pos; n._len = id.pos + id.len - t.pos; return n
+    elseif t and t.type == 'lsqb' then
+      return parseListComprehension()
     elseif t and t.type == 'lpar' then
       next()
       local e = parseExp()
@@ -194,6 +197,52 @@ local function makeParser(src)
   --------------------------------------------------------------------------
   -- Expression tower (precedence climbing, low → high)
   --------------------------------------------------------------------------
+
+  -- helper, placed just before parsePrimaryexp
+function parseListComprehension()
+  local t = peek(1)  -- the 'lsqb' token
+  next()  -- consume '['
+  local expr1 = parseExp()
+  expect('for')
+  local firstName = expect('identifier').value
+  local keyVar, valVar
+  if peek(1) and peek(1).type == 'comma' then
+    next()
+    keyVar = firstName
+    valVar = expect('identifier').value
+  else
+    _lc_count = _lc_count + 1
+    keyVar = '_lc_' .. _lc_count
+    valVar = firstName
+    _lc_count = _lc_count - 1
+  end
+  expect('in')
+  local expr2 = parseExp()
+  local guard = nil
+  if peek(1) and peek(1).type == 'if' then
+    next()
+    guard = parseExp()
+  end
+  expect('rsqb')
+  _lc_count = _lc_count + 1
+  local acc = '_lc' .. _lc_count
+  if keyVar:match('^_lc_') then keyVar = '_lc_' .. _lc_count end
+  local addCall = {'CALL', {'NAME','adde'}, {'NAME',acc}, expr1}
+  local loopBody
+  if guard then
+    loopBody = {'BLOCK', {'IF', guard, {'BLOCK', addCall}, {}, nil}}
+  else
+    loopBody = {'BLOCK', addCall}
+  end
+  local forNode = {'FOR_IN', {keyVar, valVar},
+                   {{'CALL', {'NAME','pairs'}, expr2}},
+                   loopBody}
+  return P({'BLOCK',
+    {'LOCAL', {acc}, {{'TABLE'}}},
+    forNode,
+    {'NAME', acc}
+  }, t)
+end
 
   -- primaryexp ::= nil | false | true | Number | String |
   --                function | tableconstructor | '#'Name ['{' fields '}'] | prefixexp
@@ -259,7 +308,6 @@ local function makeParser(src)
         restorePos(saved)
         return parsePrefixexpFull()
       end
-    elseif ty == 'lsqb' then
       -- List comprehension: [expr for var in iter [if guard]]
       -- Desugars inline (no wrapping lambda) so nested comprehensions share scope.
       -- Compiles to: LET(acc, {}, PROGN(FOR_IN_LOOP, GET(acc)))
