@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.36] - 2026-06-03
+
+## Changes in v0.1.36
+
+- ✨ **Feature**: enhance argument beautification in logging and update list comprehension test cases
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.35] - 2026-06-03
 
 ## Changes in v0.1.35
