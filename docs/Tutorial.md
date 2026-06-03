@@ -1,120 +1,110 @@
 # EventScript Tutorial: Home Automation for Beginners
 
-Welcome to EventScript! This tutorial will teach you how to create powerful home automation rules using EventRunner7's intuitive rule-based language. We'll start with the basics and work our way up to advanced automation scenarios.
+Welcome to EventScript! This tutorial will teach you how to create powerful
+home automation rules using EventRunner7's intuitive rule-based language.
+We'll start with the basics and work our way up to advanced automation
+scenarios.
 
 ## Table of Contents
 
-- [EventScript Tutorial: Home Automation for Beginners](#eventscript-tutorial-home-automation-for-beginners)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-      - [Try this](#try-this)
-    - [Quick Cheat Sheet: 10 essential patterns](#quick-cheat-sheet-10-essential-patterns)
-  - [Getting Started](#getting-started)
-      - [Try this](#try-this-1)
-  - [Your First Rules](#your-first-rules)
-      - [Try this](#try-this-2)
-  - [Working with Variables](#working-with-variables)
-  - [Types of Rules](#types-of-rules)
-    - [Time-based Rules](#time-based-rules)
-      - [Try this](#try-this-3)
-    - [Interval Rules](#interval-rules)
-      - [Try this](#try-this-4)
-    - [Device-triggered Rules](#device-triggered-rules)
-      - [Try this](#try-this-5)
-  - [Using Lua Functions](#using-lua-functions)
-  - [Structuring Rules with Events](#structuring-rules-with-events)
-    - [Basic Event Posting](#basic-event-posting)
-    - [Event Posting with Delays and Times](#event-posting-with-delays-and-times)
-    - [Event Pattern Matching and Parameters](#event-pattern-matching-and-parameters)
-    - [Complex Event Sequences](#complex-event-sequences)
-    - [Cancelling Scheduled Events](#cancelling-scheduled-events)
-    - [Advanced Event Patterns](#advanced-event-patterns)
-    - [Event Debugging and Logging](#event-debugging-and-logging)
-      - [Try this](#try-this-6)
-  - [Trigger Variables](#trigger-variables)
-      - [Try this](#try-this-7)
-  - [Setting up a Home Table](#setting-up-a-home-table)
-      - [Try this](#try-this-8)
-  - [Basic functionality](#basic-functionality)
-    - [Working with remotes](#working-with-remotes)
-    - [Working with alarms](#working-with-alarms)
-  - [Common Home Automation Patterns](#common-home-automation-patterns)
-    - [Morning Routine](#morning-routine)
-    - [Security System](#security-system)
-    - [Energy Saving](#energy-saving)
-    - [Vacation Mode](#vacation-mode)
-    - [Weather-based Automation](#weather-based-automation)
-  - [Best Practices](#best-practices)
-  - [Troubleshooting](#troubleshooting)
-    - [Common Issues](#common-issues)
-    - [Debugging Tips](#debugging-tips)
-  - [Glossary](#glossary)
+- [Before You Start](#before-you-start)
+- [A Quick Orientation: Lua and EventScript](#a-quick-orientation-lua-and-eventscript)
+- [Getting Started](#getting-started)
+- [Your First Rules](#your-first-rules)
+- [Setting up a Home Table](#setting-up-a-home-table)
+- [Working with Variables](#working-with-variables)
+- [Types of Rules](#types-of-rules)
+  - [Time-based Rules](#time-based-rules)
+  - [Interval Rules](#interval-rules)
+  - [Device-triggered Rules](#device-triggered-rules)
+- [Structuring Rules with Events](#structuring-rules-with-events)
+  - [Simple Events](#simple-events)
+  - [Events with Parameters](#events-with-parameters)
+  - [Pattern Matching with Variables](#pattern-matching-with-variables)
+  - [Cancelling Scheduled Events](#cancelling-scheduled-events)
+  - [Complex Event Sequences](#complex-event-sequences)
+- [Trigger Variables](#trigger-variables)
+- [Basic Functionality](#basic-functionality)
+  - [Working with Remotes](#working-with-remotes)
+  - [Working with Alarms](#working-with-alarms)
+- [Common Home Automation Patterns](#common-home-automation-patterns)
+  - [Morning Routine](#morning-routine)
+  - [Security System](#security-system)
+  - [Energy Saving](#energy-saving)
+  - [Vacation Mode](#vacation-mode)
+  - [Weather-based Automation](#weather-based-automation)
+- [Putting It All Together](#putting-it-all-together)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Quick Reference: 10 Essential Patterns](#quick-reference-10-essential-patterns)
+- [Glossary](#glossary)
 
-## Introduction
+---
 
-EventScript is a simple yet powerful language for creating home automation rules. Think of it as a way to tell your smart home: "When this happens, do that." 
+## Before You Start
 
-The basic structure is:
-```lua
-rule("trigger => action")
+To follow this tutorial you need:
+
+- **EventRunner7 installed** on your Fibaro HC3. See the
+  [README](https://github.com/jangabrielsson/EventRunner7) for installation
+  instructions — download the `.fqa` file and import it as a QuickApp.
+- **At least one device ID** from your Fibaro dashboard (a light bulb,
+  motion sensor, or door sensor). You'll find device IDs in the HC3 web
+  interface under Devices → select a device → the number in the URL or
+  panel header.
+- **The HC3 debug console open** so you can see `log()` output. In the HC3
+  web interface: open your EventRunner QuickApp, switch to the Debug tab
+  (the bug icon), and click "Start". You'll see rule logs appear here.
+
+> **Tip:** Throughout the tutorial, replace example device IDs (like `54`,
+> `77`) with your own. Use the debug console to verify rules are firing.
+
+---
+
+## A Quick Orientation: Lua and EventScript
+
+Your QuickApp file mixes **two languages** — this is the most important
+concept to understand before you start:
+
+```
+┌─────────────────────────────────────────────┐
+│  Lua code (outside rule("..."))             │
+│  - Defines functions                        │
+│  - Sets up variables and the Home Table      │
+│  - Initialises EventRunner                  │
+│                                             │
+│  rule("  EventScript (inside the string)  " │
+│  rule("  - Triggers and actions            " │
+│  rule("  - Device control, logging         " │
+│                                             │
+└─────────────────────────────────────────────┘
 ```
 
-For example:
-```lua
-rule("@sunset => 467:on")  -- Turn on lights at sunset
-```
+Think of it as: **Lua builds the stage; EventScript runs the show.**
 
-This tells your home: "When sunset occurs, turn on the lights controlled by device with deviceID 467."
+- **Outside `rule("...")`** you write Lua — `function`, `local`, `if`,
+  `er.defvars(HT)`. These run once when EventRunner starts.
+- **Inside `rule("...")`** you write EventScript — `@08:00`, `motion:breached`,
+  `light:on`, `wait(5)`. These define automation rules that run whenever
+  their triggers fire.
 
-Note: The trigger (left side) must be a pure expression without side effects (no assignments or logging). Actions (right side) perform changes.
+This is why you'll see Lua patterns like `function main(er) ... end` and
+EventScript patterns like `rule("@sunset => lights:off")` in the same file.
 
-#### Try this
-- Change the example to use `@sunrise` and a different message. Deploy and confirm the log updates at the expected time.
-- Replace the action with a list of devices like `{345,467}:on` if you have a another device - this turns on 2 devices at sunset.
-
-### Quick Cheat Sheet: 10 essential patterns
-These examples requires that you have setup variables for the different devices, like kitchenLight. This will be eplained later in the tutorial.
-```lua
--- 1) Daily time
-rule("@08:00 => kitchenLight:on")
-
--- 2) Multiple times
-rule("@{07:00,19:00} => securityCheck()")
-
--- 3) Aligned interval (on the hour)
-rule("@@-01:00 => log('Top of the hour')")
-
--- 4) Time-guarded device trigger
-rule("motion:breached & 22:00..06:00 => nightLight:on")
-
--- 5) Device property trigger
-rule("frontDoor:isOpen => log('Front door opened')")
-
--- 6) Threshold trigger
-rule("tempSensor:value >= 26 => fan:on")
-
--- 7) When sensor is not breached for 10min, turn off hall light
-rule("trueFor(00:10, !hallMotion:breached) => hallLight:off")
-
--- 8) Post event with delay
-rule("@sunset => post(#evening, '+00:15')")
-
--- 9) List operation (average)
-rule("temperatureSensors:value:average > 25 => hvac:on")
-
--- 10) Offset relative to sunset
-rule("@sunset-00:30 => blinds:close")
-```
+---
 
 ## Getting Started
 
-All your rules are defined inside a `main` function that you pass to `fibaro.EventRunner()` inside `QuickApp:onInit`:
+Every EventRunner QuickApp has the same skeleton. Create a new QuickApp
+(or edit your existing one) and replace the `main` function:
 
 ```lua
+--%%name:EventRunner7
+--%%type:com.fibaro.deviceController
+
 local function main(er)
   local rule = er.eval          -- rule() is an alias for er.eval
-  local var = er.variables      -- shared variables
-  local triggerVar = er.triggerVariables
+  local var = er.variables      -- shared variables, accessible across all rules
 
   -- Your rules go here
   rule("@08:00 => log('Good morning!')")
@@ -125,64 +115,151 @@ function QuickApp:onInit()
 end
 ```
 
-Let's break this down:
-- `rule` / `er.eval` — registers an automation rule
-- `var` / `er.variables` — table for storing variables accessible across all rules
-- `triggerVar` / `er.triggerVariables` — variables that trigger rules when changed
-- `fibaro.EventRunner(main)` — initialises EventRunner and calls `main(er)` after 500 ms
+Deploy this QuickApp and check the debug console. At 08:00 you'll see
+"Good morning!" appear.
 
-#### Try this
-- Add a second rule in the same `main` for `@sunset` that logs a message.
-- Temporarily add `@@00:00:10 => log('Ping every 10s')` and remove it after testing.
+Let's break down the key parts:
 
-> **Note:** All code examples below show only the body of the `main` function for brevity — `function main(er) ... end` and `fibaro.EventRunner(main)` in `onInit` are assumed.
+| Part | What it does |
+|------|-------------|
+| `rule` / `er.eval` | Registers an automation rule |
+| `var` / `er.variables` | Table for storing variables accessible across all rules |
+| `fibaro.EventRunner(main)` | Initialises EventRunner and calls `main(er)` after startup |
+
+> **Note:** From here on, code examples show only the body of the `main`
+> function for brevity. The `function QuickApp:onInit() ... end` skeleton
+> and `--%%` header lines are assumed. When you copy examples, paste them
+> inside `main(er)`.
+
+---
 
 ## Your First Rules
 
-Let's start with some simple rules to get you comfortable:
+Let's start with simple rules. The basic pattern is:
 
-```lua
-local function main(er)
-  local rule = er.eval
-  local var = er.variables
-  
-  -- Turn on lights every morning
-  rule("@08:00 => log('Good morning! Time to wake up')")
-  
-  -- Turn off lights every night
-  rule("@23:00 => log('Good night! Time for bed')")
-  
-  -- Log the current time every hour
-  rule("@@01:00 => log('The time is now %s', HM(now))")
-end
-
-function QuickApp:onInit()
-  fibaro.EventRunner(main)
-end
+```
+rule("trigger => action")
 ```
 
-#### Try this
-- Change the `@23:00` rule to a short interval `@@00:00:30` and observe the logs, then revert.
+`=>` means **"when the left side is true, do the right side."**
+
+```lua
+local rule, var = er.eval, er.variables
+
+-- Log a message every morning
+rule("@08:00 => log('Good morning! Time to wake up')")
+
+-- Log a message every night
+rule("@23:00 => log('Good night! Time for bed')")
+
+-- Log the current time every hour
+rule("@@01:00 => log('The time is now %s', HM(now))")
+```
+
+**Try this:**
+- Change `@23:00` to a short interval like `@@00:00:30` so you can see it
+  fire quickly, then change it back.
+- Add a rule for sunset: `rule("@sunset => log('Sunset!')")`.
 - Add a multi-time trigger: `@{09:00,12:00,18:00} => log('Check-in')`.
+
+---
+
+## Setting up a Home Table
+
+Typing device IDs like `54`, `77`, `101` in every rule becomes unreadable
+fast. A **Home Table** (HT) lets you name your devices once and use
+meaningful names everywhere.
+
+```lua
+local rule, var = er.eval, er.variables
+
+-- Define your home structure — replace these IDs with your own!
+local HT = {
+  kitchen = {
+    sensor = { motion = 77, door = 99, temp = 101 },
+    light  = { ceiling = 54, underCabinet = 78 }
+  },
+  livingroom = {
+    sensor = { motion = 88, lux = 89 },
+    light  = { ceiling = 91, floorLamp = 92 }
+  },
+  bedroom = {
+    sensor = { motion = 65 },
+    light  = { ceiling = 67, bedside = 68 }
+  }
+}
+
+-- Make all HT names available in rules
+er.defvars(HT)
+
+-- Now your rules read like natural language!
+rule("kitchen.sensor.motion:breached => kitchen.light.ceiling:on")
+rule("livingroom.sensor.lux:value < 100 => livingroom.light.ceiling:on")
+rule("@23:00 => bedroom.light.bedside:on; wait(10); bedroom.light:off")
+```
+
+`er.defvars(HT)` copies every key from your Home Table into the variable
+environment — so `kitchen.sensor.motion` resolves to device ID `77`, and
+`kitchen.sensor.motion:breached` reads that device's breached property.
+
+> **Where do the numbers come from?** Open your HC3 web interface →
+> Devices → select a device. The device ID is shown in the panel header or
+> the URL. Replace `77`, `54`, etc. with your own IDs.
+
+> **Note:** In Lua code outside `rule("...")` strings (like building
+> convenience lists), you still use the local `HT` table directly
+> (`HT.kitchen.light.ceiling`). The `er.defvars()` shortcut applies only
+> inside EventScript rules.
+
+**Try this:**
+- Add your own room with a light and a sensor.
+- Create a list of all lights:
+  `var.allLights = {HT.kitchen.light.ceiling, HT.livingroom.light.ceiling}`
+  and turn them all off with `rule("@23:00 => allLights:off")`.
+
+From here on, **every example drops the `HT.` prefix in rules.** The
+result reads like natural language:
+`kitchen.sensor.motion:breached => kitchen.light.ceiling:on`.
+
+---
 
 ## Working with Variables
 
-Variables let you store values and share data between rules. You can access global Lua functions, but it's better to define your own variables in `er.variables`:
+Variables let you store values and share data between rules.
+
+There are two kinds — this distinction matters:
+
+| Variable type | Example | Changes trigger rules? | Use for |
+|--------------|---------|----------------------|---------|
+| Regular variable | `var.homeMode = "normal"` | No | Storing state, config, counts |
+| Trigger variable | `triggerVar.homeOccupied = false` | **Yes** — rules watching the name fire | Inter-rule signals, mode changes |
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Define variables
-  var.x = 8
-  var.y = 9
-  var.homeMode = "normal"
-  
-  -- Use variables in rules
-  rule("@08:00 => log('x + y = %d', x + y)")  -- Outputs: x + y = 17
-  rule("@sunset => homeMode = 'evening'; log('Switched to %s mode', homeMode)")
-end
+local rule, var, triggerVar = er.eval, er.variables, er.triggerVariables
+
+-- Regular variables — change silently
+var.homeMode = "normal"
+var.motionCount = 0
+
+-- Trigger variables — fire rules when changed
+triggerVar.homeOccupied = false
+triggerVar.nightMode = false
+
+-- Rules that react to trigger variable changes
+rule("homeOccupied == true => log('Someone is home!')")
+rule("nightMode == true => livingroom.light.ceiling:off")
+
+-- Set them from other rules
+rule("@sunset => homeOccupied = true")
+rule("@23:00 => nightMode = true")
+rule("kitchen.sensor.motion:breached => motionCount += 1")
 ```
+
+> **Defining functions on `var`:** When you write `function var.myFun(x, y)
+> return x + y end`, the function becomes accessible as `myFun(...)` inside
+> rules. Defining on `var` makes it visible to EventScript.
+
+---
 
 ## Types of Rules
 
@@ -198,27 +275,25 @@ rule("@08:00 => log('Time for breakfast')")
 rule("@{07:00,12:00,18:00} => log('Meal time!')")
 
 -- Sunset/sunrise
-rule("@sunset => outdoorLights:on")
-rule("@sunrise => outdoorLights:off")
+rule("@sunset => livingroom.light.ceiling:on")
+rule("@sunrise => livingroom.light.ceiling:off")
 
--- Time ranges (guards)
-rule("motion:breached & 22:00..06:00 => nightLight:on")
+-- Offset from sun events
+rule("@sunset-00:30 => livingroom.blinds:close")  -- 30 min before sunset
+
+-- Time ranges as guards — the rule only fires within this window
+rule("kitchen.sensor.motion:breached & 22:00..06:00 => kitchen.light.ceiling:on")
+
+-- Catch-up: if ER restarts after the scheduled time, run immediately
+rule("@{08:00,catch} => bedroom.light.ceiling:on")
 ```
 
-Time rules only specify times during the day, 00:00-24:00. To restrict the action to specigfic days or months use a time guard.
-#### Try this
+Time rules specify times from 00:00 to 24:00. To restrict to specific days
+or months, add a guard (see [Best Practices](#best-practices)).
+
+**Try this:**
 - Add a weekday guard: `@07:30 & wday('mon-fri') => log('Weekday wake-up')`.
 - Schedule two times in one rule: `@{07:00,19:00} => log('Twice a day')`.
-
-When you add rules and restart EventRunner, you may have rules that should trigger in ex. the morning
-```lua
-rule("@08:00 => morningLight:on")
-```
-If you add the above rule at 10:00 in the morning and restart EventRunner, the rule will not run until the next day at 08:00. To run rules whos times have passed when EventRunner starts, we can add the keyword 'catch' to the time list
-```lua
-rule("@{08:00,catch} => morningLight:on")
-```
-If ER restarts after 08:00 this rule will run immediatly - a catch up - so we get our morning lights on.
 
 ### Interval Rules
 
@@ -228,16 +303,18 @@ Interval rules run repeatedly at fixed intervals:
 -- Every 5 minutes
 rule("@@00:05 => log('5 minute check')")
 
--- Every hour (aligned to clock)
+-- Every hour, aligned to the clock (fires at HH:00)
 rule("@@-01:00 => log('Hourly report at %s', HM(now))")
 
 -- Every 30 seconds
 rule("@@00:00:30 => temperatureCheck()")
 ```
 
-#### Try this
-- Switch to aligned hourly: `@@-01:00 => log('Top of the hour')` and notice it fires at HH:00.
-- Use a short test interval: `@@00:00:10 => log('10s test')` and remove after verifying.
+**Try this:**
+- Switch to aligned hourly: `@@-01:00 => log('Top of the hour')` and
+  notice it fires exactly at HH:00, not when EventRunner started.
+- Use a short test interval: `@@00:00:10 => log('10s test')` and remove
+  after verifying.
 
 ### Device-triggered Rules
 
@@ -245,712 +322,683 @@ These rules respond to changes in your smart devices:
 
 ```lua
 -- Motion sensor triggers light
-rule("motionSensor:breached => hallwayLight:on")
+rule("kitchen.sensor.motion:breached => kitchen.light.ceiling:on")
 
 -- Door sensor triggers alert
-rule("frontDoor:isOpen => log('Front door opened!')")
+rule("kitchen.sensor.door:isOpen => log('Kitchen door opened!')")
 
 -- Temperature sensor triggers fan
-rule("tempSensor:value > 25 => ceilingFan:on")
+rule("livingroom.sensor.temp:value > 25 => livingroom.fan:on")
 
--- Multiple devices
-rule("{door1,door2,window1}:breached => securityAlert()")
+-- Multiple devices trigger together
+rule("{kitchen.sensor.door, livingroom.sensor.motion}:breached => log('Activity!')")
 ```
 
-#### Try this
-- Combine with a time guard: `motionSensor:breached & 22:00..06:00 => nightLight:on`.
-- Trigger on a numeric threshold: `tempSensor:value >= 26 => fan:on`.
+**Try this:**
+- Combine with a time guard:
+  `kitchen.sensor.motion:breached & 22:00..06:00 => bedroom.light.ceiling:on`.
+- Trigger on a numeric threshold:
+  `livingroom.sensor.temp:value >= 26 => livingroom.fan:on`.
 
-## Using Lua Functions
-
-You can access all global Lua functions within rules, including `fibaro.*` functions. You can also define your own functions:
-
-```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Define custom functions
-  function var.myFun(x, y) 
-    return x + y 
-  end
-  
-  function var.securityCheck()
-    print('Running security check...')
-  if frontDoorOpen() then
-      print('WARNING: Front door is open!')
-    end
-  end
-  
-  -- Use functions in rules
-  rule("@sunset => log('MyFun returns %d', myFun(8, 9))")
-  rule("@{22:00,02:00,06:00} => securityCheck()")
-end
-```
+---
 
 ## Structuring Rules with Events
 
-Use custom events to structure complex automations like subroutines. Events allow you to break down complex logic into manageable pieces and create sophisticated timing sequences.
+Custom events let you break complex logic into manageable pieces. Think of
+them as subroutines: **post** an event from one rule, **handle** it in
+another.
 
-### Basic Event Posting
+### Simple Events
+
+The simplest pattern: post a named event and react to it.
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Main trigger posts custom event
-  rule("@sunset => post(#eveningRoutine)")
-  rule("motion:breached & 22:00..06:00 => post(#nightMode)")
-  
-  -- Event handlers act like subroutines
-  rule([[#eveningRoutine => 
-    outdoorLights:on; 
-    securitySystem:arm; 
-    log('Evening routine activated')
-  ]])
-  
-  rule([[#nightMode => 
-    nightLight:on; 
-    wait(5);  -- Wait 5 seconds
-    nightLight:off
-  ]])
-end
+-- Post an event
+rule("@sunset => post(#eveningRoutine)")
+rule("kitchen.sensor.motion:breached & 22:00..06:00 => post(#nightMode)")
+
+-- Handle it in another rule (acts like a subroutine)
+rule([[#eveningRoutine =>
+  livingroom.light.ceiling:on;
+  log('Evening routine activated')
+]])
+
+rule([[#nightMode =>
+  bedroom.light.ceiling:on;
+  wait(5);
+  bedroom.light.ceiling:off
+]])
 ```
 
-### Event Posting with Delays and Times
+> **`[[...]]`** is Lua's way of writing multi-line strings — it lets you
+> spread a rule across multiple lines for readability.
 
-Events can be posted immediately or scheduled for future execution using various time formats:
+Events can also be scheduled for later:
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Immediate posting
-  rule("@sunset => post(#eveningRoutine)")
-  
-  -- Post with relative delay (+ prefix for relative time)
-  rule("@sunset => post(#lightsOff, +/01:30)")  -- 1 hour 30 minutes later
-  rule("motion:breached => post(#autoOff, +/00:05)")  -- 5 minutes later
-  rule("door:open => post(#securityCheck, +/00:00:30)")  -- 30 seconds later
-  
-  -- Post at specific time (absolute time)
-  rule("@sunset => post(#bedtimeRoutine, t/23:00)")  -- At 23:00 today
-  rule("@08:00 => post(#weekendCleanup, n/10:00)")  -- At 10:00 today, or if after 10:00, next daty at 10:00
-  
-  -- Post with date and time
-  rule("alarm:armed => post(#vacationMode, 2026/12/24/18:00)")  -- Christmas Eve 2026
-  rule("alarm:armed => post(#vacationMode, /12/24/18:00)")    -- Christmas Eve this year
-  
-  -- Event handlers
-  rule([[#lightsOff => 
-    allLights:off; 
-    log('Auto lights off after sunset')
-  ]])
-  rule([[#autoOff => 
-    if !motion:breached then 
-      lights:off 
-    end
-  ]])
-  rule([[#securityCheck => 
-    if door:isOpen then 
-      log('ALERT: Door still open!') 
-    end
-  ]])
-  rule([[#bedtimeRoutine => 
-    bedLights:on; 
-    wait(10); 
-    allLights:off
-  ]])
-end
+-- Post with a relative delay (+ prefix)
+rule("@sunset => post(#lightsOff, +/01:30)")     -- 1 hour 30 min later
+
+-- Post at a specific time today
+rule("@08:00 => post(#reminder, t/12:00)")       -- At 12:00 today
+
+-- Post at a specific date and time
+rule("livingroom.sensor.motion:breached => post(#vacation, 2026/12/24/18:00)")
 ```
 
-### Event Pattern Matching and Parameters
+**Try this:**
+- Post an event from a device trigger and handle it separately.
+- Chain an event with a delay:
+  `post(#followUp, +/00:15)` in one rule, handle `#followUp` in another.
 
-Events can carry parameters that can be matched or used in the handling rules:
+### Events with Parameters
+
+Events can carry data — like a function call with arguments.
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Post events with parameters
-  rule("temp:value > 25 => post(#temperatureAlert{level='high', temp=temp:value})")
-  rule("temp:value < 15 => post(#temperatureAlert{level='low', temp=temp:value})")
-  rule("motion:breached => post(#motionDetected{room='kitchen', time=HMS(now)})")
-  
-  -- Pattern matching on event parameters
-  rule([[#temperatureAlert{level='high'} => 
-    fan:on; 
-    log('High temperature alert: %d°C', temp)
-  ]])
-  
-  rule([[#temperatureAlert{level='low'} => 
-    heater:on; 
-    log('Low temperature alert: %d°C', temp)
-  ]])
-  
-  -- Match events with any parameters (catch-all)
-  rule("#temperatureAlert => log('Temperature event received')")
-  
-  -- Match specific room
-  rule("#motionDetected{room='kitchen'} => kitchenLight:on")
-  rule("#motionDetected{room='bedroom'} => bedroomLight:on")
-  
-  -- Match any motion event regardless of room
-  rule("#motionDetected => log('Motion at %s in %s', time, room)")
-end
+-- Post events with parameters
+rule("livingroom.sensor.temp:value > 25 =>
+  post(#temperatureAlert{level='high', temp=livingroom.sensor.temp:value})")
+
+rule("livingroom.sensor.temp:value < 15 =>
+  post(#temperatureAlert{level='low', temp=livingroom.sensor.temp:value})")
+
+-- Handle specific parameter values
+rule([[#temperatureAlert{level='high'} =>
+  livingroom.fan:on;
+  log('High temperature alert: %d°C', temp)
+]])
+
+rule([[#temperatureAlert{level='low'} =>
+  livingroom.heater:on;
+  log('Low temperature alert: %d°C', temp)
+]])
+
+-- Catch-all: handle any #temperatureAlert regardless of parameters
+rule("#temperatureAlert => log('Temperature event received')")
+```
+
+**Try this:**
+- Create a `#motionDetected{room='kitchen'}` event and handle it differently
+  from `#motionDetected{room='bedroom'}`.
+
+### Pattern Matching with Variables
+
+Event parameters can use `$variable` patterns to **capture** values. The
+captured value becomes a local variable in the rule.
+
+```lua
+-- Post events with actual values
+rule("kitchen.sensor.door:isOpen =>
+  post(#doorEvent{door='kitchen', time=HM(now)})")
+
+rule("bedroom.sensor.door:isOpen =>
+  post(#doorEvent{door='bedroom', time=HM(now)})")
+
+-- $room captures the door name — any value matches
+rule([[#doorEvent{door='$room'} =>
+  log('Door opened: %s at %s', room, time)
+]])
+-- If kitchen door opens: logs "Door opened: kitchen at 08:15"
+
+-- Constraint patterns — match only when the condition is true
+rule([[#temperatureAlert{temp='$t>30'} =>
+  log('Extreme heat: %d°C', t)
+]])
+-- Only fires when temp > 30; t is bound to the actual value
+```
+
+Available constraint operators: `$var>value`, `$var<value`, `$var>=value`,
+`$var<=value`, `$var==value`, `$var~=value`, `$var<>pattern` (string match).
+
+**Try this:**
+- Post `#testEvent{x=42}` and handle it with `#testEvent{x='$v'}` —
+  verify `v` is `42`.
+- Add a constraint: `#testEvent{x='$v>50'}` and verify it does NOT match
+  when `x=42`.
+
+### Cancelling Scheduled Events
+
+You can cancel a scheduled event using the reference returned by `post()`.
+
+```lua
+-- Each motion resets the auto-off countdown
+rule([[livingroom.sensor.motion:breached =>
+  cancel(lightTimer);                            -- safe if nil or already expired
+  lightTimer = post(#autoOff, +/00:10);          -- 10-minute countdown
+  livingroom.light.ceiling:on
+]])
+
+rule([[#autoOff =>
+  if !livingroom.sensor.motion:breached then
+    livingroom.light.ceiling:off;
+    log('Auto-turned off living room light')
+  else
+    log('Motion still detected, keeping light on')
+  end
+]])
 ```
 
 ### Complex Event Sequences
 
-Create sophisticated automation sequences using event chains:
+For multi-step automations, chain events together:
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Multi-step security sequence
-  rule("@23:00 => post(#securitySequence{step='start'})")
-  
-  rule([[#securitySequence{step='start'} => 
-    log('Starting security sequence...'); 
-    post(#securitySequence{step='checkDoors'}, +/00:01)
-  ]])
-  
-  rule([[#securitySequence{step='checkDoors'} => 
-    if doors:isAllClosed then 
-      log('All doors secure'); 
-      post(#securitySequence{step='checkWindows'}, +/00:01) 
-    else 
-      log('WARNING: Some doors are open!'); 
-      post(#securitySequence{step='abort'}) 
-    end
-  ]])
-  
-  rule([[#securitySequence{step='checkWindows'} => 
-    if windows:isAllClosed then 
-      log('All windows secure'); 
-      post(#securitySequence{step='arm'}, +/00:01) 
-    else 
-      log('WARNING: Some windows are open!'); 
-      post(#securitySequence{step='abort'}) 
-    end
-  ]])
-  
-  rule([[#securitySequence{step='arm'} => 
-    securitySystem:arm; 
-    log('Security system armed - Good night!')
-  ]])
-  
-  rule([[#securitySequence{step='abort'} => 
-    log('Security sequence aborted - please check doors and windows')
-  ]])
-end
+-- Multi-step bedtime sequence
+rule("@23:00 => post(#bedtimeSequence{step='start'})")
+
+rule([[#bedtimeSequence{step='start'} =>
+  log('Starting bedtime routine...');
+  livingroom.light.ceiling:off;
+  post(#bedtimeSequence{step='bedroom'}, +/00:01)
+]])
+
+rule([[#bedtimeSequence{step='bedroom'} =>
+  bedroom.light.bedside:on;
+  wait(10);
+  bedroom.light.ceiling:off;
+  post(#bedtimeSequence{step='arm'}, +/00:02)
+]])
+
+rule([[#bedtimeSequence{step='arm'} =>
+  log('Good night!')
+  -- arm security system here
+]])
 ```
 
-### Cancelling Scheduled Events
+**Try this:**
+- Create a 3-step morning sequence: lights on → coffee maker on → log ready.
+- Add a step that calls itself conditionally (loop with a counter).
 
-You can cancel scheduled events using the reference returned by `post()`. The simplest pattern is a single rule that cancels any existing timer before posting a new one — `cancel()` is safe to call on a nil or expired reference:
-
-```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Each new motion event cancels the previous auto-off timer and starts a fresh one.
-  rule([[motion:breached =>
-    cancel(lightTimer);                          -- safe if nil or already expired
-    lightTimer = post(#autoLightsOff, +/00:10); -- reset the 10-minute countdown
-    hallLight:on
-  ]])
-  
-  -- Handle the auto-off event
-  rule([[#autoLightsOff => 
-    if !motion:breached then 
-      hallLight:off; 
-      log('Auto-turned off hall light') 
-    else 
-      log('Motion still detected, keeping light on') 
-    end
-  ]])
-end
-```
-
-### Advanced Event Patterns
-
-```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Event with multiple parameters and conditions
-  rule("door:open => post(#doorEvent{door=door:name, time=now, weather=weather:condition})")
-  
-  -- Match events with specific combinations
-  rule([[#doorEvent{door='front', weather='rain'} => 
-    log('Front door opened in rain - activating entrance light'); 
-    entranceLight:on
-  ]])
-  
-  -- Use event parameters in calculations
-  rule([[#doorEvent => 
-    if door == 'front' & time > sunset then 
-      securityLight:on; 
-      post(#securityLightOff, +/00:05) 
-    end
-  ]])
-  
-  -- Event broadcasting to multiple handlers
-  rule([[alarm:breached => 
-    post(#emergency{type='breach', location=alarm:location}); 
-    post(#notification{message='Security breach detected'}); 
-    post(#lightSequence{mode='emergency'})
-  ]])
-  
-  -- Different handlers for the same event
-  rule("#emergency{type='breach'} => securitySystem:alert")
-  rule("#notification => log('ALERT: %s', message)")
-  rule("#lightSequence{mode='emergency'} => allLights:on; strobeLight:on")
-end
-```
-
-### Event Debugging and Logging
-
-```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Log specific event types
-  rule("#debug => log('Debug event: %s', message)")
-  rule("#error => log('ERROR: %s', error)")
-  
-  -- Post debug events from other rules
-  rule([[temp:value > 30 => 
-    fan:on; 
-    post(#debug{message='Fan activated due to high temperature'})
-  ]])
-end
-```
-
-#### Try this
-- Chain an event with a delay: in the action, do `post(#eveningFollowUp, +/00:15)` and handle `#eveningFollowUp` in another rule.
-- Post a custom event from a device trigger and handle it separately.
-- Create a multi-step sequence with parameters: `post(#sequence{step='start', room='kitchen'})`.
-- Use event cancellation: store a timer reference and cancel it when conditions change.
+---
 
 ## Trigger Variables
 
-Trigger variables are special variables that can trigger rules when their values change:
+We introduced trigger variables in [Working with Variables](#working-with-variables).
+Here's a more complete example:
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Define trigger variable
-  triggerVar.homeOccupied = false
-  
-  -- Rule that triggers when variable changes
-  rule("homeOccupied == true => "..
-    "homeOccupied = false; "..
-    "log('Someone is home!')")
-  
-  -- Set trigger variable from other rules
-  rule("@sunset => homeOccupied = true")
-  rule("motionSensor:breached => homeOccupied = true")
-end
+local rule, var, triggerVar = er.eval, er.variables, er.triggerVariables
+
+-- Define trigger variables
+triggerVar.homeOccupied = false
+triggerVar.guestMode = false
+
+-- Rules that react to changes
+rule("homeOccupied == true =>
+  homeOccupied = false;
+  log('Someone arrived home!')
+")
+
+rule("guestMode == true =>
+  enable(guestLights);
+  disable(normalRoutines);
+  log('Guest mode activated')
+")
+
+-- Set them from device rules
+rule("kitchen.sensor.motion:breached => homeOccupied = true")
+rule("@sunset & wday('fri') => guestMode = true")
 ```
 
-#### Try this
-- Add another trigger variable (e.g., `triggerVar.night = false`) and a rule that reacts when it becomes true.
-- Flip `homeOccupied` from a time-based rule to test the interaction with the device-triggered rule.
+The key difference from regular `var`:
+- Assigning to a trigger variable (`homeOccupied = true`) **fires any rule**
+  that watches that variable name in its trigger expression.
+- Assigning to a regular variable (`var.homeMode = "away"`) does not.
 
-## Setting up a Home Table
+---
 
-A Home Table (HT) is a structured way to organize your devices. This makes your rules much more readable and maintainable:
+## Basic Functionality
+
+### Working with Remotes
+
+Remote controls emit `centralSceneEvent` signals when buttons are pressed:
 
 ```lua
-function QuickApp:main(er)
-  local rule, var, triggerVar = er.rule, er.variables, er.triggerVariables
-  
-  -- Define your home structure
-  local HT = {
-    kitchen = {
-      sensor = { 
-        motion = 77, 
-        door = 99,
-        temp = 101
-      },
-      light = { 
-        ceiling = 54, 
-        under_cabinet = 78,
-        window = 82
-      },
-      appliances = {
-        dishwasher = 203,
-        coffee_maker = 204
-      }
-    },
-    livingroom = {
-      sensor = {
-        motion = 88,
-        lux = 89
-      },
-      light = {
-        ceiling = 91,
-        floor_lamp = 92,
-        tv_backlight = 93
-      },
-      entertainment = {
-        tv = 301,
-        sound_system = 302
-      }
-    },
-    bedroom = {
-      sensor = { motion = 65, temp = 66 },
-      light = { ceiling = 67, bedside = 68 }
-    }
-  }
-  
-  -- Make HT available to all rules
-  var.HT = HT
-  
-  -- Now your rules are much more readable!
-  rule("HT.kitchen.sensor.motion:breached => HT.kitchen.light.ceiling:on")
-  rule("HT.livingroom.sensor.lux:value < 100 => HT.livingroom.light:on")
-  rule("@23:00 => HT.bedroom.light.bedside:on; wait(10); HT.bedroom.light:off")
-end
+-- Define your remote in the Home Table
+local HT = {
+  remotes = {
+    bedroom = 123,   -- replace with your remote's device ID
+    kitchen = 124
+  },
+  bedroom  = { light = { ceiling = 67 }, fan = 201 },
+  kitchen  = { light = { ceiling = 54 } }
+}
+er.defvars(HT)
+
+-- React to specific key presses
+rule([[remotes.bedroom:key == '1:Pressed'  => bedroom.light.ceiling:on]])
+rule([[remotes.bedroom:key == '1:Hold'     => bedroom.light.ceiling:off]])
+rule([[remotes.bedroom:key == '2:Pressed2' => bedroom.fan:toggle]])  -- double-click
 ```
 
-#### Try this
-- Add another room or device to the `HT` structure and reference it in a new rule.
-- Create a list of lights (e.g., `var.allLights = {HT.livingroom.light.ceiling, HT.kitchen.light.ceiling}`) and turn them off together.
+Key attributes: `'Pressed'`, `'Hold'`, `'Release'`, `'Pressed2'` (double-click),
+`'Pressed3'` (triple-click).
 
-## Basic functionality
+### Working with Alarms
 
-### Working with remotes
-
-Remote controls emit `centralSceneEvent` signals when buttons are pressed. EventRunner7 provides convenient properties to handle these events:
+The HC3 alarm system uses partitions (numbered 0, 1, 2...). Partition `0`
+is typically the whole house.
 
 ```lua
-function QuickApp:main(er)
-  local rule, var = er.rule, er.variables
-  
-  -- Define your remote in the Home Table
-  var.HT = {
-    remotes = {
-      bedroom = 123,
-      kitchen = 124
-    }
-  }
-  
-  -- React to specific key presses
-  rule([[HT.remotes.bedroom:key == '1:Pressed' => HT.bedroom.light:on]])
-  rule([[HT.remotes.bedroom:key == '1:Hold' => HT.bedroom.light:off]])
-  rule([[HT.remotes.bedroom:key == '2:Pressed2' => HT.bedroom.fan:toggle]])  -- Double click
-  
-  -- Alternative syntax using individual properties
-  rule([[HT.remotes.kitchen:key.id == 1 & HT.remotes.kitchen:key.attr == 'Pressed' => 
-    log('Kitchen remote button 1 pressed')
-  ]])
-end
-```
+-- Query alarm state
+rule([[@08:00 =>
+  if 0:isArmed then
+    log('House alarm is armed')
+  else
+    log('House alarm is disarmed')
+  end
+]])
 
-**Key attributes available:**
-- `'Pressed'` - Single button press
-- `'Hold'` - Button held down  
-- `'Release'` - Button released
-- `'HeldDown'` - Continuous hold signal
-- `'Pressed2'` - Double click
-- `'Pressed3'` - Triple click
+-- Arm/disarm
+rule("@23:00 => 0:tryArm")          -- Try to arm (handles breached devices)
+rule("@07:00 => 0:armed = false")   -- Disarm
 
-**Multi-remote handling:**
-```lua
--- Monitor multiple remotes with one rule
-var.allRemotes = {HT.remotes.bedroom, HT.remotes.kitchen, HT.remotes.livingroom}
-
-rule([[allRemotes:id:key == '1:Pressed' => 
-  log('Button 1 pressed on remote %d', allRemotes:id)
+-- React to breaches
+rule([[0:isAlarmBreached =>
+  log('SECURITY ALERT: House alarm breached!');
+  security.siren:on
 ]])
 ```
 
-### Working with alarms
-
-The HC3 alarm system uses partitions to organize security zones. EventRunner7 provides comprehensive alarm properties:
-
-```lua
-function QuickApp:main(er)
-  local rule, var = er.rule, er.variables
-  
-  -- Query alarm states
-  rule([[@08:00 => 
-    if 0:isArmed then 
-      log('House alarm is armed') 
-    else 
-      log('House alarm is disarmed') 
-    end
-  ]])
-  
-  -- Arm/disarm the alarm
-  rule([[@23:00 => 0:tryArm]])  -- Try to arm house (partition 0)
-  rule([[@07:00 => 0:armed = false]])  -- Disarm house
-  
-  -- Check for breaches
-  rule([[0:isAlarmBreached => 
-    log('SECURITY ALERT: House alarm breached!'); 
-    HT.security.siren:on
-  ]])
-end
-```
-
-**Available alarm properties:**
-
-**Query properties:**
-- `:armed` - Returns true if partition is armed
-- `:isArmed` - Same as :armed
-- `:isDisarmed` - Returns true if partition is disarmed
-- `:isAlarmBreached` - Returns true if partition is breached
-- `:isAlarmSafe` - Returns true if partition is safe
-
-**List properties (for multiple partitions):**
-- `:isAllArmed` - Returns true if all partitions are armed
-- `:isAnyDisarmed` - Returns true if any partition is disarmed
-- `:isAllAlarmBreached` - Returns true if all partitions are breached
-- `:isAnyAlarmSafe` - Returns true if any partition is safe
-
-**Control properties:**
-- `:armed = true/false` - Arms/disarms the partition
-- `:tryArm` - Attempts to arm (handles breached devices gracefully)
-
-**Handling arming conflicts:**
-
-When using `:tryArm`, if devices are breached, an event is posted with details:
-
-```lua
--- Handle arming conflicts
-rule([[#alarm{property='delayed'} => 
-  log('Cannot arm - breached devices detected:'); 
-  for partitionId, devices in pairs(env.event.value) do 
-    log('Partition %s: devices %s', partitionId, table.concat(devices, ', ')) 
-  end; 
-  log('Disarming to prevent false alarm'); 
-  0:armed = false
-]])
-
--- React to partition breaches
-rule([[#alarm{id='$id', property='breached'} => 
-  log('SECURITY BREACH in partition %s!', env.event.id); 
-  HT.security.lights:on; 
-  HT.security.siren:on
-]])
-
--- React to house breach
-rule([[#alarm{property='homeBreached'} => 
-  log('HOUSE SECURITY BREACH!'); 
-  post(#securityProtocol)
-]])
-
-rule([[#securityProtocol => 
-  HT.all.lights:on; 
-  HT.security.siren:on; 
-  -- Add notification logic here
-]])
-```
+---
 
 ## Common Home Automation Patterns
 
-Here are some practical automation patterns for your home:
-
 ### Morning Routine
+
 ```lua
-rule("@07:00 & wday('mon-fri') => "..
-  "HT.kitchen.light:on; "..
-  "HT.kitchen.appliances.coffee_maker:on; "..
-  "log('Good morning! Coffee is brewing')")
+rule("@07:00 & wday('mon-fri') =>
+  kitchen.light.ceiling:on;
+  kitchen.appliances.coffeeMaker:on;
+  log('Good morning! Coffee is brewing')
+")
 ```
 
 ### Security System
+
 ```lua
--- Arm security when leaving
-rule("@{08:30,17:30} & wday('mon-fri') => "..
-  "securitySystem:arm; "..
-  "log('Security system armed')")
-
 -- Motion during night hours
-rule("HT.livingroom.sensor.motion:breached & 23:00..06:00 => "..
-  "if !securitySystem:isArmed then "..
-    "HT.livingroom.light:on; "..
-    "post(#lightsOff, '+00:02') "..
-  "else "..
-    "log('SECURITY ALERT: Motion detected!') "..
-  "end")
+rule([[livingroom.sensor.motion:breached & 23:00..06:00 =>
+  if !0:isArmed then
+    livingroom.light.ceiling:on;
+    post(#lightsOff, +/00:02)
+  else
+    log('SECURITY ALERT: Motion detected!')
+  end
+]])
 
-rule("#lightsOff => HT.livingroom.light:off")
+rule("#lightsOff => livingroom.light.ceiling:off")
 ```
 
 ### Energy Saving
+
 ```lua
--- Turn off devices when no motion detected for 30 minutes
-rule("trueFor(00:30, !HT.livingroom.sensor.motion:breached) => "..
-  "HT.livingroom.entertainment:off; "..
-  "log('Entertainment system turned off - no activity')")
+-- Turn off entertainment when no motion for 30 minutes
+rule([[trueFor(00:30, !livingroom.sensor.motion:breached) =>
+  livingroom.entertainment.tv:off;
+  log('Entertainment turned off — no activity')
+]])
 
 -- Temperature-based fan control
-rule("HT.livingroom.sensor.temp:value > 25 => HT.livingroom.fan:on")
-rule("HT.livingroom.sensor.temp:value < 22 => HT.livingroom.fan:off")
+rule("livingroom.sensor.temp:value > 25 => livingroom.fan:on")
+rule("livingroom.sensor.temp:value < 22 => livingroom.fan:off")
 ```
 
-See also: Reference for trueFor details and options in [EventScript.md#truefor-function](EventScript.md#truefor-function)
-
 ### Vacation Mode
+
 ```lua
--- Inside QuickApp:main(er), with triggerVar = er.triggerVariables already declared:
 triggerVar.vacationMode = false
 
-rule("vacationMode == true => "..
-  "log('Vacation mode activated'); "..
-  "enable(vacationLights); "..
-  "disable(normalRoutines)")
+rule([[vacationMode == true =>
+  log('Vacation mode activated');
+  enable(vacationLights);
+  disable(normalRoutines)
+]])
 
--- Random lights during vacation
-rule("vacationMode & @{19:00,20:30,22:00} => "..
-  "if rnd(1,10) > 5 then "..
-    "HT.livingroom.light:on; "..
-    "post(#vacationLightsOff, fmt('+00:%02d', rnd(30,90))) "..
-  "end")
+-- Random lights in the evening
+rule([[vacationMode & @{19:00,20:30,22:00} =>
+  if rnd(1,10) > 5 then
+    livingroom.light.ceiling:on;
+    post(#vacationLightsOff, fmt('+00:%02d', rnd(30,90)))
+  end
+]])
 
-rule("#vacationLightsOff => HT.livingroom.light:off")
+rule("#vacationLightsOff => livingroom.light.ceiling:off")
 ```
 
 ### Weather-based Automation
+
 ```lua
--- Close blinds when sunny and hot
-rule("weather:temp > 28 & weather:condition == 'sunny' => "..
-  "HT.livingroom.blinds:close; "..
-  "log('Closing blinds - hot and sunny')")
+-- Close blinds when hot and sunny
+rule([[weather:temp > 28 & weather:condition == 'sunny' =>
+  livingroom.blinds:close;
+  log('Closing blinds — hot and sunny')
+]])
 
--- Turn on outdoor heater when cold
-rule("weather:temp < 5 & @{17:00,18:00,19:00} => "..
-  "HT.patio.heater:on; "..
-  "post(#heaterOff, '+02:00')")  -- Auto-off after 2 hours
+-- Outdoor heater when cold
+rule([[weather:temp < 5 & @{17:00,18:00,19:00} =>
+  patio.heater:on;
+  post(#heaterOff, +/02:00)
+]])
 
-rule("#heaterOff => HT.patio.heater:off")
+rule("#heaterOff => patio.heater:off")
 ```
+
+---
+
+## Putting It All Together
+
+Here's a complete, working `main()` function that ties together motion
+lighting, time-based routines, and an auto-off pattern. Copy this, replace
+the device IDs with your own, and deploy:
+
+```lua
+local function main(er)
+  local rule, var, triggerVar = er.eval, er.variables, er.triggerVariables
+
+  -- ── Logging: see rule triggers, conditions, and results ──────────────────
+  er.opts = { started = true, check = true, triggers = true }
+
+  -- ── Home Table — replace these IDs with your own! ────────────────────────
+  local HT = {
+    kitchen = {
+      sensor = { motion = 77, door = 99 },
+      light  = { ceiling = 54, underCabinet = 78 }
+    },
+    livingroom = {
+      sensor = { motion = 88, lux = 89 },
+      light  = { ceiling = 91, floorLamp = 92 }
+    },
+    bedroom = {
+      sensor = { motion = 65 },
+      light  = { ceiling = 67, bedside = 68 }
+    }
+  }
+  er.defvars(HT)
+
+  -- Convenience lists (Lua code — uses the local HT table)
+  var.allLights = {
+    HT.kitchen.light.ceiling, HT.kitchen.light.underCabinet,
+    HT.livingroom.light.ceiling, HT.livingroom.light.floorLamp,
+    HT.bedroom.light.ceiling, HT.bedroom.light.bedside
+  }
+
+  -- ── Motion → Light ──────────────────────────────────────────────────────
+  -- Kitchen: motion turns on light, auto-off after 5 min of no motion
+  rule([[kitchen.sensor.motion:breached =>
+    cancel(kitchenTimer);
+    kitchenTimer = post(#kitchenAutoOff, +/00:05);
+    kitchen.light.ceiling:on
+  ]])
+
+  rule([[#kitchenAutoOff =>
+    if !kitchen.sensor.motion:breached then
+      kitchen.light.ceiling:off
+    end
+  ]])
+
+  -- Living room: motion + low light
+  rule([[livingroom.sensor.motion:breached & livingroom.sensor.lux:value < 100 =>
+    livingroom.light.ceiling:on
+  ]])
+
+  rule([[trueFor(00:10, !livingroom.sensor.motion:breached) =>
+    livingroom.light.ceiling:off;
+    livingroom.light.floorLamp:off
+  ]])
+
+  -- ── Time-based routines ─────────────────────────────────────────────────
+  -- Morning (weekdays)
+  rule([[@{07:00,catch} & wday('mon-fri') =>
+    kitchen.light.ceiling:on;
+    log('Good morning!')
+  ]])
+
+  -- Evening (sunset)
+  rule([[@{sunset,catch} =>
+    livingroom.light.floorLamp:on;
+    log('Good evening!')
+  ]])
+
+  -- Bedtime
+  rule([[@{23:00,catch} =>
+    post(#bedtime)
+  ]])
+
+  rule([[#bedtime =>
+    bedroom.light.bedside:on;
+    wait(10);
+    bedroom.light.ceiling:off;
+    livingroom.light:off;
+    kitchen.light:off;
+    log('Good night!')
+  ]])
+
+  -- ── Door alert ──────────────────────────────────────────────────────────
+  rule([[kitchen.sensor.door:isOpen =>
+    log.orange('Kitchen door opened at %s', HM(now))
+  ]])
+
+  -- ── Status check every hour ─────────────────────────────────────────────
+  rule([[@@-01:00 =>
+    log('── Status check ──');
+    log('Kitchen motion: %s', kitchen.sensor.motion:breached and 'yes' or 'no');
+    log('Living room lux: %d', livingroom.sensor.lux:value)
+  ]])
+end
+
+function QuickApp:onInit()
+  fibaro.EventRunner(main)
+end
+```
+
+This gives you:
+- Motion-triggered lights that auto-off (kitchen, living room)
+- Morning, sunset, and bedtime routines
+- Door-open alerts
+- Hourly status logging
+
+Start here and add your own rules one at a time.
+
+---
 
 ## Best Practices
 
-1. **Use meaningful names**: Name your devices and variables clearly
+1. **Use meaningful names** in your Home Table:
    ```lua
    -- Good
-   var.HT = { kitchen = { light = { ceiling = 54 } } }
-   
+   local HT = { kitchen = { light = { ceiling = 54 } } }
+
    -- Avoid
-   var.devices = { k = { l = { c = 54 } } }
+   local HT = { k = { l = { c = 54 } } }
    ```
 
-2. **Group related devices**: Use lists for similar devices
+2. **Group related devices** in lists:
    ```lua
-   var.allLights = {54, 67, 78, 91, 92}
+   var.allLights = {HT.kitchen.light.ceiling, HT.livingroom.light.ceiling}
    rule("@23:00 => allLights:off")
    ```
 
-3. **Use time guards**: Combine time ranges with other triggers
+3. **Use time guards** to narrow when rules fire:
    ```lua
-   rule("motion:breached & 22:00..06:00 => nightLight:on")
-   ```
-4. **Use time guards with daily triggers**: Combine day and month ranges with daily triggers
-   ```lua
-   rule("@sunset+00:01 & wday('mon-fri') & month('june-oct') => nightLight:on")
+   rule("kitchen.sensor.motion:breached & 22:00..06:00 => bedroom.light.ceiling:on")
    ```
 
-5. **Avoid false triggers**: Use `trueFor()` for conditions that might flicker
+4. **Use day and month guards** with daily triggers:
    ```lua
-   rule("trueFor(00:05, !motion:breached) => lights:off")
-   ```
-  See: [EventScript.md#truefor-function](EventScript.md#truefor-function)
-
-6. **Kick start rules that should check at startup**: Use .start() to run rule at startup.
-      When  rule is defined, the motion sensor may already be breached, so no event will be triggering the rule (untile next time it gets breached). <rule>.start() runs the rule once when defined.
-   ```lua
-   rule("motion:breached => lights:off").start()
+   rule("@sunset+00:01 & wday('mon-fri') & month('june-oct') => livingroom.light.ceiling:on")
    ```
 
-7. **Structure complex logic**: Use custom events for multi-step processes
+5. **Avoid false triggers** with `trueFor()`:
    ```lua
-    rule("@23:00 => post(#bedtimeRoutine)")
-    rule("#bedtimeRoutine => lights:off; wait(10); security:arm")
+   rule("trueFor(00:05, !kitchen.sensor.motion:breached) => kitchen.light.ceiling:off")
    ```
+
+6. **Kick-start rules with `.start()`** when the trigger state may already
+   be true at startup:
+   ```lua
+   rule("kitchen.sensor.motion:breached => kitchen.light.ceiling:off").start()
+   ```
+
+7. **Structure complex logic** with custom events:
+   ```lua
+   rule("@23:00 => post(#bedtimeRoutine)")
+   rule("#bedtimeRoutine => livingroom.light:off; wait(10); 0:tryArm")
+   ```
+
+8. **Turn on logging during development**, turn off in production:
+   ```lua
+   er.opts = { started = true, check = true, triggers = true }
+   ```
+
+---
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Rule not triggering**: Check your trigger syntax
+1. **Rule not triggering — check your syntax:**
    ```lua
-    -- Wrong
-    rule("motion:breach => lights:on")  -- Should be "breached"
-   
+   -- Wrong
+   rule("motion:breach => lights:on")  -- Should be "breached"
+
    -- Correct
-   rule("motion:breached => lights:on")
+   rule("kitchen.sensor.motion:breached => kitchen.light.ceiling:on")
    ```
 
-2. **Device not responding**: Verify device IDs
+2. **Device not responding — verify device IDs:**
    ```lua
-   -- Check in Fibaro interface that device 54 exists
-   rule("motion:breached => 54:on")  -- Use device ID directly for testing
+   -- Test with a numeric ID first
+   rule("kitchen.sensor.motion:breached => 54:on")
    ```
 
-3. **Time rules not working**: Check time format
+3. **Time rules not working — check time format:**
    ```lua
    -- Wrong
    rule("@8:00 => lights:on")  -- Should be "08:00"
-   
+
    -- Correct
    rule("@08:00 => lights:on")
    ```
 
-4. **"Expected 'identifier', got 'restart'" error**: You tried to use a reserved keyword as an identifier or after `.`:
+4. **"Expected 'identifier', got 'restart'" error:**
+   You used a reserved keyword as a name. Use bracket syntax instead:
    ```lua
-   -- Wrong: 'restart' is a reserved keyword in EventScript
+   -- Wrong: 'restart' is a reserved keyword
    -- plugin.restart()
 
-   -- Correct: use bracket-index syntax
+   -- Correct:
    plugin["restart"]()
    ```
-   See [EventScript.md#reserved-keywords](EventScript.md#reserved-keywords) for the full list.
+   See the [full list of reserved keywords](EventScript.md#reserved-keywords).
 
 ### Debugging Tips
 
-1. **Add logging**: Use `log()` to trace rule execution
+1. **Add logging** to trace rule execution:
    ```lua
-   rule("motion:breached => log('Motion detected!'); lights:on")
+   rule("kitchen.sensor.motion:breached => log('Motion detected!'); kitchen.light.ceiling:on")
    ```
-   Use `log.color(fmt, ...)` to add colour in the HC3 debug console — any CSS colour name works as the method:
+   Use `log.color(fmt, ...)` for coloured output — any CSS colour name works:
    ```lua
-   rule("door:open   => log.orange('Front door opened at %s', HM(now))")
-   rule("alarm:fired => log.red('ALERT: %s', alarm:name)")
-   ```
-
-2. **Test with simple rules**: Start simple and build complexity
-   ```lua
-   -- Test basic trigger first
-   rule("motion:breached => log('Motion works!')")
-   
-   -- Then add action
-   rule("motion:breached => log('Motion works!'); lights:on")
+   rule("kitchen.sensor.door:isOpen => log.orange('Door opened at %s', HM(now))")
+   rule("0:isAlarmBreached => log.red('ALERT: Security breach!')")
    ```
 
-3. **Use device IDs**: Test with numeric IDs before using Home Table
+2. **Test incrementally** — start simple and build up:
    ```lua
-   -- Test with ID first
+   -- Step 1: test the trigger
+   rule("kitchen.sensor.motion:breached => log('Motion works!')")
+
+   -- Step 2: add the action
+   rule("kitchen.sensor.motion:breached => log('Motion!'); kitchen.light.ceiling:on")
+   ```
+
+3. **Test with numeric IDs first**, then switch to Home Table names:
+   ```lua
+   -- Test with ID
    rule("77:breached => 54:on")
-   
+
    -- Then use Home Table
-   rule("HT.kitchen.sensor.motion:breached => HT.kitchen.light:on")
+   rule("kitchen.sensor.motion:breached => kitchen.light.ceiling:on")
    ```
 
-Congratulations! You now have the foundation to create powerful home automation rules with EventScript. Start with simple rules and gradually build more complex automations as you become comfortable with the language.
+4. **Enable verbose logging** to see when rules wait and resume:
+   ```lua
+   er.opts = { started = true, check = true, triggers = true, waiting = true, waited = true }
+   ```
 
-For detailed reference information, see the [EventScript Language Documentation](EventScript.md).
+---
+
+## Quick Reference: 10 Essential Patterns
+
+Now that you understand the building blocks, here are the most common
+patterns for quick reference:
+
+```lua
+-- 1) Daily time
+rule("@08:00 => kitchen.light.ceiling:on")
+
+-- 2) Multiple times
+rule("@{07:00,19:00} => securityCheck()")
+
+-- 3) Aligned interval (on the hour)
+rule("@@-01:00 => log('Top of the hour')")
+
+-- 4) Time-guarded device trigger
+rule("kitchen.sensor.motion:breached & 22:00..06:00 => bedroom.light.ceiling:on")
+
+-- 5) Device property trigger
+rule("kitchen.sensor.door:isOpen => log('Door opened')")
+
+-- 6) Threshold trigger
+rule("livingroom.sensor.temp:value >= 26 => livingroom.fan:on")
+
+-- 7) Stay-true condition (no motion for 10 min)
+rule("trueFor(00:10, !kitchen.sensor.motion:breached) => kitchen.light.ceiling:off")
+
+-- 8) Post event with delay
+rule("@sunset => post(#evening, +/00:15)")
+
+-- 9) List aggregation (average of sensors)
+rule("allTemps:value:average > 25 => livingroom.fan:on")
+
+-- 10) Offset relative to sunset
+rule("@sunset-00:30 => livingroom.blinds:close")
+```
+
+---
 
 ## Glossary
 
-- Trigger: The left side of a rule (`trigger => action`). A pure expression that, when true, causes the action to run. Examples: `@08:00`, `motion:breached`, `temp:value > 25`, `wday('mon-fri') & 22:00..06:00`.
-- Action: The right side of a rule. One or more statements that perform side effects (device control, assignment, logging). Separate multiple statements with `;`.
-- Guard: A condition that narrows when a trigger can fire, typically combined with `&` (AND). Examples: `wday('mon-fri')`, `22:00..06:00`, `lux:value < 100`.
-- Event: A custom signal you can post and handle using `#name`. Post with `post(#name[, when])` and react with `rule("#name => ...")`.
+- **Trigger:** The left side of a rule (`trigger => action`). A pure
+  expression that, when true, causes the action to run. Examples:
+  `@08:00`, `kitchen.sensor.motion:breached`,
+  `livingroom.sensor.temp:value > 25`.
+
+- **Action:** The right side of a rule. One or more statements that perform
+  side effects (device control, assignment, logging). Separate multiple
+  statements with `;`.
+
+- **Guard:** A condition that narrows when a trigger can fire, typically
+  combined with `&` (AND). Examples: `wday('mon-fri')`, `22:00..06:00`,
+  `livingroom.sensor.lux:value < 100`.
+
+- **Event:** A custom signal you can post and handle using `#name`. Post
+  with `post(#name[, when])` and react with `rule("#name => ...")`.
+
+- **Home Table (HT):** A Lua table that maps device IDs to meaningful
+  names. Use `er.defvars(HT)` to make all names available in rules without
+  any prefix.
+
+- **Trigger variable:** A variable defined on `er.triggerVariables` —
+  changing its value fires any rule that watches its name.
+
+---
+
+Congratulations! You now have the foundation to create powerful home
+automation rules with EventScript. Start with simple rules and gradually
+build more complex automations as you become comfortable with the language.
+
+For detailed reference information, see the
+[EventScript Language Documentation](EventScript.md).
