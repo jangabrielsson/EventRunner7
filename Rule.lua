@@ -822,7 +822,7 @@ local function addCSPfuns()
       trace("SET trigger var", name, "=", val)
     end
   end
-  function vm.host.formatSource(src, pos, len) ER.sourceMarker(src, pos, len) end
+  function vm.host.formatSource(src, pos, len) return ER.sourceMarker(src, pos, len) end
 end
 
 local function bootEventRunner(cb)
