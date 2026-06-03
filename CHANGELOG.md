@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.1.35] - 2026-06-03
+
+## Changes in v0.1.35
+
+- ✨ **Feature**: implement list comprehension parsing and update related test case
+- ✨ **Feature**: update skills path and enhance formatSource function return value
+- 🐛 **Fix**: enhance comparison operations to handle custom string representations
+- ✨ **Feature**: Refactor CSP documentation and update test scripts
+  - Enhanced CSP README.md to clarify the IR contract, context model, and variable environment.
+  - Added details on the execution context and variable lookup order.
+  - Updated opcode taxonomy and core opcodes sections for better clarity.
+  - Commented out profiling code in eventrunner_test.lua to disable profiling during tests.
+  - Commented out variable initialization and rule definitions in eventrunner_testground.lua for cleaner test execution.
+- ✨ **Feature**: add Daily event descriptor and test for factorial function
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.34] - 2026-05-29
 
 ## Changes in v0.1.34
