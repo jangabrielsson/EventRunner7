@@ -542,15 +542,29 @@ function resumeRunner(res, ctx, cb)
   cb(table.unpack(res, 2))
 end
 
-local function beautifyArgs(args, res) -- recursively convert args to more readable forms for logging
+local function beautifyArgs_aux(obj) -- recursively convert args to more readable forms for logging
+    local t = type(obj)
+    local tstr = (getmetatable(obj) or {}).__tostring
+    if tstr then return (type(tstr) == 'function') and tstr(obj) or tstr -- honor __tostring if it exists
+    elseif t == 'table' then 
+      local res = {}
+      for i=1,#obj do
+        res[i] = beautifyArgs_aux(obj[i])
+      end
+      return res
+    elseif t == 'number' or t == 'boolean' or t == 'string' then
+      return obj
+    elseif t == "nil" then
+      return "nil"
+    else
+      return"<" .. tostring(t) .. ">"
+    end
+  end
+
+local function beautifyArgs(args,res)
   res = res or {}
   for i=1,args.n or #args do
-    local obj = args[i]
-    local tstr = (getmetatable(obj) or {}).__tostring
-    if tstr then res[i] = (type(tstr) == 'function') and tstr(obj) or tstr -- honor __tostring if it exists
-    elseif type(obj) == 'table' then -- json enoce tables
-      res[i] = json.encode(beautifyArgs(table.pack(table.unpack(obj)), {}))
-    else res[i] = tostring(obj) end
+    res[i] = json.encode(beautifyArgs_aux(args[i]))
   end
   return res
 end

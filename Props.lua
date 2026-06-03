@@ -3,7 +3,7 @@ local ER = fibaro.ER
 local fmt = string.format
 
 local function get(pd,id)
-  return fibaro.get(id, pd.trigger.property)
+  return (fibaro.get(id, pd.trigger.property))
 end
 
 local function set(pd,id,value)
@@ -62,7 +62,7 @@ end
 local function CALL(name,reduce,...)
   local args = {...}
   return {
-    get = function(pd,id,_) return fibaro.call(id,name,table.unpack(args)) end,
+    get = function(pd,id,_) return (fibaro.call(id,name,table.unpack(args))) end,
     reduce = reduce,
   }
 end
@@ -198,7 +198,7 @@ local propertyTable = {
     reduce = table.mapOr,
   },
   name = {
-    get = function(pd,id,_) return fibaro.getName(id) end,
+    get = function(pd,id,_) return (fibaro.getName(id)) end,
   },
   partition = {
     get = function(pd,id,_) return partition(id) end
@@ -207,7 +207,7 @@ local propertyTable = {
     get = function(pd,id,_) return ER.reverseVar(id) end
   },
   roomName = {
-    get = function(pd,id,_) return fibaro.getRoomNameByDeviceID(id) end
+    get = function(pd,id,_) return (fibaro.getRoomNameByDeviceID(id)) end
   },
   trigger = {
     trigger = {type='device', property='value'},
@@ -232,7 +232,7 @@ local propertyTable = {
     get = function(pd,id,_) return quickApp:lastManual(id) end,
   },
   start = {
-    get = function(pd,id,_) return fibaro.scene("execute",{id}) end,
+    get = function(pd,id,_) return (fibaro.scene("execute",{id})) end,
     set = function(pd,id,value) 
       if type(value)=='table' and value.type then 
         ER.sourceTrigger:postRemote(id,value) 
@@ -240,10 +240,10 @@ local propertyTable = {
     end
   },
   kill = {
-    get = function(pd,id,_) return fibaro.scene("kill",{id}) end
+    get = function(pd,id,_) return (fibaro.scene("kill",{id})) end
   },
   toggle = {
-    get = function(pd,id,_) return fibaro.call(id,"toggle") end,
+    get = function(pd,id,_) return (fibaro.call(id,"toggle")) end,
     reduce = table.mapF,
   },
   wake            = CALL("wakeUpDeadDevice", table.mapF), -- get
