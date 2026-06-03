@@ -27,7 +27,7 @@ local function main(er) ER = er
     {x=1,y=10},
     {x=2,y=20},
   }
-  rule("return [{x.x,x.y} for x in tt ],nil,77", {result=true})
+  rule("return [{x.id,x.id:bat} for x in api.get('/devices') if !x.id:isDead & x.id:bat]", {result=true})
   --rule("a = 1; b = 2; return a,b",{result=true})
 
 end
