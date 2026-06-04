@@ -27,9 +27,10 @@ local function main(er) ER = er
     {x=1,y=10},
     {x=2,y=20},
   }
-  rule("return [{x.id,x.id:bat} for x in api.get('/devices') if !x.id:isDead & x.id:bat]", {result=true})
+  --rule("return [{x.id,x.id:bat} for x in api.get('/devices') if !x.id:isDead & x.id:bat]", {result=true})
   --rule("a = 1; b = 2; return a,b",{result=true})
-
+  function range(x) local r = {} for i=1,x do table.insert(r,i) end return r end
+  rule("return [x for x in range(11) if x%2==0]", {result=true})
 end
 
 function QuickApp:onInit()

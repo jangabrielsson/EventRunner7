@@ -21,7 +21,7 @@
     "Sim_remoteController","Sim_windowSensor","Sim_rainDetector",
     "Sim_heatDetector","Sim_motionSensor","Sim_humiditySensor",
     "Sim_binarySensor", "Sim_multilevelSensor", "Sim_sceneController",
-    "Sim_windSensor","Sim_waterLeakSensor",
+    "Sim_windSensor","Sim_waterLeakSensor","Sim_rollerShutter",
     "Sim_floodSensor", "Sim_genericDevice", "Sim_alarmPartition",
     "Sim_lightSensor", "Sim_colorController", "Sim_coDetector", "Sim_player",
     "Sim_powerMeter", "Sim_fireDetector", "Sim_temperatureSensor", "Sim_doorSensor", "Sim_windowCovering", "Sim_energyMeter"

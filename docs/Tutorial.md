@@ -7,37 +7,41 @@ scenarios.
 
 ## Table of Contents
 
-- [Before You Start](#before-you-start)
-- [A Quick Orientation: Lua and EventScript](#a-quick-orientation-lua-and-eventscript)
-- [Getting Started](#getting-started)
-- [Your First Rules](#your-first-rules)
-- [Setting up a Home Table](#setting-up-a-home-table)
-- [Working with Variables](#working-with-variables)
-- [Types of Rules](#types-of-rules)
-  - [Time-based Rules](#time-based-rules)
-  - [Interval Rules](#interval-rules)
-  - [Device-triggered Rules](#device-triggered-rules)
-- [Structuring Rules with Events](#structuring-rules-with-events)
-  - [Simple Events](#simple-events)
-  - [Events with Parameters](#events-with-parameters)
-  - [Pattern Matching with Variables](#pattern-matching-with-variables)
-  - [Cancelling Scheduled Events](#cancelling-scheduled-events)
-  - [Complex Event Sequences](#complex-event-sequences)
-- [Trigger Variables](#trigger-variables)
-- [Basic Functionality](#basic-functionality)
-  - [Working with Remotes](#working-with-remotes)
-  - [Working with Alarms](#working-with-alarms)
-- [Common Home Automation Patterns](#common-home-automation-patterns)
-  - [Morning Routine](#morning-routine)
-  - [Security System](#security-system)
-  - [Energy Saving](#energy-saving)
-  - [Vacation Mode](#vacation-mode)
-  - [Weather-based Automation](#weather-based-automation)
-- [Putting It All Together](#putting-it-all-together)
-- [Best Practices](#best-practices)
-- [Troubleshooting](#troubleshooting)
-- [Quick Reference: 10 Essential Patterns](#quick-reference-10-essential-patterns)
-- [Glossary](#glossary)
+- [EventScript Tutorial: Home Automation for Beginners](#eventscript-tutorial-home-automation-for-beginners)
+  - [Table of Contents](#table-of-contents)
+  - [Before You Start](#before-you-start)
+  - [A Quick Orientation: Lua and EventScript](#a-quick-orientation-lua-and-eventscript)
+  - [Getting Started](#getting-started)
+  - [Your First Rules](#your-first-rules)
+  - [Setting up a Home Table](#setting-up-a-home-table)
+  - [Working with Variables](#working-with-variables)
+  - [Types of Rules](#types-of-rules)
+    - [Time-based Rules](#time-based-rules)
+    - [Interval Rules](#interval-rules)
+    - [Device-triggered Rules](#device-triggered-rules)
+  - [Structuring Rules with Events](#structuring-rules-with-events)
+    - [Simple Events](#simple-events)
+    - [Events with Parameters](#events-with-parameters)
+    - [Pattern Matching with Variables](#pattern-matching-with-variables)
+    - [Cancelling Scheduled Events](#cancelling-scheduled-events)
+    - [Complex Event Sequences](#complex-event-sequences)
+  - [Trigger Variables](#trigger-variables)
+  - [Basic Functionality](#basic-functionality)
+    - [Working with Remotes](#working-with-remotes)
+    - [Working with Alarms](#working-with-alarms)
+  - [Common Home Automation Patterns](#common-home-automation-patterns)
+    - [Morning Routine](#morning-routine)
+    - [Security System](#security-system)
+    - [Energy Saving](#energy-saving)
+    - [Vacation Mode](#vacation-mode)
+    - [Weather-based Automation](#weather-based-automation)
+  - [Putting It All Together](#putting-it-all-together)
+  - [Best Practices](#best-practices)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debugging Tips](#debugging-tips)
+  - [Quick Reference: 10 Essential Patterns](#quick-reference-10-essential-patterns)
+  - [Glossary](#glossary)
 
 ---
 
@@ -70,12 +74,12 @@ concept to understand before you start:
 ┌─────────────────────────────────────────────┐
 │  Lua code (outside rule("..."))             │
 │  - Defines functions                        │
-│  - Sets up variables and the Home Table      │
+│  - Sets up variables and the Home Table     │
 │  - Initialises EventRunner                  │
 │                                             │
-│  rule("  EventScript (inside the string)  " │
-│  rule("  - Triggers and actions            " │
-│  rule("  - Device control, logging         " │
+│  rule("  EventScript (inside the string) ") │
+│  rule("  - Triggers and actions          ") │
+│  rule("  - Device control, logging       ") │
 │                                             │
 └─────────────────────────────────────────────┘
 ```
