@@ -1017,7 +1017,7 @@ end</code></pre>
         <pre><code data-lua>er.opts = {
   defined  = true,  -- ✅ log "RULE&lt;n&gt; defined" on registration
   triggers = true,  -- ⚡ list triggers when rule is defined
-  check    = true,  -- log condition true/false on each firing
+  check    = true,  -- log condition (true=both, "success", "failure", {success=true})
   started  = false, -- 🎬 log when a rule fires (trigger + env)
   result   = false, -- 📋 log action return value
   waiting  = false, -- 💤 log when wait() suspends
@@ -1027,7 +1027,7 @@ end</code></pre>
       <ul class="bullet-list reveal">
         <li>Set globally on <code>er.opts</code> — all rules inherit these defaults</li>
         <li>Override per rule: <code>rule("...", {check=false})</code> silences that rule only</li>
-        <li>Any flag can be a <strong>function</strong> for custom logging: <code>check = function(rule, env, ok) ... end</code></li>
+        <li><code>check</code> supports filtering: <code>"success"</code> (only 👍), <code>"failure"</code> (only 👎), or <code>{success=true}</code></li>
         <li>Turn everything off in production; enable selectively when debugging</li>
       </ul>
       <div class="slide-num">06 / 24</div>

@@ -29,7 +29,7 @@ local function getRuleGoup(name) return groups[name] end
 
 local dfltPrefix = { -- This is the defaults opts table. A mix of flags and log prefixes that the user can customize.
   started = false,  -- true => system start log, alt. user function(rule,env,trigger)
-  check = true,    -- true => system check log, alt. user function(rule,env,cond result)
+  check = true,    -- true|"success"|"failure"|{success=_,failure=_}|false => condition log
   result = false,  -- true => system result log, alt. user function(rule,result)
   triggers = true, -- true => list triggers when rule defined, alt. user function(rule)
   waiting = false, -- true => system waiting log, alt. user function(rule,env,time)
@@ -63,6 +63,20 @@ local function printWarn(...) fibaro.warning(__TAG,...) end
 
 local function trimErr(str)
   return str:match("^#(.+)") or str:match("%d+: #(.*)$") or str
+end
+
+-- shouldLog(flag [, sub]) normalizes debug-flag values so users can filter by sub-event.
+--   true            → log everything           (current boolean behavior)
+--   false / nil     → log nothing
+--   "success"       → only when sub == "success"
+--   "failure"       → only when sub == "failure"
+--   {success=true}  → only when sub == "success" (table form, same semantics)
+local function shouldLog(flag, sub)
+  if flag == true then return true end
+  if flag == false or flag == nil then return false end
+  if type(flag) == "string" then return flag == sub end
+  if type(flag) == "table" then return flag[sub] == true end
+  return false
 end
 
 -- makeExprCtx: wraps a plain opts table as a context for bare expression eval.
@@ -676,7 +690,8 @@ function ER.ruleCondition(cont, ctx, success)
   local opts = ctx:getOpts()
   local _,event = ctx:getVar('event')
   event = event and setmetatable(event, ER.EventMT) or ""
-  if opts.check then
+  local sub = success and "success" or "failure"
+  if shouldLog(opts.check, sub) then
     local ctx = opts.rule  -- the execution context (rule or exprCtx)
     local prefix = success and opts.successPrefix or opts.failPrefix
     ctx:log("normal", prefix, event)

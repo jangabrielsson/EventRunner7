@@ -1340,7 +1340,7 @@ When a rule is defined and triggered there are logs created in the console for t
 ```lua
 er.opts = {
     started = boolean/function, -- true => system start log, alt. user function(rule,env,trigger)
-    check = boolean/function,   -- true => system check log, alt. user function(rule,env,cond result)
+    check = boolean/"success"/"failure"/{success=true,...}, -- condition log (true=both, "success"=only 👍, "failure"=only 👎)
     result = boolean/function,  -- true => system result log, alt. user function(rule,result)
     triggers = boolean,         -- list triggers when rule defined
     waiting = boolean/function, -- true => system waiting log, alt. user function(rule,env,time)
@@ -1391,16 +1391,11 @@ The options for the rule will be the global er.opts override with the opts we gi
 ```lua
 rule("@sunset => lamp:on",{check=false})
 ```
-More advanced, we can provide a log function for the rule logs.
-An example. We can ignore the start message, and instead only log if the check/success of the rule is true.
+We can also filter by sub-event. For example, only log successful conditions (ignore failures):
 ```lua
-er.opts = { started = true, check = true, result = false, triggers=true, }
+er.opts = { started = true, check = "success", result = false, triggers = true }
 
-local function check(rule, env, res)
-  if res then print(string.format("%s %s",rule.successPrefix,env.trigger)) end
-end
-
-rule("#foo => wait(10); return 77",{triggers=true,started=false,check=check}) -- no start msg, and custom check
+rule("#foo => wait(10); return 77",{started=false}) -- no start msg
 rule("post(#foo)")
 ```
 ```bash
@@ -1408,7 +1403,7 @@ rule("post(#foo)")
 [04.09.2025][08:30:42][DEBUG  ][ER65555]: ⚡ #foo{}
 [04.09.2025][08:30:42][DEBUG  ][ER65555]: ✅ [Rule:1] #foo => return 77
 [04.09.2025][08:30:42][DEBUG  ][ER65555]: =========== Load time: 0.011s ============
-[04.09.2025][08:30:42][DEBUG  ][ER65555]: 👍 #foo{} -- No start message, only our own check with success and trigger
+[04.09.2025][08:30:42][DEBUG  ][ER65555]: 👍 #foo{} -- check="success" only logs 👍, no 👎 on failure
 ```
 
 ## Best Practices

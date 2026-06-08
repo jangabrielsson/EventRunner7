@@ -226,7 +226,7 @@ rule("@sunset => homeOccupied = true")
 er.opts = {
   defined  = true,    -- ✅ log rule defined on registration
   triggers = true,    -- ⚡ list triggers when rule is defined
-  check    = true,    -- 👍/👎 log condition result on each firing
+  check    = true,    -- 👍/👎 log condition (true=both, "success", "failure", {success=true})
   started  = false,   -- 🎬 log when a rule fires (trigger + env)
   result   = false,   -- 📋 log action return value
   waiting  = false,   -- 💤 log when wait() suspends
@@ -236,10 +236,14 @@ er.opts = {
 -- Per-rule override:
 rule("@sunset => lamp:on", {check=false})
 
--- Custom log function:
-er.opts.check = function(rule, env, ok)
-  if ok then print(string.format("✓ %s fired", rule)) end
-end
+-- Log only successful conditions:
+rule("motion:breached => light:on", {check="success"})
+
+-- Log only failed conditions (debug flaky sensors):
+rule("door:breached => alarm()", {check="failure"})
+
+-- Explicit table form:
+rule("... => ...", {check={success=true}})
 ```
 
 ---
