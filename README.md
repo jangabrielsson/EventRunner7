@@ -21,8 +21,7 @@ EventRunner7 is a powerful rule-based automation framework for Fibaro Home Cente
 - **Rich Trigger System** — time (`@HH:MM`), interval (`@@HH:MM`), device properties, global variables, custom events (`#name`)
 - **Rule Modifiers** — `restart`, `since`, `debounce`, `cooldown`, `every` for precise firing control
 - **Rule Groups** — tag rules with `{group="name"}` and enable/disable the whole group at once
-- **Rule Groups** — tag rules with `{group="name"}` and enable/disable the whole group at once
-- **Async Actions** — `wait(ms)` suspends mid-action without blocking other rules
+- **Async Actions** — `wait(sec)` suspends mid-action without blocking other rules
 - **Event Scheduling** — post events with relative (`+/HH:MM`) or absolute (`n/HH:MM`) times
 - **Device Collections** — apply actions to lists of devices; aggregate with `:average`, `:someTrue`, etc.
 - **Custom Property Classes** — wrap any data source (API, sensor, service) as a first-class `obj:prop`
@@ -55,8 +54,10 @@ local function main(er)
     living  = { light = 60 },
   }
 
-  rule("HT.kitchen.motion:breached => HT.kitchen.light:on")
-  rule("@sunset => HT.living.light:on")
+  er.defvars(HT)
+
+  rule("kitchen.motion:breached => kitchen.light:on")
+  rule("@sunset => living.light:on")
   rule("@@00:05 => log('heartbeat')", {check=false})
 end
 
@@ -206,8 +207,10 @@ rule([[motion:breached =>
 er.variables.threshold = 25
 er.variables.HT = { kitchen = { light = 54, motion = 77 } }
 
+er.defvars(HT) -- add HT's key/values to er.variables
+
 rule("tempSensor:value > threshold => fan:on")
-rule("@sunset => HT.kitchen.light:on")
+rule("@sunset => kitchen.light:on")
 ```
 
 Trigger variables fire rules when written to:
@@ -244,6 +247,11 @@ rule("door:breached => alarm()", {check="failure"})
 
 -- Explicit table form:
 rule("... => ...", {check={success=true}})
+
+-- Custom log function:
+er.opts.check = function(rule, env, ok)
+  if ok then print(string.format("✓ %s fired", rule)) end
+end
 ```
 
 ---

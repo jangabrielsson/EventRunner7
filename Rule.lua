@@ -364,7 +364,7 @@ end
 
 -- Std Head Ops: just scan their children
 local stdHOPS = {
-  "RETURN", "NOT", "AND", "OR", "CALL","ADD","CFUN",
+  "RETURN", "NOT", "AND", "OR", "CALL","ADD","CFUN","CONST",
   "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW","NEG"
 }
 local HOPS = {}
