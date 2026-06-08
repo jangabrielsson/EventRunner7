@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.1.38] - 2026-06-08
+
+## Changes in v0.1.38
+
+- ✨ **Feature**: Refactor code structure for improved readability and maintainability
+- 🐛 **Fix**: correct async action wait time unit and enhance logging in Utils
+- ✨ **Feature**: add forum post helper for release v0.1.37 with enhanced styling and copy functionality
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.37] - 2026-06-08
 
 ## Changes in v0.1.37
