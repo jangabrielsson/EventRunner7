@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.40] - 2026-06-08
+
+## Changes in v0.1.40
+
+- ✨ **Feature**: add release v0.1.39 forum post helper with styling and copy functionality
+- 🐛 **Fix**: comment out debug print statements in QuickApp functions
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.39] - 2026-06-08
 
 ## Changes in v0.1.39
