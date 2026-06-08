@@ -937,7 +937,7 @@ end
       local last = lastID[ev.id]
       local _,t = fibaro.get(ev.id,'value')
       local v = last and t-last.time
-      print(fmt("Device %s value changed to %s, last change was %ss ago",ev.id,ev.value,v or "N/A"))
+      --print(fmt("Device %s value changed to %s, last change was %ss ago",ev.id,ev.value,v or "N/A"))
       if not(last and last.script and t-last.time <= 2) then
         print("Setting false")
         lastID[ev.id]={script=false, time=t}
