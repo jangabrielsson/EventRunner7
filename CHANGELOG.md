@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.39] - 2026-06-08
+
+## Changes in v0.1.39
+
+- ✨ **Feature**: add forum post helper for release v0.1.38 with styling and copy functionality
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.38] - 2026-06-08
 
 ## Changes in v0.1.38
