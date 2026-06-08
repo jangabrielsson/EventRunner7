@@ -170,6 +170,9 @@ end},
 end
 },
 {"-","%->" ,kwHandler},   -- '->' lambda arrow (must follow compound-assignment group)
+{"-","%-%-[^\n]*\n?", function(s) 
+  return nil -- skip comments
+end},  
 {"|",'||?',  kwHandler},  -- '||' case_bar (before single '|' catch-all)
 {"+-*/(){}&|!:;,.<>=[]%",".",function(t) 
   local k = keywords[t]
@@ -177,7 +180,6 @@ end
   return {type=k.type, value=k.value, tk=t}
 end
 },
-{"-","%-%-[^\n]*)\n?", function(s) return nil end},  -- skip comments
 {" \t\n","%s+",function(t) 
   return nil end
 },
