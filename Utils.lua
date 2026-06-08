@@ -939,7 +939,7 @@ end
       local v = last and t-last.time
       --print(fmt("Device %s value changed to %s, last change was %ss ago",ev.id,ev.value,v or "N/A"))
       if not(last and last.script and t-last.time <= 2) then
-        print("Setting false")
+        --print("Setting false")
         lastID[ev.id]={script=false, time=t}
       end
     end
@@ -953,7 +953,7 @@ end
   function QuickApp:lastManual(id)
     local last = lastID[id]
     if not last then return -1 end
-    print(os.time()-last.time,os.date("%c",last.time),os.date("%c",os.time()))
+    --print(os.time()-last.time,os.date("%c",last.time),os.date("%c",os.time()))
     return last.script and -1 or os.time()-last.time
   end
 
