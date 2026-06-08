@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.1.37] - 2026-06-08
+
+## Changes in v0.1.37
+
+- ✨ **Feature**: enhance logging options for rule conditions with detailed filtering capabilities
+- ✨ **Feature**: Add EventScript Templates documentation and unit tests
+  - Introduced a comprehensive documentation for EventScript Templates, detailing usage, API reference, and template descriptions.
+  - Added a new test suite for the Templates module, covering various scenarios including validation, rule generation, and edge cases.
+  - Implemented mock evaluation for testing template application and capturing generated rules.
+- ✨ **Feature**: add Sim_rollerShutter to Lua diagnostics globals and update tutorial structure for clarity
+- ✨ **Feature**: Refactor code structure for improved readability and maintainability
+- ✨ **Feature**: add forum post helper for release v0.1.36 and update list comprehension rule
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.36] - 2026-06-03
 
 ## Changes in v0.1.36
