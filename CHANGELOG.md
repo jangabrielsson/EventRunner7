@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.41] - 2026-06-09
+
+## Changes in v0.1.41
+
+- ✨ **Feature**: Add release notes for v0.1.40 and new test files
+  - Created HTML release notes for EventRunner7 v0.1.40 with styling and copy functionality.
+  - Added a new Lua test file (plua.lua) to define the QuickApp initialization and update view.
+  - Introduced a new Lua rules file (plua_rules.lua) for testing purposes with a simple logging rule.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.40] - 2026-06-08
 
 ## Changes in v0.1.40
