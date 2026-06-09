@@ -1,22 +1,29 @@
+------------ENDOFHEADERS ------------
+local newmain = [[
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
 --%%headers:EventRunner.inc
 --%%file:Setup.lua,stdfuns
--- %%offline:true
---%%save:dist/EventRunner7.fqa
+--%%file:tests/plua_rules.lua,pl
 --%%u:{label='info', text='EventRunnner 7'}
-
-local function main(er)
-  local rule,var = er.eval,er.variables
-  er.opts = { started = true, check = true, result = true, triggers=true }
-
-  rule("@@00:00:05 => log[({'red','green','yellow'})[rnd(1,3)]]('tick!')",{check=false})
-
-end
+--%%debug:true
 
 function QuickApp:onInit()
   local str = "EventRunner 7, v"..fibaro.EventRunnerVersion
   self:debug(string.format("<font color='green'>%s</font>",str))
   self:updateView('info','text',str)
+  print("OKOK",main)
   fibaro.EventRunner(main)
 end
+]]
+
+local f = io.open("dist/EventRunner7.fqa")
+local fqa = f:read("*a")
+f:close()
+fqa = json.decode(fqa)
+for _,f in ipairs(fqa.files) do
+  if f.name == 'main' then
+   f.content = newmain
+  end
+end
+fibaro.plua.lib.loadFQA(fqa)
