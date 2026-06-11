@@ -1,5 +1,6 @@
 === expr_tables5555 ===
 
+  PASS: table length
   PASS: array index [1]
   PASS: array index [2]
   PASS: array index [3]
@@ -9,5 +10,6 @@
   PASS: dict set then get
   PASS: nested dot access
   PASS: update field
+  PASS: add field
 
-  9 passed
+  11 passed

@@ -11,5 +11,6 @@
   PASS: for-ipairs: sum values
   PASS: for-ipairs: sum indices (1+2+3)
   PASS: for-pairs: count entries
+  PASS: case statement
 
-  11 passed
+  12 passed

@@ -4,6 +4,8 @@
 --%%offline:true
 
 local function main(er)
+
+  test_expr(er, "local t = {1,2,3}; return size(t)", 3, "table length")
   -- Array creation and indexing
   test_expr(er, "return {10, 20, 30}[1]",    10,   "array index [1]")
   test_expr(er, "return {10, 20, 30}[2]",    20,   "array index [2]")
@@ -26,6 +28,8 @@ local function main(er)
 
   -- Table update
   test_expr(er, "local t = {x=1}; t.x = 99; return t.x", 99, "update field")
+
+  test_expr(er, "local t = {1}; t[size(t)+1] = 99; return t[2]", 99, "add field")
 
   done()
 end

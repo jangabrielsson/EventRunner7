@@ -29,6 +29,9 @@ local function main(er)
   -- pairs (dict iteration — count entries, order is undefined)
   test_expr(er, "local n=0; for k,v in pairs({a=1,b=2,c=3}) do n=n+1 end; return n", 3, "for-pairs: count entries")
 
+  -- pairs (dict iteration — count entries, order is undefined)
+  test_expr(er, "case || false >> return 2 || true >> return 3 || false >> return 4 end", 3, "case statement")
+
   done()
 end
 
