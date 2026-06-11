@@ -1,16 +1,8 @@
 --%%name:Expression compiler unit tests
---%%offline:true
-
---%%file:src/Tokenizer.lua,tokenizer
---%%file:src/Parser.lua,parser
---%%file:src/Utils.lua,utils
---%%file:src/CSP.lua,csp
---%%file:src/Props.lua,props
---%%file:src/Compiler.lua,compiler
---%%file:src/ScriptFuns.lua,scriptfuns
---%%file:src/Rule.lua,rule
---%%file:$fibaro.lib.speed,speed
+--%%headers:EventRunner.inc
 --%%file:src/Sim.lua,sim
+--%%file:$fibaro.lib.speed,speed
+--%%offline:true
 
 local ER         = fibaro.ER
 local parse      = ER.parse

@@ -24,6 +24,10 @@ local function main(er)
   -- json.encode
   test_expr(er, "return json.encode('hello')", '"hello"', "json.encode string")
 
+  function foo(a,b) return a+b,a*b end
+  test_expr(er, "return foo(2,3)", 5, "lua function")
+
+  test_expr(er, "local a,b = foo(2,3); return a+b", 11, "lua multiple values")
   done()
 end
 

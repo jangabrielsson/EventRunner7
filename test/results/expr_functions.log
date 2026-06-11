@@ -8,5 +8,7 @@
   PASS: string concat (++)
   PASS: log returns formatted string
   PASS: json.encode string
+  PASS: lua function
+  PASS: lua multiple values
 
-  8 passed
+  10 passed

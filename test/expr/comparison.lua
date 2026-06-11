@@ -21,6 +21,25 @@ local function main(er)
   test_expr(er, 'return "abc" ~= "def"',  true,   "string not equal")
   test_expr(er, "return nil == nil",      true,   "nil == nil")
   test_expr(er, "return nil ~= false",    true,   "nil ~= false")
+
+  -- Variables as operands
+  test_expr(er, "x = 5; y = 5; return x == y",  true,   "var: x==y")
+  test_expr(er, "x = 5; y = 3; return x == y",  false,  "var: x==y false")
+  test_expr(er, "x = 5; y = 3; return x ~= y",  true,   "var: x~=y")
+  test_expr(er, "x = 5; y = 3; return x != y",  true,   "var: x!=y")
+  test_expr(er, "x = 3; y = 7; return x < y",   true,   "var: x<y")
+  test_expr(er, "x = 7; y = 3; return x > y",   true,   "var: x>y")
+  test_expr(er, "x = 5; y = 5; return x <= y",  true,   "var: x<=y")
+  test_expr(er, "x = 5; y = 5; return x >= y",  true,   "var: x>=y")
+
+  -- Variable vs literal
+  test_expr(er, "x = 10; return x > 5",   true,   "var vs literal: x>5")
+  test_expr(er, "x = 3; return x < 5",    true,   "var vs literal: x<5")
+  test_expr(er, "x = 5; return x == 5",   true,   "var vs literal: x==5")
+
+  -- Chained comparisons via logic
+  test_expr(er, "x = 5; return x > 3 & x < 10", true, "var range: 3<x<10")
+
   done()
 end
 

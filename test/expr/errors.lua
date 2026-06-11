@@ -1,15 +1,8 @@
---%%name:Error handling unit tests
---%%offline:true
-
---%%file:src/Tokenizer.lua,tokenizer
---%%file:src/Parser.lua,parser
---%%file:src/Utils.lua,utils
---%%file:src/CSP.lua,csp
---%%file:src/Props.lua,props
---%%file:src/Compiler.lua,compiler
---%%file:src/ScriptFuns.lua,scriptfuns
---%%file:src/Rule.lua,rule
+--%%name:expr_errors
+--%%headers:EventRunner.inc
 --%%file:src/Sim.lua,sim
+--%%file:test/harness.lua,harness
+--%%offline:true
 
 local ER             = fibaro.ER
 local parse          = ER.parse
@@ -25,10 +18,6 @@ end
 
 local function main(er)
 
-  -- ── Test harness ──────────────────────────────────────────────────────────
-
-  local passed, failed = 0, 0
-
   -- Expect an error whose message matches pattern.
   -- Also checks that the cursor marker (^) is present when expect_cursor=true.
   local function testError(name, src, pattern, expect_cursor)
@@ -39,51 +28,53 @@ local function main(er)
       vm.eval(code, { src = src })
     end)
     local msg = tostring(err)
-    if ok then
-      failed = failed + 1
-      print("FAIL (no error): " .. name)
-    elseif not msg:find(pattern) then
-      failed = failed + 1
-      print("FAIL (wrong msg): " .. name .. "\n  pattern : " .. pattern .. "\n  got     : " .. msg)
-    elseif expect_cursor and not msg:find("%^") then
-      failed = failed + 1
-      print("FAIL (no cursor): " .. name .. "\n  msg: " .. msg)
+    if not ok and msg:find(pattern) and (not expect_cursor or msg:find("%^")) then
+      assert_truthy(true, name)
     else
-      passed = passed + 1
-      print("PASS: " .. name)
+      assert_truthy(false, name)
+      if ok then
+        print("  (no error thrown)")
+      elseif not msg:find(pattern) then
+        print("  pattern: " .. pattern)
+        print("  got:     " .. msg)
+      elseif expect_cursor and not msg:find("%^") then
+        print("  (no cursor marker ^)")
+        print("  msg: " .. msg)
+      end
     end
   end
 
   -- Expect an error thrown during rule compilation (compRule/scanHead path).
-  -- Uses er.eval which goes through the full rule pipeline.
   local function testRuleError(name, src, pattern)
     local ok, err = pcall(er.eval, src, {verbosity="silent", defined=false, triggers=false, throw=true})
     local msg = tostring(err)
-    if ok then
-      failed = failed + 1
-      print("FAIL (no error): " .. name)
-    elseif not msg:find(pattern) then
-      failed = failed + 1
-      print("FAIL (wrong msg): " .. name .. "\n  pattern : " .. pattern .. "\n  got     : " .. msg)
+    if not ok and msg:find(pattern) then
+      assert_truthy(true, name)
     else
-      passed = passed + 1
-      print("PASS: " .. name)
+      assert_truthy(false, name)
+      if ok then
+        print("  (no error thrown)")
+      else
+        print("  pattern: " .. pattern)
+        print("  got:     " .. msg)
+      end
     end
   end
 
-  -- Expect a parse error (before compilation even starts).
+  -- Expect a parse error (before compilation starts).
   local function testParseError(name, src, pattern)
     local ok, err = pcall(parse, src)
     local msg = tostring(err)
-    if ok then
-      failed = failed + 1
-      print("FAIL (no parse error): " .. name)
-    elseif not msg:find(pattern) then
-      failed = failed + 1
-      print("FAIL (wrong parse msg): " .. name .. "\n  pattern : " .. pattern .. "\n  got     : " .. msg)
+    if not ok and msg:find(pattern) then
+      assert_truthy(true, name)
     else
-      passed = passed + 1
-      print("PASS: " .. name)
+      assert_truthy(false, name)
+      if ok then
+        print("  (no parse error)")
+      else
+        print("  pattern: " .. pattern)
+        print("  got:     " .. msg)
+      end
     end
   end
 
@@ -188,9 +179,7 @@ local function main(er)
     "'first_in' requires a time window")
 
   -- ── Runtime errors — cursor placement ────────────────────────────────────
-  -- These check that the ^ appears under the right token, not just anywhere.
 
-  -- Cursor should land on `nil` (the bad operand), not on `/`
   do
     local src = "return 7 / nil"
     local ok, err = pcall(function()
@@ -200,22 +189,12 @@ local function main(er)
       vm.eval(code, { src = src })
     end)
     local msg = dehtml(tostring(err))
-    -- The marker line must start with spaces then ^ roughly at column 12 (the 'n' of nil)
     local marker = msg:match("\n([%s%^]+)$") or msg:match("\n([%s%^]+)\n?$")
     local col = marker and (marker:find("%^") or 0) or 0
-    if not ok and col >= 11 then
-      passed = passed + 1
-      print("PASS: cursor on nil operand (col " .. col .. ")")
-    elseif not ok then
-      failed = failed + 1
-      print("FAIL: cursor position wrong for nil operand (col=" .. col .. ")\n  " .. msg)
-    else
-      failed = failed + 1
-      print("FAIL: expected error for 'return 7 / nil'")
-    end
+    assert_truthy(not ok and col >= 11, "cursor on nil operand (col " .. col .. ")")
   end
 
-  -- ── User throw (throw is a ScriptFuns global, not a keyword) ──────────────
+  -- ── User throw ────────────────────────────────────────────────────────────
 
   testError("user throw propagates",
     "throw('boom')",
@@ -227,8 +206,8 @@ local function main(er)
     "code",
     false)
 
-  -- ── Cursor placement: nil field access (a.b:value where a.b = nil) ────────
-  -- Cursor should land on 'b' (col 4 in "a.b:value"), not on 'a' (col 1).
+  -- ── Cursor placement: nil field access ────────────────────────────────────
+
   do
     local src = "a.b:value"
     local ok, err = pcall(function()
@@ -240,22 +219,10 @@ local function main(er)
     local msg = dehtml(tostring(err))
     local marker = msg:match("\n([%s%^]+)$") or msg:match("\n([%s%^]+)\n?$")
     local col = marker and (marker:find("%^") or 0) or 0
-    if not ok and col >= 3 then
-      passed = passed + 1
-      print("PASS: cursor on nil field 'b' (col " .. col .. ")")
-    elseif not ok then
-      failed = failed + 1
-      print("FAIL: cursor position wrong for nil field access (col=" .. col .. ")\n  " .. msg)
-    else
-      failed = failed + 1
-      print("FAIL: expected error for 'a.b:value' with a.b=nil")
-    end
+    assert_truthy(not ok and col >= 3, "cursor on nil field 'b' (col " .. col .. ")")
   end
 
-  -- ── Summary ───────────────────────────────────────────────────────────────
-
-  print(string.format("\n%d passed, %d failed", passed, failed))
-
+  done()
 end
 
 function QuickApp:onInit()

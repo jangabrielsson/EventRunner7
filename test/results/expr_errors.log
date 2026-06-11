@@ -1,0 +1,28 @@
+=== expr_errors5555 ===
+
+  PASS: unexpected token
+  PASS: missing then
+  PASS: missing end
+  PASS: missing do (while)
+  PASS: unclosed string
+  PASS: arith on nil (div)
+  PASS: arith on nil (add)
+  PASS: arith on nil (sub)
+  PASS: arith on string
+  PASS: compare nil
+  PASS: undefined local var
+  PASS: call non-function
+  PASS: index nil
+  PASS: undefined global var ($)
+  PASS: assign in condition
+  PASS: time constant 1
+  PASS: time constant 2
+  PASS: undefined device
+  PASS: no triggers
+  PASS: first_in time_window
+  PASS: cursor on nil operand (col 12)
+  PASS: user throw propagates
+  PASS: throw with table value
+  PASS: cursor on nil field 'b' (col 3)
+
+  24 passed

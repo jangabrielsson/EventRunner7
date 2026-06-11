@@ -17,5 +17,17 @@
   PASS: string not equal
   PASS: nil == nil
   PASS: nil ~= false
+  PASS: var: x==y
+  PASS: var: x==y false
+  PASS: var: x~=y
+  PASS: var: x!=y
+  PASS: var: x<y
+  PASS: var: x>y
+  PASS: var: x<=y
+  PASS: var: x>=y
+  PASS: var vs literal: x>5
+  PASS: var vs literal: x<5
+  PASS: var vs literal: x==5
+  PASS: var range: 3<x<10
 
-  17 passed
+  29 passed

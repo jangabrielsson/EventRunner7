@@ -11,5 +11,16 @@
   PASS: parentheses override precedence
   PASS: left-assoc: / before +
   PASS: right-assoc: exponentiation (2^(3^2) = 512)
+  PASS: var add: x+y
+  PASS: var sub: x-y
+  PASS: var mul: x*y
+  PASS: var div: x/y
+  PASS: var mod: x%y
+  PASS: var pow: x^y
+  PASS: compound add: x+=3
+  PASS: compound sub: x-=4
+  PASS: compound mul: x*=5
+  PASS: compound div: x/=4
+  PASS: var precedence: a+b*c
 
-  11 passed
+  22 passed
