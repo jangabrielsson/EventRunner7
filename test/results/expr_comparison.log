@@ -1,0 +1,21 @@
+=== expr_comparison5555 ===
+
+  PASS: equal (==)
+  PASS: not equal (==)
+  PASS: not equal (~=)
+  PASS: equal (~=)
+  PASS: not equal (!=)
+  PASS: less than (<)
+  PASS: not less than (<)
+  PASS: greater than (>)
+  PASS: not greater than (>)
+  PASS: less or equal (<=)
+  PASS: not less or equal (<=)
+  PASS: greater or equal (>=)
+  PASS: not greater or equal (>=)
+  PASS: string equal
+  PASS: string not equal
+  PASS: nil == nil
+  PASS: nil ~= false
+
+  17 passed

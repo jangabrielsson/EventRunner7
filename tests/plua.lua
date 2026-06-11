@@ -3,7 +3,7 @@ local newmain = [[
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
 --%%headers:EventRunner.inc
---%%file:Setup.lua,stdfuns
+--%%file:src/Setup.lua,stdfuns
 --%%file:tests/plua_rules.lua,pl
 --%%u:{label='info', text='EventRunnner 7'}
 --%%debug:true

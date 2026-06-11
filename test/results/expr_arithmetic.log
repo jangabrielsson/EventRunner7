@@ -1,0 +1,15 @@
+=== expr_arithmetic5555 ===
+
+  PASS: addition
+  PASS: subtraction
+  PASS: multiplication
+  PASS: division (returns float)
+  PASS: modulo
+  PASS: exponentiation (2^3 = 8)
+  PASS: unary negation
+  PASS: operator precedence (* before +)
+  PASS: parentheses override precedence
+  PASS: left-assoc: / before +
+  PASS: right-assoc: exponentiation (2^(3^2) = 512)
+
+  11 passed

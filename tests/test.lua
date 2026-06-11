@@ -1,6 +1,6 @@
 --%%name:Continuation test
 
---%%file:CSP.lua,csp
+--%%file:src/CSP.lua,csp
 
 local CONT = fibaro.ER.csp
 local eval    = CONT.eval

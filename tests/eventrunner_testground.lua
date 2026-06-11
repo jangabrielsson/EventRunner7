@@ -5,7 +5,7 @@
 -- %%save:dist/EventRunner7.fqa
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
---%%file:Sim.lua,sim
+--%%file:src/Sim.lua,sim
 --%%time:2026/04/28 10:10:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into

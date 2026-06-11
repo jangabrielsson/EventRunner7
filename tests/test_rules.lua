@@ -1,6 +1,6 @@
 --%%name:Rule unit tests
 --%%headers:EventRunner.inc
---%%file:Sim.lua,sim
+--%%file:src/Sim.lua,sim
 --%%file:tests/test_rule_runner.lua,test
 --%%file:$fibaro.lib.speed,speed
 --%%offline:true

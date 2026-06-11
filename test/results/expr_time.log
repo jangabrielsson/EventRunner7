@@ -1,0 +1,19 @@
+=== expr_time5555 ===
+
+  PASS: time add: 10:00 + 00:30 = seconds(10.5h)
+  PASS: time sub: 12:00 - 10:00 = 2h in seconds
+  PASS: time compare: now(12:00) > 10:00
+  PASS: time compare: 14:00 > now(12:00)
+  PASS: now: ~12:00:00 in range 43200-43205
+  PASS: HM(now): format as HH:MM
+  PASS: HMS(now): format as HH:MM:SS
+  PASS: wday: Tuesday
+  PASS: wday: weekday (Tue is in mon-fri)
+  PASS: wday: not weekend
+  PASS: t/: returns epoch timestamp
+  PASS: n/: returns future epoch (tomorrow 10:00 > today 10:00)
+  PASS: +/: returns epoch timestamp
+  PASS: uptime: nil or non-negative
+  PASS: midnight: epoch before t/10:00
+
+  15 passed

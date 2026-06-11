@@ -1,0 +1,12 @@
+=== expr_functions5555 ===
+
+  PASS: math.abs
+  PASS: math.max
+  PASS: math.min
+  PASS: math.floor
+  PASS: rnd(1,100) in range
+  PASS: string concat (++)
+  PASS: log returns formatted string
+  PASS: json.encode string
+
+  8 passed

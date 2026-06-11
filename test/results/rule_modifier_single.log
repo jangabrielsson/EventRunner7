@@ -1,0 +1,7 @@
+=== rule_modifier_single5555 ===
+
+  PASS: no single: second trigger blocked
+  PASS: no single: second trigger blocked
+  PASS: single: second trigger restarts
+
+  3 passed

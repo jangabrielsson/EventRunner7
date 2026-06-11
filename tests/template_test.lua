@@ -9,7 +9,7 @@ fibaro = fibaro or {}
 fibaro.ER = fibaro.ER or {}
 
 -- Load the module directly
-local Templates = dofile("Templates.lua")
+local Templates = dofile("src/Templates.lua")
 assert(Templates, "Failed to load Templates module")
 
 -- Capture er.eval() calls

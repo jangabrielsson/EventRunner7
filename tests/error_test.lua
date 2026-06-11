@@ -1,15 +1,15 @@
 --%%name:Error handling unit tests
 --%%offline:true
 
---%%file:Tokenizer.lua,tokenizer
---%%file:Parser.lua,parser
---%%file:Utils.lua,utils
---%%file:CSP.lua,csp
---%%file:Props.lua,props
---%%file:Compiler.lua,compiler
---%%file:ScriptFuns.lua,scriptfuns
---%%file:Rule.lua,rule
---%%file:Sim.lua,sim
+--%%file:src/Tokenizer.lua,tokenizer
+--%%file:src/Parser.lua,parser
+--%%file:src/Utils.lua,utils
+--%%file:src/CSP.lua,csp
+--%%file:src/Props.lua,props
+--%%file:src/Compiler.lua,compiler
+--%%file:src/ScriptFuns.lua,scriptfuns
+--%%file:src/Rule.lua,rule
+--%%file:src/Sim.lua,sim
 
 local ER             = fibaro.ER
 local parse          = ER.parse

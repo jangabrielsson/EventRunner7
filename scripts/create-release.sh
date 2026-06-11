@@ -814,7 +814,7 @@ case "${1:-}" in
         info "📝 Generating forum post for version $2..."
         
         # Ensure output directory exists
-        mkdir -p doc/notes
+        mkdir -p docs/notes
         
         # Generate the forum post content
         ./scripts/forum-post-generator.sh "$2" "$(gh release view "v$2" --json body --jq '.body' 2>/dev/null || echo 'Release notes not available')"

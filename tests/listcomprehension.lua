@@ -3,7 +3,7 @@
 --%%headers:EventRunner.inc
 --%% offline:true
 --%%file:$fibaro.lib.speed,speed
---%%file:Sim.lua,sim
+--%%file:src/Sim.lua,sim
 --%%file:tests/testfuns.lua,test
 --%%time:2026/04/28 07:59:58
 

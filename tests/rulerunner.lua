@@ -1,7 +1,7 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
 --%%headers:EventRunner.inc
---%%file:Setup.lua,stdfuns
+--%%file:src/Setup.lua,stdfuns
 -- %%offline:true
 --%%save:dist/EventRunner7.fqa
 --%%u:{label='info', text='EventRunnner 7'}

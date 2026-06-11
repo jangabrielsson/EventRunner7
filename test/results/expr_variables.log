@@ -1,0 +1,17 @@
+=== expr_variables5555 ===
+
+  PASS: assign and read
+  PASS: reassign after read
+  PASS: chain assignments
+  PASS: add-assign (+=)
+  PASS: sub-assign (-=)
+  PASS: mul-assign (*=)
+  PASS: div-assign (/=)
+  PASS: local variable
+  PASS: local shadows global
+  PASS: coalesce nil -> value
+  PASS: coalesce non-nil -> unchanged
+  PASS: coalesce nil variable
+  PASS: multiple return (first value)
+
+  13 passed

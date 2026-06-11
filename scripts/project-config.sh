@@ -57,7 +57,7 @@ declare -a RELEASE_FILES=(
 # ============================================================================
 
 # Directory for release notes/forum posts (relative to project root)
-NOTES_DIR="doc/notes"
+NOTES_DIR="docs/notes"
 
 # Main documentation file
 DOCUMENTATION_URL="https://github.com/$GITHUB_REPO/blob/main/README.md"

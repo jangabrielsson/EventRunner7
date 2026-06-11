@@ -1,0 +1,7 @@
+=== expr_listcomp5555 ===
+
+  PASS: listcomp: map (x*2)
+  PASS: listcomp: filter (x > 2)
+  PASS: listcomp: filter mod 10
+
+  3 passed

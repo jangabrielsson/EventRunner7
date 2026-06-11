@@ -1,0 +1,5 @@
+=== rule_modifier_debounce5555 ===
+
+  PASS: debounce: fires after last trigger
+
+  1 passed

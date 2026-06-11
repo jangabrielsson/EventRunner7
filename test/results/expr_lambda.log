@@ -1,0 +1,14 @@
+=== expr_lambda5555 ===
+
+  PASS: arrow: single-param, invoked
+  PASS: arrow: zero-param, invoked
+  PASS: arrow: multi-param, invoked
+  PASS: arrow: stored in local
+  PASS: function: single-param, invoked
+  PASS: function: multi-param, invoked
+  PASS: function: stored, called
+  PASS: higher-order: map + lambda
+  PASS: higher-order: filter + lambda
+  PASS: higher-order: reduce + lambda
+
+  10 passed

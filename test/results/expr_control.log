@@ -1,0 +1,15 @@
+=== expr_control5555 ===
+
+  PASS: if true branch
+  PASS: if false branch
+  PASS: if elseif
+  PASS: if without else
+  PASS: for loop 1..5
+  PASS: for loop step 2
+  PASS: while loop
+  PASS: repeat-until
+  PASS: for-ipairs: sum values
+  PASS: for-ipairs: sum indices (1+2+3)
+  PASS: for-pairs: count entries
+
+  11 passed

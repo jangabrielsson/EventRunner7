@@ -3,10 +3,10 @@
 --%%headers:EventRunner.inc
 --%% offline:true
 -- %%save:dist/EventRunner7.fqa
---%%file:Setup.lua,stdfuns
+--%%file:src/Setup.lua,stdfuns
 --%%file:$fibaro.lib.speed,speed
 --%%file:tests/testfuns.lua,test
---%%file:Sim.lua,sim
+--%%file:src/Sim.lua,sim
 -- %%time:2026/04/28 07:00:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into

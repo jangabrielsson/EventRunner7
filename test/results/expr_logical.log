@@ -1,0 +1,18 @@
+=== expr_logical5555 ===
+
+  PASS: AND: true & true
+  PASS: AND: true & false
+  PASS: AND: false & true
+  PASS: AND: false & false
+  PASS: OR: true | true
+  PASS: OR: true | false
+  PASS: OR: false | true
+  PASS: OR: false | false
+  PASS: NOT: !true
+  PASS: NOT: !false
+  PASS: NOT NOT: !!true
+  PASS: NOT comparison: !(5>3)
+  PASS: combined: comparison & comparison
+  PASS: OR short-circuit: false | 5>3
+
+  14 passed
