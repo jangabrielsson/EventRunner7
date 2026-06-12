@@ -963,7 +963,18 @@ local function bootEventRunner(cb)
   end, 500)
 end
 
+local function loadSysModules(...)
+  local mods,names,ms = {...}, {}, {}
+  for _,m in ipairs(MODULE) do if m.sys then names[m.name]=m.code else ms[#ms+1]=m end end
+  MODULE = ms
+  for _,name in ipairs(mods) do 
+    --print("Loading sys module", name)
+    names[name](ER)
+  end
+end
+
 function fibaro.EventRunner(cb)
+  loadSysModules("Utils","CSP","Tokenizer","Parser","Compiler","ScriptFuns","Props")
   vm = ER.csp
   if type(cb)=='function' then bootEventRunner(cb) -- new style
   else

@@ -1,11 +1,12 @@
---%%offline:true
+
 -- Compiler.lua: Compiles the EventScript parser AST to CSP table notation.
 -- Output is consumed by fibaro.CONT.compile() (CSP.lua's simple compiler).
 
 -- Pipeline:  source → Parser → AST → compileAST() → CSP tables → CSP.compile() → expr
 
-fibaro.ER = fibaro.ER or {}
-local ER = fibaro.ER
+MODULE = MODULE or {}
+
+local function module(ER)
 
 local compile  -- forward-declared so handlers can call each other recursively
 local isCondition = false  -- flag to indicate when compiling a rule condition 
@@ -486,3 +487,7 @@ function ER.compileRuleBody(ast)
   if not ok then error(err, 2) end
   return result
 end
+
+end
+
+MODULE[#MODULE+1] = { name = "Compiler", sys = true, code = module }
