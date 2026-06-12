@@ -293,7 +293,8 @@ local function compRule(r, opts, src)
     if next(rule.dailys) == nil then return end
     for _, t in pairs(dtimers) do cancelR(t) end
     dtimers = {}
-    local now,midnight= os.time(), ER.midnight()
+    local now = vm.host.ostime()
+    local midnight = ER.midnight() -- recomputed below, keep for structure
     local ts = {}
     for tr,subev in pairs(rule.dailys) do ts[tr()] = subev end
     for t,subev in pairs(ts) do
@@ -864,7 +865,7 @@ local function bootEventRunner(cb)
   vm.defGlobal('catch', catchValue)
 
   er.triggerVars = setmetatable({}, {
-    __index = function(t, k) return vm.getGlobal(k) end,
+    __index = function(t, k) return vm.lookupGlobal(k) end,
     __newindex = function(t, k, v)
       ER._triggerVars[k] = true
       vm.defGlobal(k, v)

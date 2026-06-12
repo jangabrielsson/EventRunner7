@@ -168,6 +168,8 @@ vm.host = {
   isAsync      = function(fn) return false end,           -- is fn an async callback?
   onVarWrite   = function(name, val) end,                  -- side-effect on SET/INCVAR
   formatSource = function(src, pos, len) return ... end,   -- error source formatting
+  now          = function()  end,                           -- seconds since midnight (used by NOW)
+  ostime       = function() return os.time() end,           -- epoch timestamp (used by setupDaily)
 }
 ```
 

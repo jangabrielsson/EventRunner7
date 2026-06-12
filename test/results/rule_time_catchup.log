@@ -1,0 +1,7 @@
+=== rule_time_catchup5555 ===
+
+  PASS: booted at 09:00
+  PASS: @{08:00,catch}: fired on catchup
+  PASS: @08:00 no catch: did NOT fire
+
+  3 passed

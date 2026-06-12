@@ -744,12 +744,11 @@ local function module(ER)
       TRY   = TRY,   THROW = THROW,  RETURN = RETURN,
       CFUN  = CFUN,
       LAMBDA = LAMBDA,
-      NOW  = function() 
-        return CFUN(function(cb) 
-          local t = os.date("*t")
-          return cb(t.hour*3600 + t.min*60 + t.sec) 
-        end) 
-      end,
+       NOW  = function()
+         return CFUN(function(cb)
+           return cb(vm.host.now())
+         end)
+       end,
     }
     
     local function checkProgn(t)
@@ -900,7 +899,12 @@ local function module(ER)
     vm.host = {
       isAsync = function(fn) return false end,
       onVarWrite = function(name, val) end,
-      formatSource = function(src, pos, len) return src .. " :" .. pos end
+      formatSource = function(src, pos, len) return src .. " :" .. pos end,
+      now   = function()  -- seconds since midnight
+        local t = os.date("*t")
+        return t.hour*3600 + t.min*60 + t.sec
+      end,
+      ostime = function() return os.time() end,  -- epoch
     }
     
     ER.csp = vm

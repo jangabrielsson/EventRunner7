@@ -1,0 +1,7 @@
+=== rule_time_triggers5555 ===
+
+  PASS: @ daily: fired at 08:00
+  PASS: @@ interval: fired repeatedly (count=36)
+  PASS: @@- clock-aligned: fired at 08:00 and 09:00 (count=3)
+
+  3 passed
