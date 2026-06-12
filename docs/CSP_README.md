@@ -6,6 +6,27 @@ This document is the **IR contract** — it specifies what the VM guarantees, wh
 
 ---
 
+## IR Version
+
+```lua
+ER.csp.irVersion   -- current IR version (integer)
+```
+
+The IR version identifies the instruction-tree format that the VM accepts. Frontend compilers produce trees in a specific version; the VM validates compatibility at compile time. When the IR format changes (new opcodes, removed opcodes, changed argument layouts), the version is bumped.
+
+| Version | Introduced | Changes |
+|---------|-----------|---------|
+| 1 | 2026-06 | Initial versioned IR. Core + extension opcodes as documented below. |
+
+**Compatibility rule:** A VM with version N MUST accept IR version N. It MAY accept version N-1 if backward-compatible. It MUST reject version N+1 with a clear error.
+
+To check the version at runtime:
+```lua
+assert(ER.csp.irVersion >= 1, "CSP VM too old")
+```
+
+---
+
 ## Concepts
 
 Every expression is a function `expr(cont)` that calls `cont(value)` when done instead of returning. The trampoline unwinds these tail-calls iteratively so deep expression trees never overflow the stack.

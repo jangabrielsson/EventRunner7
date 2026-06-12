@@ -4,12 +4,12 @@
 --%%file:$fibaro.lib.speed,speed
 --%%offline:true
 
-local ER         = fibaro.ER
-local parse      = ER.parse
-local compileAST = ER.compileAST
-local vm         = ER.csp
-
 local function main()
+  -- Capture after EventRunner has initialized system modules
+  local ER         = fibaro.ER
+  local parse      = ER.parse
+  local compileAST = ER.compileAST
+  local vm         = ER.csp
   
   -- ── Test harness ──────────────────────────────────────────────────────────
   

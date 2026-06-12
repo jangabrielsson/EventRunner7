@@ -3,8 +3,8 @@
 
 --%%headers:EventRunner.inc
 
-local ER = fibaro.ER
-local parse = ER.parse
+local function main(er)
+  local parse = fibaro.ER.parse
 
 -- ── helpers ──────────────────────────────────────────────────────────────
 
@@ -268,3 +268,8 @@ checkErr("unexpected token",    "= x")
 
 -- ── summary ───────────────────────────────────────────────────────────────
 print(string.format("\n%d passed, %d failed  (%d total)", passed, failed, passed+failed))
+end
+
+function QuickApp:onInit()
+  fibaro.EventRunner(main)
+end

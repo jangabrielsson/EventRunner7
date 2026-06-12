@@ -859,7 +859,10 @@ local function module(ER)
       return maybeWrap(f, t)
     end
     
+    local _CSP_IR_VERSION = 1
+
     vm = {
+      irVersion = _CSP_IR_VERSION,
       eval      = eval,
       resume    = resume,
       compile   = function(tree, srcmap)

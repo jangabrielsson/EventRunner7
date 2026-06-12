@@ -4,12 +4,6 @@
 --%%file:test/harness.lua,harness
 --%%offline:true
 
-local ER             = fibaro.ER
-local parse          = ER.parse
-local compileAST     = ER.compileAST
-local compileASTWithMap = ER.compileASTWithMap
-local vm             = ER.csp
-
 local function dehtml(s)
   s = s:gsub("</br>", "\n")
   s = s:gsub("&nbsp;", " ")
@@ -17,6 +11,12 @@ local function dehtml(s)
 end
 
 local function main(er)
+  -- Capture after EventRunner has initialized system modules
+  local ER             = fibaro.ER
+  local parse          = ER.parse
+  local compileAST     = ER.compileAST
+  local compileASTWithMap = ER.compileASTWithMap
+  local vm             = ER.csp
 
   -- Expect an error whose message matches pattern.
   -- Also checks that the cursor marker (^) is present when expect_cursor=true.
