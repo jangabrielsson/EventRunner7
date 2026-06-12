@@ -754,6 +754,16 @@ This release includes various improvements and bug fixes."
     info "Step 3: Creating release artifacts..."
     create_artifacts
     
+    # Step 3.5: Run regression tests (aborts release on failure)
+    if [ -f "test/run-tests.sh" ]; then
+      info "Step 3.5: Running regression tests..."
+      if ! ./test/run-tests.sh; then
+        error "Regression tests failed — release aborted."
+        exit 1
+      fi
+      success "All regression tests passed"
+    fi
+    
     # Step 4: Commit and push all changes
     info "Step 4: Committing and pushing changes..."
     commit_and_push "$new_version"
