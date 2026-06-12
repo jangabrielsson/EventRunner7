@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.1.42] - 2026-06-12
+
+## Changes in v0.1.42
+
+- ✨ **Feature**: add IR versioning and compatibility checks in CSP VM
+- ✨ **Feature**: add regression tests step to release process
+- ✨ **Feature**: Refactor code structure for improved readability and maintainability
+- ✨ **Feature**: add variable operand tests and error handling tests
+- ✨ **Feature**: add tests for case statement and table field addition
+- ✨ **Feature**: Add regression tests and implement new rule functionalities
+  - Introduced various expression tests covering arithmetic, comparison, control structures, functions, lambda expressions, list comprehensions, logical operations, tables, time handling, and variable manipulations.
+  - Added rule tests for async waiting, cooldown modifiers, debounce functionality, single trigger handling, and custom events.
+  - Enhanced test runner script to facilitate running tests with options for verbosity and cleaning old logs.
+  - Updated paths for Lua files in tests to reflect new directory structure.
+  - Ensured all new tests pass successfully, contributing to improved code coverage and reliability.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.41] - 2026-06-09
 
 ## Changes in v0.1.41

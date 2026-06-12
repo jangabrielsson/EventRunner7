@@ -757,7 +757,7 @@ This release includes various improvements and bug fixes."
     # Step 3.5: Run regression tests (aborts release on failure)
     if [ -f "test/run-tests.sh" ]; then
       info "Step 3.5: Running regression tests..."
-      if ! ./test/run-tests.sh; then
+      if ! bash ./test/run-tests.sh; then
         error "Regression tests failed — release aborted."
         exit 1
       fi
