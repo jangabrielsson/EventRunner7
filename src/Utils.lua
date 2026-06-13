@@ -497,7 +497,7 @@ local function module(ER)
         while i <= #rs do
           if rs[i].action==fun then
             table.remove(rs,i)
-          else i=i+i end
+          else i=i+1 end
         end
         if #rs==0 then table.remove(rules,j) else j=j+1 end
       end
@@ -512,10 +512,10 @@ local function module(ER)
       local hasKeys = fromHash[ev.type] and fromHash[ev.type](ev) or {ev.type}
       for _,hashKey in ipairs(hasKeys) do
         for _,rules in ipairs(handlers[hashKey] or {}) do -- Check all rules of 'type'
-          local i,m=1,nil
+          local first,m=1,nil
           for j=1,#rules do
             if not rules[j]._disabled then    -- find first enabled rule, among rules with same head
-              m = match(rules[i][HANDLER],ev) -- and match against that rule
+              m = match(rules[first][HANDLER],ev) -- and match against that rule
               break
             end
           end

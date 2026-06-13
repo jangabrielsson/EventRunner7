@@ -105,6 +105,80 @@ local function deviceAction(deviceExpr, action)
 end
 
 -- ============================================================
+-- Substitution engine ({{var}} placeholders) — new format
+-- ============================================================
+
+-- Substitute {{var}} placeholders and conditional blocks.
+--   {{var}}            -> params[var] (or "" if nil)
+--   {{#var}}...{{/var}} -> content if params[var] is non-empty
+--   {{^var}}...{{/var}} -> content if params[var] is nil or empty
+local function substitute(source, params)
+  -- Inverse conditionals (must run before positive ones so {{^...}} doesn't
+  -- collide with the {{/...}} of {{#...}} blocks).
+  local result = source:gsub("{{%^(%w+)}}(.-){{/(%1)}}", function(name, content)
+    local val = params[name]
+    if not val or val == "" then
+      return substitute(content, params)
+    end
+    return ""
+  end)
+  -- Positive conditionals
+  result = result:gsub("{{#(%w+)}}(.-){{/(%1)}}", function(name, content)
+    local val = params[name]
+    if val and val ~= "" then
+      return substitute(content, params)
+    end
+    return ""
+  end)
+  -- Simple placeholders
+  result = result:gsub("{{(%w+)}}", function(name)
+    return params[name] or ""
+  end)
+  return result
+end
+
+local function buildSchema(paramsDef)
+  local schema = { required = {}, defaults = {}, _params = paramsDef }
+  for name, def in pairs(paramsDef) do
+    if def.required then schema.required[#schema.required+1] = name end
+    if def.default ~= nil then schema.defaults[name] = def.default end
+  end
+  return schema
+end
+
+local function normalizeParams(params, schema)
+  for name, def in pairs(schema._params) do
+    if params[name] == nil then params[name] = def.default or "" end
+    if def.empty and params[name] == def.empty then params[name] = "" end
+  end
+  return params
+end
+
+-- Register a substitution-based template with {{var}} placeholders.
+--   Templates.registerSimple("name", {
+--     description = "...",
+--     params = { sensor = {required=true}, light = {required=true} },
+--     source = "{{sensor}}:breached => {{light}}:on",
+--     -- or sources = { "...", "..." } for multi-rule templates
+--   })
+function Templates.registerSimple(name, def)
+  local schema = buildSchema(def.params)
+  schema.description = def.description
+  local sources = def.sources or { def.source }
+  Templates.register(name, schema, function(er, params)
+    params = normalizeParams(params, schema)
+    local results = {}
+    for _, src in ipairs(sources) do
+      local ruleStr = substitute(src, params)
+      local opts = {}
+      if params.group then opts.group = params.group end
+      results[#results + 1] = er.eval(ruleStr, opts)
+    end
+    return table.unpack(results)
+  end)
+end
+
+-- ============================================================
 -- Template registry
 -- ============================================================
 Templates._registry = {}
@@ -201,6 +275,26 @@ Templates.register("motionLight", {
   if p.group then opts.group = p.group end
   return er.eval(rs, opts)
 end)
+
+-- ============================================================
+-- Template: motionLight (substitution-based, new format)
+-- Same behaviour, defined with {{var}} placeholders instead of Lua code.
+-- ============================================================
+Templates.registerSimple("_motionLight", {
+  description = "[new format] Turn on a light when motion is detected",
+  params = {
+    sensor     = { required = true },
+    light      = { required = true },
+    offDelay   = { default = "" },
+    timeGuard  = { default = "sunset..sunrise", empty = "sunset..sunrise" },
+    brightness = { default = "" },
+    modifier   = { default = "" },
+    group      = { default = nil },
+  },
+  source = [[
+{{sensor}}:breached{{#timeGuard}} & {{timeGuard}}{{/timeGuard}}{{#modifier}} {{modifier}}{{/modifier}} => {{#brightness}}{{light}}:value = {{brightness}}{{/brightness}}{{^brightness}}{{light}}:on{{/brightness}}{{#offDelay}}; wait({{offDelay}}); {{light}}:off{{/offDelay}}
+  ]],
+})
 
 -- ============================================================
 -- Template: thresholdControl

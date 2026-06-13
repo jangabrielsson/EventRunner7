@@ -25,7 +25,8 @@ your device names and numbers.
   - [morningRoutine](#morningroutine)
   - [groupToggle](#grouptoggle)
 - [Device References](#device-references)
-- [Writing Custom Templates](#writing-custom-templates)
+- [Substitution Templates (New Format)](#substitution-templates-new-format)
+- [Writing Custom Templates (Lua Format)](#writing-custom-templates-lua-format)
 
 ## Quick Start
 
@@ -696,9 +697,107 @@ er.template("motionLight", {
 })
 ```
 
-## Writing Custom Templates
+## Substitution Templates (New Format)
 
-You can register your own templates with `Templates.register()`.
+Templates can also be defined as plain EventScript strings with `{{var}}`
+placeholders instead of Lua code. This format is **storable externally** —
+you can keep templates in files, download them, or share them without any
+Lua coding.
+
+### Defining a substitution template
+
+Use `Templates.registerSimple()` instead of `Templates.register()`:
+
+```lua
+Templates.registerSimple("myTemplate", {
+  description = "Does something",
+  params = {
+    device    = { required = true },
+    threshold = { required = true },
+    delay     = { default = "00:01" },
+    group     = { default = nil },
+  },
+  source = "{{device}}:value > {{threshold}} => log('exceeded'){{#delay}}; wait({{delay}}){{/delay}}",
+})
+```
+
+### Placeholder syntax
+
+| Syntax | Meaning |
+|--------|---------|
+| `{{var}}` | Replaced with the value of `params.var` (or `""` if nil) |
+| `{{#var}}...{{/var}}` | Content included only if `params.var` is non-empty |
+| `{{^var}}...{{/var}}` | Content included only if `params.var` is nil or empty |
+
+### Parameter definition
+
+Each parameter is a table with optional fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `required = true` | bool | Parameter must be provided; error if missing |
+| `default = val` | any | Value used when parameter is not provided |
+| `empty = val` | any | Sentinel: when param equals this, it's treated as empty (blocked in `{{#var}}`, shown in `{{^var}}`) |
+
+The `empty` sentinel is useful for parameters that have a meaningful default
+but should also be omissible. For example, `timeGuard` defaults to
+`"sunset..sunrise"` but setting it to that same value can hide the guard
+block via `empty = "sunset..sunrise"`.
+
+### Multi-rule templates
+
+Use `sources` (array) instead of `source` (string) to generate multiple
+rules from one template:
+
+```lua
+Templates.registerSimple("thresholdControl", {
+  params = {
+    sensor = {required=true}, actuator = {required=true},
+    onAbove = {required=true}, offBelow = {required=true},
+    holdTime = {default=""}, cooldown = {default=""},
+  },
+  sources = {
+    "{{sensor}}:value > {{onAbove}}{{#holdTime}} since {{holdTime}}{{/holdTime}} => {{actuator}}:on",
+    "{{sensor}}:value < {{offBelow}}{{#holdTime}} since {{holdTime}}{{/holdTime}} => {{actuator}}:off",
+  },
+})
+```
+
+### Example: motionLight as substitution template
+
+The built-in `motionLight` template is also available in substitution format
+as `_motionLight` (prefixed with `_` while experimental):
+
+```lua
+Templates.registerSimple("_motionLight", {
+  params = {
+    sensor     = { required = true },
+    light      = { required = true },
+    offDelay   = { default = "" },
+    timeGuard  = { default = "sunset..sunrise", empty = "sunset..sunrise" },
+    brightness = { default = "" },
+    modifier   = { default = "" },
+  },
+  source = [[
+{{sensor}}:breached{{#timeGuard}} & {{timeGuard}}{{/timeGuard}}{{#modifier}} {{modifier}}{{/modifier}}
+  => {{#brightness}}{{light}}:value = {{brightness}}{{/brightness}}{{^brightness}}{{light}}:on{{/brightness}}{{#offDelay}}; wait({{offDelay}}); {{light}}:off{{/offDelay}}
+  ]],
+})
+```
+
+Usage is identical to the Lua-based version:
+```lua
+er.template("_motionLight", {
+  sensor = "kitchen.motion", light = "kitchen.light",
+  offDelay = "00:05", timeGuard = "", modifier = "single",
+})
+```
+
+---
+
+## Writing Custom Templates (Lua Format)
+
+The original Lua-based format. You can register your own templates with `Templates.register()`.
 Do this before calling `er.template()` — typically at the top of `main(er)`:
 
 ```lua

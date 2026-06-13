@@ -1,31 +1,42 @@
---%%name:catchup_diag
+--%%name:subst_diag
 --%%headers:EventRunner.inc
---%%file:$fibaro.lib.speed,speed
 --%%offline:true
---%%time:2026/06/12 09:00:00
 
 local function main(er)
-  -- Print diagnostics to understand catchup
-  local out = io.open("_catchup_diag.txt", "w")
-  local function log(msg)
-    if out then out:write(msg .. "\n") end
-  end
+  -- Test the new substitution-based template
+  er.triggerVars.motion = false
+  er.triggerVars.light_on = false
 
-  local now_es = er.eval("return now")
-  local ostime = fibaro.ER.csp.host.ostime()
-  local midnight = fibaro.ER.midnight()
-  log(string.format("now (ES)        = %d  (%s)", now_es, os.date("%H:%M:%S", midnight + now_es)))
-  log(string.format("ostime (host)   = %d  (%s)", ostime, os.date("%H:%M:%S", ostime)))
-  log(string.format("midnight (ER)   = %d  (%s)", midnight, os.date("%H:%M:%S", midnight)))
-  log(string.format("os.time()       = %d  (%s)", os.time(), os.date("%H:%M:%S", os.time())))
-  log(string.format("08:00 epoch     = %d  (%s)", midnight + 28800, os.date("%H:%M:%S", midnight + 28800)))
+  -- Register the demo template (should produce: "77:breached => 54:on; wait(00:05); 54:off")
+  -- with timeGuard empty → no timeGuard block
+  -- with modifier "single" → modifier block included
+  -- with offDelay "00:05" → offDelay block included
+  local r = er.template("_motionLight", {
+    sensor = "77",
+    light = "54",
+    offDelay = "00:05",
+    timeGuard = "",        -- empty → conditional block omitted
+    modifier = "single",
+  })
 
-  if out then out:close() end
+  -- Verify the rule was created and has triggers
+  assert(r and r.id, "template returned rule object")
+
+  -- Also test with brightness (should produce "77:breached => 54:value = 80")
+  local r2 = er.template("_motionLight", {
+    sensor = "kitchen.motion",
+    light = "kitchen.light",
+    brightness = "80",
+    timeGuard = "",
+    modifier = "",
+    offDelay = "",
+  })
+  assert(r2 and r2.id, "template with brightness returned rule object")
+
+  print("_motionLight template works")
   os.exit(0)
 end
 
 function QuickApp:onInit()
-  fibaro.speedTime(0.5, function()
-    fibaro.EventRunner(main)
-  end)
+  fibaro.EventRunner(main)
 end
