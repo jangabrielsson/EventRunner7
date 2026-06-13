@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.1.44] - 2026-06-13
+
+## Changes in v0.1.44
+
+- 🐛 **Fix**: update paths for version files and release artifacts in project config
+- ✨ **Feature**: add global variable handling tests for expressions and rules
+- ✨ **Feature**: add catchup diagnostics and time handling improvements
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.43] - 2026-06-12
 
 ## Changes in v0.1.43
