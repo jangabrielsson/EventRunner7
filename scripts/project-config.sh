@@ -27,7 +27,7 @@ VERSION_FILE=".version"
 # Format: "path:pattern" where pattern is the sed search pattern
 # The sed replacement is: s/(pattern) = ".*"/\1 = "NEW_VERSION"/
 declare -a VERSION_FILES=(
-    "Rule.lua:local _VERSION"
+    "src/Rule.lua:local _VERSION"
 )
 
 # ============================================================================
@@ -48,7 +48,7 @@ declare -a ARTIFACTS=(
 declare -a RELEASE_FILES=(
     ".version"
     "CHANGELOG.md"
-    "Rule.lua"
+    "src/Rule.lua"
     "dist/EventRunner7.fqa"
 )
 
