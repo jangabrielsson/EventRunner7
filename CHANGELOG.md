@@ -1,5 +1,28 @@
 # Changelog
 
+## [v0.1.45] - 2026-06-14
+
+## Changes in v0.1.45
+
+- 🐛 **Fix**: correct loop index for rule execution in event handling
+- ✨ **Feature**: Enhance EventScript parser and compiler with sun-related functions
+  - Added `SUNNEXT` function to the compiler for calculating the next sunrise/sunset time.
+  - Updated the parser to recognize `sunrise`, `sunset`, `dawn`, and `dusk` as valid unary expressions.
+  - Implemented `sunnext` function in ScriptFuns for calculating sunrise/sunset times with optional offsets.
+  - Refactored time handling in Utils to support new sun-related time calculations.
+  - Updated Tokenizer to include new keywords for sun-related functions.
+  - Adjusted test ground to reflect changes in time handling and added tests for new features.
+- ✨ **Feature**: introduce substitution templates with new format
+  - Added support for substitution templates using {{var}} placeholders.
+  - Implemented Templates.registerSimple() for easy registration of substitution-based templates.
+  - Updated the motionLight template to be available in the new substitution format as _motionLight.
+  - Enhanced documentation in Templates.md to explain the new template format and its usage.
+  - Created a diagnostic test (_subst_diag) to validate the functionality of the new substitution templates.
+- ✨ **Feature**: add release notes for v0.1.44 with forum post helper
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.44] - 2026-06-13
 
 ## Changes in v0.1.44
