@@ -534,7 +534,7 @@ local function module(ER)
             end
           end
           if m then                           -- we have a match
-            for j=i,#rules do                 -- executes all rules with same head
+            for j=first,#rules do                 -- executes all rules with same head
               local rule=rules[j]
               if not rule._disabled then
                 if invokeHandler({event = ev, time = firingTime, p=m, rule=rule}) == BREAK then return end
