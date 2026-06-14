@@ -396,7 +396,12 @@ local function module(ER)
       elseif t and t.type == 'today' then
         next(); return {'TODAY', parseUnaryexp()}
       elseif t and t.type == 'nexttime' then
-        next(); return {'NEXTTIME', parseUnaryexp()}
+        next()
+        local operand = parseUnaryexp()
+        if operand[1] == 'NAME' and ({sunrise=true, sunset=true, dawn=true, dusk=true})[operand[2]] then
+          return {'SUNNEXT', operand[2]}
+        end
+        return {'NEXTTIME', operand}
       elseif t and t.type == 'plustime' then
         next(); return {'PLUSTIME', parseUnaryexp()}
       end

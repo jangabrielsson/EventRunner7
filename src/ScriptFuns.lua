@@ -146,6 +146,16 @@ local function module(ER)
     function builtin.osdate(a,b) return os.date(a,b) end
     function builtin.ostime(t) return os.time(t) end
     function builtin.nexttime(m,n) local t1 = m+n; return t1 > os.time() and t1 or t1+86400 end
+    function builtin.sunnext(name)
+      local idx = ({sunrise=1, sunset=2, dawn=3, dusk=4})[name]
+      if not idx then error("Unknown sun time: "..name) end
+      local midnight = ER.midnight()
+      local today_t = ({ER.sunCalc()})[idx]
+      local t1 = midnight + today_t
+      if t1 > os.time() then return t1 end
+      local tomorrow_t = ({ER.sunCalc(os.time() + 86400)})[idx]
+      return midnight + 86400 + tomorrow_t
+    end
     
     function builtin.global(name)
       local s = fibaro.getGlobalVariable(name)     

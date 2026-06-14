@@ -142,8 +142,22 @@ local function module(ER)
     local p = time:sub(1,2)
     if p == '+/' then return hm2sec(time:sub(3))+os.time()
     elseif p == 'n/' then
-      local t1,t2 = midnight()+hm2sec(time:sub(3),true),os.time()
-      return t1 > t2 and t1 or t1+24*60*60
+      local sub = time:sub(3)
+      local sun, offs_str = sub:match("^(sunrise|sunset|dawn|dusk)([+-]?%d*)")
+      if sun then
+        local offs = (tonumber(offs_str) or 0) * 60
+        local idx = ({sunrise=1, sunset=2, dawn=3, dusk=4})[sun]
+        if idx then
+          local today_base = ({sunCalc()})[idx]
+          local today_t = midnight() + today_base + offs
+          if today_t > os.time() then return today_t end
+          -- bumped to next day, recalculate for tomorrow
+          local tomorrow_base = ({sunCalc(os.time()+86400)})[idx]
+          return midnight() + 86400 + tomorrow_base + offs
+        end
+      end
+      local t1 = midnight()+hm2sec(sub)
+      return t1 > os.time() and t1 or t1+24*60*60
     elseif p == 't/' then return  hm2sec(time:sub(3))+midnight()
     else return hm2sec(time) end
   end
