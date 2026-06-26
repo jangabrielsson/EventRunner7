@@ -101,7 +101,7 @@ ER.D2024 = os.time({year=2024, month=1, day=1}) -- Date before which all daily t
 local function setupGlobalVariables()
   local var = ER.defglobals
   var.sunrise, var.sunset,var.dawn,var.dusk = ER.sunCalc()
-  var.midnight, var.vnum = ER.midnight(), tonumber(os.date("%W"))+1
+  var.midnight, var.wnum = ER.midnight(), tonumber(os.date("%W"))+1
 end
 
 local function midnightLoop(er)
