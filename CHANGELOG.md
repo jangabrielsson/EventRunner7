@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.1.46] - 2026-06-26
+
+## Changes in v0.1.46
+
+- ✨ **Feature**: Add release notes for v0.1.45 and update Props.lua for push method
+  - Created release notes for EventRunner7 v0.1.45, detailing new features and fixes.
+  - Introduced sun-related functions in EventScript parser and compiler.
+  - Added support for substitution templates with new format.
+  - Updated Props.lua to set the push method to 'simplePush'.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.45] - 2026-06-14
 
 ## Changes in v0.1.45
