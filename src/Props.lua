@@ -1,6 +1,7 @@
 MODULE = MODULE or {}
 local function module(ER)
   local fmt = string.format
+  fibaro._pushMethod = 'simplePush'
   
   local function get(pd,id)
     return (fibaro.get(id, pd.trigger.property))
