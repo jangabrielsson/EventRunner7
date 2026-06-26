@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.47] - 2026-06-26
+
+## Changes in v0.1.47
+
+- ✨ **Feature**: Add release notes for v0.1.46 and update Rule.lua for variable naming
+  - Created release notes for EventRunner7 v0.1.46, detailing new features and fixes.
+  - Updated Props.lua to set the push method to 'simplePush'.
+  - Changed variable name from 'vnum' to 'wnum' in Rule.lua for clarity.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.46] - 2026-06-26
 
 ## Changes in v0.1.46
