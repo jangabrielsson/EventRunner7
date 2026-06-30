@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.1.48] - 2026-06-30
+
+## Changes in v0.1.48
+
+- ✨ **Feature**: Add release notes for v0.1.47 and update Rule.lua for variable naming
+  - Created HTML release notes for version 0.1.47, detailing changes and download links.
+  - Updated Rule.lua to improve timer management by introducing a separate killTimers function.
+  - Changed variable name from 'vnum' to 'wnum' in Rule.lua for clarity.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.47] - 2026-06-26
 
 ## Changes in v0.1.47
