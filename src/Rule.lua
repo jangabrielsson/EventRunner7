@@ -191,15 +191,17 @@ local function compRule(r, opts, src)
     return sourceTrigger:cancel(ref)
   end
 
-  local function runRule(...)
-    if modifiers.single then
-      local old = rule.timers
-      rule.timers = {}
-      for ref in pairs(old) do
-        clearTimeout(ref)          -- cancel raw setTimeout timers (wait/sleep)
-        sourceTrigger:cancel(ref)  -- cancel event-queue posts (postR)
-      end
+  local function killTimers()
+    local old = rule.timers
+    rule.timers = {}
+    for ref in pairs(old) do
+      clearTimeout(ref)          -- cancel raw setTimeout timers (wait/sleep)
+      sourceTrigger:cancel(ref)  -- cancel event-queue posts (postR)
     end
+  end
+
+  local function runRule(...)
+    if modifiers.single then killTimers() end
     rule.stats.runs = rule.stats.runs + 1
     return ruleRunner(rule.fun, rule, ...)
   end
@@ -331,6 +333,7 @@ local function compRule(r, opts, src)
   function rule.start(event) rule:run(event) return rule end
   function rule.disable(id) rule._disabled = true; return rule end
   function rule.enable() rule._disabled = nil; return rule end
+  function rule.terminate() killTimers(); return rule end
 
   function rule.info()
     print(tostring(rule)..":", rule.src)

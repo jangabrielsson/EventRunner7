@@ -10,7 +10,6 @@ local function main(er)
   local rule,var = er.eval,er.variables
   er.opts = { started = true, check = true, result = true, triggers=true }
 
-  rule("log('%s',wnum)")
   rule("@@00:00:05 => log[({'red','green','yellow'})[rnd(1,3)]]('tick!')",{check=false})
 end
 
