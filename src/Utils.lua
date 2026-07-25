@@ -980,6 +980,20 @@ local function module(ER)
   function color(color,text)
     return fmt("<font color='%s'>%s</font>",color or "white",text)
   end
+  
+  function fibaro.basicAuthorization(user,password) return "Basic "..base64encode(user..":"..password) end
+
+  function urlencode(str) -- very useful
+    if str then
+      str = str:gsub("\n", "\r\n")
+      str = str:gsub("([^%w %-%_%.%~])", function(c)
+        return ("%%%02X"):format(string.byte(c))
+      end)
+      str = str:gsub(" ", "%%20")
+    end
+    return str
+  end
+
   -------------------------------------------------
   ER.alarmFuns = alarmFuns
   ER.toSeconds = toSeconds

@@ -2,6 +2,7 @@
 --%%type:com.fibaro.deviceController
 --%%headers:EventRunner.inc
 --%%file:src/Setup.lua,stdfuns
+-- %%file:SRC/Sim.lua,sim
 -- %%offline:true
 --%%save:dist/EventRunner7.fqa
 --%%u:{label='info', text='EventRunnner 7'}
@@ -11,6 +12,7 @@ local function main(er)
   er.opts = { started = true, check = true, result = true, triggers=true }
 
   rule("@@00:00:05 => log[({'red','green','yellow'})[rnd(1,3)]]('tick!')",{check=false})
+
 end
 
 function QuickApp:onInit()
