@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.1.49] - 2026-07-25
+
+## Changes in v0.1.49
+
+- ✨ **Feature**: Add release notes for v0.1.48 and enhance NodeRed integration
+  - Created HTML release notes for version 0.1.48, detailing changes and download links.
+  - Updated Rule.lua to improve timer management by introducing a separate killTimers function.
+  - Changed variable name from 'vnum' to 'wnum' in Rule.lua for clarity.
+  - Implemented functions in Setup.lua for NodeRed support, including asynchronous posting and IP address retrieval.
+  - Added basic authorization and URL encoding functions in Utils.lua for improved HTTP request handling.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.48] - 2026-06-30
 
 ## Changes in v0.1.48
