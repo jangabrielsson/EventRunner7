@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.1.50] - 2026-08-14
+
+## Changes in v0.1.50
+
+- ✨ **Feature**: Add release notes for v0.1.49 and enhance trueFor watchdog timeout handling
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.49] - 2026-07-25
 
 ## Changes in v0.1.49
