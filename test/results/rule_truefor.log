@@ -1,5 +1,6 @@
 === rule_truefor5555 ===
 
+  PASS: trueFor watchdog timeout covers 1h condition
   PASS: trueFor: fires after condition holds
 
-  1 passed
+  2 passed
