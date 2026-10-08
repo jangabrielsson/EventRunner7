@@ -201,6 +201,35 @@ local function preSetup(er)
     var.nr = { post = er.async.nodered, post_as = er.async.nodered_as }
     --er.async.nodered, er.async.nodered_as = nil,nil -- cleanup
 
+    local function hc3api(cb,method,api,data)
+        local creds = er.variables._creds
+        if not creds then setTimeout(function() cb(nil,404) end,0) end
+        net.HTTPClient():request("http://localhost/api"..api,{
+            options = {
+                method = method or "GET",
+                headers = {
+                    ['Accept'] = 'application/json',
+                    ["Authorization"] = creds,
+                    ['X-Fibaro-Version'] = '2',
+                   -- ["Content-Type"] = "application/json",
+                },
+                data = data and json.encode(data) or nil
+            },
+            success = function(resp)
+                cb(json.decode(resp.data),200)
+            end,
+            error = function(err)
+                cb(nil,err)
+            end
+        })
+    end
+    function er.async.hc3apiget(cb,api,dflt) return hc3api(cb,"GET",api,nil) end
+    function er.async.hc3apiput(cb,api,data) return hc3api(cb,"PUT",api,data) end
+    function er.async.hc3apipost(cb,api,data) return hc3api(cb,"POST",api,data) end
+    function er.async.hc3apidelete(cb,api) return hc3api(cb,"DELETE",api,nil) end
+    var.hc3api = { get = er.async.hc3apiget, put = er.async.hc3apiput, post = er.async.hc3apipost, delete = er.async.hc3apidelete }
+
+    var._hc3api = hc3api
 end
 
 local function postSetup(er)
