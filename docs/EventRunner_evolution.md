@@ -268,12 +268,12 @@ The `rule("...")` string embedding means no syntax highlighting, no
 autocomplete, no inline error squiggles. A VS Code extension that:
 
 - Highlights EventScript inside `rule("...")` strings
-- Auto-completes `deviceID:prop` from the HC3 device list (fetched via plua)
+- Auto-completes `deviceID:prop` from the HC3 device list (fetched via flua)
 - Shows trigger subscriptions on hover
 - Underlines parse errors with red squiggles
 
-This would be the single biggest daily UX improvement. The plua setup already
-has VS Code integration — this is the natural extension.
+This would be the single biggest daily UX improvement. The flua setup already
+has VS Code launch and task integration — this is the natural extension.
 
 #### 3.9 Fix or document the `case` statement
 

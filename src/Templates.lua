@@ -10,7 +10,7 @@
 --
 -- Deployment:
 --   HC3: Add Templates.lua as a file in the EventRunner7 QuickApp
---   plua: Included via --%%file:Templates.lua,templates in EventRunner.inc
+--   flua: Included via --%%file:src/Templates.lua,templates in EventRunner.inc
 
 local Templates = {}
 local fmt = string.format

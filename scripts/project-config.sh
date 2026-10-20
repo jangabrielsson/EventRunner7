@@ -41,7 +41,7 @@ DIST_DIR="dist"
 # Format: "source_file:output_file:build_command"
 # The build_command can use {SOURCE} and {OUTPUT} placeholders
 declare -a ARTIFACTS=(
-    "EventRunner7.lua:dist/EventRunner7.fqa:plua --fibaro --tool pack {SOURCE} {OUTPUT}"
+    "EventRunner7.lua:dist/EventRunner7.fqa:flua export {SOURCE} -o {OUTPUT}"
 )
 
 # Files to include in git commits for releases

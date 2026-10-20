@@ -1,9 +1,15 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%%file:src/Setup.lua,stdfuns
--- %%offline:true
---%%save:dist/EventRunner7.fqa
+--%%file:../src/Tokenizer.lua,tokenizer
+--%%file:../src/Parser.lua,parser
+--%%file:../src/CSP.lua,csp
+--%%file:../src/Utils.lua,utils
+--%%file:../src/Props.lua,props
+--%%file:../src/Compiler.lua,compiler
+--%%file:../src/ScriptFuns.lua,scriptfuns
+--%%file:../src/Rule.lua,rule
+--%%file:../src/Templates.lua,templates
+--%%file:../src/Setup.lua,stdfuns
 --%%u:{label='info', text='EventRunnner 7'}
 
 local function main(_er)

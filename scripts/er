@@ -32,4 +32,4 @@ RUNNER="$(cd "$(dirname "$0")/.." && pwd)/tests/rulerunner.lua"
       printf 'rule([==[%s]==])\n' "$arg"
     fi
   done
-} | plua --fibaro --nodebug --run-for "$RUNFOR" "$RUNNER"
+} | flua --api local --nogreet --run-for "-$RUNFOR" "$RUNNER"

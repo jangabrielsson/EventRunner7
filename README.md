@@ -26,7 +26,7 @@ EventRunner7 is a rule-based automation framework for Fibaro Home Center 3 (HC3)
 - **High-Level Templates** — parameterized patterns for common use cases (motion → light, thermostat control, etc.)
 - **Device Collections** — apply actions to lists of devices; aggregate with `:average`, `:someTrue`
 - **Comprehensive Logging** — configurable per-rule verbosity flags and custom log functions
-- **Local Development** — run and debug offline with [plua](https://pypi.org/project/plua/)
+- **Local Development** — run and debug offline with [flua](https://pypi.org/project/fibaro-flua/)
 
 ---
 
@@ -138,12 +138,12 @@ docs/
 
 ---
 
-## Local Development with plua
+## Local Development with flua
 
 ```bash
-pip install plua
-plua --fibaro EventRunner7.lua            # run until idle
-plua --fibaro --run-for 30 EventRunner7.lua  # run for 30 seconds
+pip install fibaro-flua
+flua --api local EventRunner7.lua           # run against the offline simulator
+flua --api local --run-for -30 EventRunner7.lua  # run for exactly 30 seconds
 ```
 
 Run the test suite:
