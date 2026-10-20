@@ -1,10 +1,10 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
+--%%include:EventRunner.inc
 --%%file:src/Setup.lua,stdfuns
 -- %%file:SRC/Sim.lua,sim
 -- %%offline:true
---%%save:dist/EventRunner7.fqa
+-- %%save:dist/EventRunner7.fqa
 --%%u:{label='info', text='EventRunnner 7'}
 
 local function main(er)

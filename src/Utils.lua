@@ -56,7 +56,7 @@ local function module(ER)
   function table.mapOr(f,l,s) s = s or 1; for i=s,table.maxn(l) do local e = f(l[i]) if e then return e end end return false end
   function table.reduce(f,l) local r = {}; for _,e in ipairs(l) do if f(e) then r[#r+1]=e end end; return r end
   function table.mapk(f,l) local r={}; for k,v in pairs(l) do r[k]=f(v) end; return r end
-  function table.mapkv(f,l) local r={}; for k,v in pairs(l) do k,v=f(k,v) if k then r[k]=v end end; return r end
+  function table.mapkv(f,l) local r={}; for k0,v0 in pairs(l) do local k,v=f(k0,v0) if k then r[k]=v end end; return r end
   function table.mapkl(f,l) local r={} for i,j in pairs(l) do r[#r+1]=f(i,j) end return r end
   function table.size(l) local n=0; for _,_ in pairs(l) do n=n+1 end return n end 
   

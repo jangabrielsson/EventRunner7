@@ -299,7 +299,8 @@ local function compRule(r, opts, src)
     local midnight = ER.midnight() -- recomputed below, keep for structure
     local ts = {}
     for tr,subev in pairs(rule.dailys) do ts[tr()] = subev end
-    for t,subev in pairs(ts) do
+    for t0,subev in pairs(ts) do
+      local t = t0
       if t < ER.D2024 then t = t + midnight end
       -- if time has already passed for today, skip
       if t >= now then
