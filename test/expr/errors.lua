@@ -171,8 +171,12 @@ local function main(er)
     "No such device")
 
   testRuleError("no triggers",
-    "log('ok') => return 1",
+    "true => return 1",
     "Rule has no triggers")
+
+  testRuleError("head function not allowed",
+    "setGlobal('y',1) & x == 5 => return 1",
+    "Head function 'setGlobal'")
 
   testRuleError("first_in time_window",
     "46:value first_in 'a' => return 1",

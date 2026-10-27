@@ -155,6 +155,8 @@ local function compRule(r, opts, src)
   rule.watchOn = false
   rule.modifiers = r._modifiers or {}  -- raw modifier flags (single, debounce, etc.)
   rule._mstate = {}             -- runtime modifier state (once, cool_down, every_other)
+  rule.gen = 0                  -- run generation: bumped by killTimers so superseded
+                                -- async continuations can be discarded on resume
   function rule:log(minLevel, prefix, a1,...)
     local level = VERBOSITY[self.verbosity or "normal"] or 1
     local min   = VERBOSITY[minLevel] or 1
@@ -204,8 +206,15 @@ local function compRule(r, opts, src)
   local function killTimers()
     local old = rule.timers
     rule.timers = {}
+    -- Pending since-timer state is cancelled with its timer: the next
+    -- condition evaluation starts a fresh window instead of seeing a
+    -- stale trueFor.ref and wedging (single + since bug).
+    rule.trueFor = nil
+    -- Bump the run generation: callbacks from the superseded run's
+    -- in-flight async functions are discarded when they arrive.
+    rule.gen = rule.gen + 1
     for ref in pairs(old) do
-      clearTimeout(ref)          -- cancel raw setTimeout timers (wait/sleep)
+      clearTimeout(ref)          -- cancel raw setTimeout timers (wait/sleep/async watchdogs)
       sourceTrigger:cancel(ref)  -- cancel event-queue posts (postR)
     end
   end
@@ -379,11 +388,42 @@ end
 
 -- Std Head Ops: just scan their children
 local stdHOPS = {
-  "RETURN", "NOT", "AND", "OR", "CALL","ADD","CFUN","CONST",
+  "RETURN", "NOT", "AND", "OR","ADD","CFUN","CONST",
   "SUB", "MUL", "DIV", "MOD", "POW", "EQ", "LT", "LTE", "GT", "GTE","NOW","NEG"
 }
 local HOPS = {}
 for _,op in ipairs(stdHOPS) do HOPS[op] = stdScan end
+
+-- Head-purity whitelist: bare-name functions allowed to be CALLed in a rule
+-- condition. The trigger scanner evaluates fragments of the condition at
+-- registration time; a side-effecting function could run once there and
+-- never again — the rule would appear to work and fail mysteriously later.
+-- Any bare-name CALL not listed here is a registration error.
+--   • condition modifiers — injected into the head by the parser's
+--     since/cooldown/every/first_in rewrites (once() written by hand)
+--   • pure builtins
+--   • log — side-effecting by design, but returns its args; sanctioned as a
+--     debug probe for head expressions
+-- Indexed/field calls (math.floor(x), obj:fn(x)) and inline lambdas are not
+-- classified: their target is visible inline code (mirrors the compiler's
+-- intrinsic policy, which also only intercepts bare names). Users can
+-- whitelist their own pure helpers: ER._headFuns.myFun = true
+ER._headFuns = {
+  trueFor = true, first_in_win = true, once = true, cool_down = true, every_other = true,
+  fmt = true, HM = true, HMS = true, sign = true, rnd = true, round = true,
+  sum = true, average = true, size = true, min = true, max = true,
+  map = true, filter = true, reduce = true, log = true,
+  osdate = true, ostime = true, nexttime = true, sunnext = true, global = true,
+  date = true, day = true, month = true, wday = true, nextDST = true,
+}
+
+function HOPS.CALL(ast,trs)
+  local f = ast[2]
+  if f and type(f) == 'table' and f[1] == 'GET' and not ER._headFuns[f[2]] then
+    error("Head function '"..tostring(f[2]).."' is not allowed in a rule condition (side effects would run during trigger scanning). If it is side-effect free, whitelist it with ER._headFuns."..tostring(f[2]).." = true", 0)
+  end
+  stdScan(ast,trs)
+end
 
 function HOPS.GETPROP(ast,trs)
   local obj = exprFun(ast[2])()
@@ -477,7 +517,7 @@ function HOPS.MAKETABLE(ast,trs) end -- table contains no triggers
 function scanHead(ast,trs)
   if type(ast) ~= 'table' then return end
   local op = HOPS[ast[1]]
-  assert(op, "scanHead: missing op in AST node: " .. tostring(ast[1]))
+  assert(op, "scanHead: op '" .. tostring(ast[1]) .. "' is not allowed in a rule condition")
   return op(ast,trs)
 end
 
@@ -514,13 +554,21 @@ local yieldHandlers = {
   asyncFun = function(cf, ctx, cb, fun, ...)
     local timedOut,timeref = false,nil
     local o = ctx.opts
+    local env = cf.ctx.opts and cf.ctx.opts.env
     if o.waiting then
       ctx:log("normal", o.waitPrefix, fmt("calling async func".."tion %s", tostring(fun)))
     end
-    local fcb = setmetatable({cf=cf, ctx=ctx}, {
+    local fcb = setmetatable({cf=cf, ctx=ctx, env=env}, {
       __call = function(self,...)
-        if timeref then timeref = clearTimeout(timeref) end
+        if timeref then
+          if ctx.timers then ctx.timers[timeref] = nil end
+          timeref = clearTimeout(timeref)
+        end
         if timedOut then return end
+        -- Discard callbacks from superseded runs: single/terminate cancelled
+        -- this run's watchdog (and bumped ctx.gen), so a new run owns the
+        -- rule now. Non-rule contexts have no gen and always resume.
+        if ctx.gen and cf.ctx.opts.gen and ctx.gen ~= cf.ctx.opts.gen then return end
         if o.waited then
           ctx:log("normal", o.waitedPrefix, fmt("back from async func %s", tostring(fun)))
         end
@@ -539,6 +587,7 @@ local yieldHandlers = {
       -- Async, wait for callback or timeout
       if timeout >= 0 then
         timeref = setTimeout(function()
+          if ctx.timers then ctx.timers[timeref] = nil end
           timeref = nil
           timedOut = true
           ctx:log("verbose", o.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
@@ -549,6 +598,7 @@ local yieldHandlers = {
             ctx:log("normal", o.errorPrefix, err)
           end
         end, timeout)
+        if ctx.timers then ctx.timers[timeref] = timeout end  -- track so single/terminate can cancel
       end -- -1 means sync, func called cb directly so no timeout needed
     else
       ctx:log("normal", o.errorPrefix, fmt("Async func".."tion error: %s", tostring(res[2])))
@@ -608,6 +658,7 @@ function ruleRunner(f, ctx, perInvokeOpts)
   local evalOpts = perInvokeOpts or {}
   setmetatable(evalOpts, {__index = ctx.opts})
   evalOpts.rule = ctx   -- CSP / ScriptFuns code that needs opts.rule gets the ctx
+  evalOpts.gen = ctx.gen or 0  -- snapshot of the run generation at suspension
 
   local function onDone(...)
     if ctx.onDone then ctx.onDone(...) end
@@ -624,6 +675,18 @@ function ruleRunner(f, ctx, perInvokeOpts)
   local ok, err = pcall(function()
     evalOpts.vars = evalOpts.vars or {}
     evalOpts.vars._opts = {evalOpts}
+    -- ExecutionEnv for async functions: unbox the invocation vars once
+    -- here, so modifier functions (trueFor, cool_down, ...) never dig into
+    -- continuation snapshots or the VM's boxed var frames.
+    local vars = evalOpts.vars
+    evalOpts.env = {
+      rule      = ctx,
+      event     = vars.event and vars.event[1] or nil,
+      _evKey    = vars._evKey and vars._evKey[1] or nil,
+      setTimeout = vars.setTimeout and vars.setTimeout[1],
+      cancel    = vars.cancel and vars.cancel[1],
+      post      = vars.post and vars.post[1],
+    }
     resumeRunner(table.pack(ER.csp.eval(f, evalOpts)), ctx, onDone)
   end)
   synced = true

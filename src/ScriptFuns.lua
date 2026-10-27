@@ -338,22 +338,28 @@ local function module(ER)
     local async = ER.async
     
     function async.trueFor(cb,time,expr)
-      local opts = cb.cf.ctx.opts
-      local env = cb.cf.ctx.var_env[1]
-      local trueFor = opts.rule.trueFor or {}
-      opts.rule.trueFor = trueFor
+      local env = cb.env
+      local rule = env.rule
+      local trueFor = rule.trueFor or {}
+      rule.trueFor = trueFor
       if expr then -- test is true
-        if not trueFor.ref then -- new, start timer
+        -- A ref whose timer is no longer registered was cancelled out from
+        -- under us (single/terminate killTimers): start a fresh window
+        -- instead of wedging with a stale ref. Expressions have no timer
+        -- registry, so the ref is trusted there.
+        local pending = trueFor.ref and (not rule.timers or rule.timers[trueFor.ref])
+        if not pending then -- new, or stale after cancellation
+          trueFor.ref = nil
           trueFor.trigger = env.event
-          trueFor.ref = env.setTimeout[1](function() 
+          trueFor.ref = env.setTimeout(function() 
             trueFor.ref = nil; cb(true) 
           end, time*1000)
           return 3600*24*30*1000 --math.huge (ms — watchdog must outlive the condition timer)
-        else -- already true and we have timer waiting
+        else -- already true and we have a live timer waiting
           cb(false) -- do nothing
         end
       elseif trueFor.ref then -- test is false, and we have timer
-        env.cancel[1](trueFor.ref)
+        env.cancel(trueFor.ref)
         trueFor.ref = nil
         cb(false)
       else
@@ -366,8 +372,7 @@ local function module(ER)
     -- so the rule can fire again in the NEXT occurrence of the window.
     -- stopVal is seconds-since-midnight (< 86400) or an epoch timestamp (>= 86400).
     function async.first_in_win(cb, inWindow, stopVal)
-      local opts = cb.cf.ctx.opts
-      local rule = opts and opts.rule
+      local rule = cb.env and cb.env.rule
       local mstate = rule and rule._mstate or cb.ctx
       if inWindow then
         if not mstate.once then
@@ -413,8 +418,7 @@ local function module(ER)
     end
     
     function async.cool_down(cb, T)
-      local opts = cb.cf.ctx.opts
-      local rule = opts and opts.rule
+      local rule = cb.env and cb.env.rule
       local mstate = rule and rule._mstate or cb.ctx
       local state = mstate.cool_down or {}
       mstate.cool_down = state
@@ -429,8 +433,7 @@ local function module(ER)
     end
     
     function async.every_other(cb, N)
-      local opts = cb.cf.ctx.opts
-      local rule = opts and opts.rule
+      local rule = cb.env and cb.env.rule
       local mstate = rule and rule._mstate or cb.ctx
       local state = mstate.every_other or {count=0}
       mstate.every_other = state
@@ -444,15 +447,15 @@ local function module(ER)
     end
     
     function async.again(cb,n)
-      local opts = cb.cf.ctx.opts
-      local env = cb.cf.ctx.var_env[1]
-      local trueFor = opts.rule.trueFor or {}
+      local env = cb.env
+      local rule = env.rule
+      local trueFor = rule.trueFor or {}
       if trueFor then
         if trueFor.again and trueFor.again == 0 then trueFor.again = nil return cb(0) end 
         if trueFor.again == nil then trueFor.again,trueFor.againN = n,n end-- reset
         trueFor.again = trueFor.again - 1
         if trueFor.trigger and  trueFor.again > 0 then 
-          env.setTimeout[1](function() cb.ctx:run(trueFor.trigger) end, 0)
+          env.setTimeout(function() rule:run(trueFor.trigger) end, 0)
           cb(trueFor.againN - trueFor.again)
         else trueFor.again = nil cb(trueFor.againN) end
       else cb(0) end
