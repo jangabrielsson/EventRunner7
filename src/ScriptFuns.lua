@@ -303,7 +303,10 @@ local function module(ER)
       local src = r.src and (r.src:len() > 80 and r.src:sub(1,77).."..." or r.src) or "n/a"
       print(fmt("ℹ️  [%s] (id=%d)", r.name, r.id))
       print(fmt("   src:     %s", src))
-      print(fmt("   status:  %s", r._disabled and "❌ disabled" or "✅ enabled"))
+      print(fmt("   status:  %s", r:state() == "enabled" and "✅ enabled" or "❌ disabled"))
+      if (r.active or 0) > 0 then
+        print(fmt("   active:   %d run(s) in flight", r.active))
+      end
       if r.opts.group then
         print(fmt("   group:   %s", r.opts.group))
       end

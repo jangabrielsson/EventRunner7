@@ -143,10 +143,9 @@ local function midnightLoop(er)
 end
 
 ---------------------- Create rule ---------------------------------
-local function compRule(r, opts, src)
-  local head = r[2]               -- the condition part (scan for triggers)
-  opts = opts or {}
-
+-- ── Rule lifecycle, split out of the former compRule god-function ──
+-- newRule: create the rule object and register it (registry, name, group).
+local function newRule(opts, src)
   RULEIDX = RULEIDX + 1
   local rule = { type='RULE', isRule = true, id = RULEIDX, verbosity = opts.verbosity or "normal", src = src, opts = opts }
   rule.name = opts.name or ("RULE" .. RULEIDX)
@@ -165,26 +164,20 @@ local function compRule(r, opts, src)
   rule.historySize = opts.historySize or 10
   rule.history = {}
   rule.watchOn = false
-  rule.modifiers = r._modifiers or {}  -- raw modifier flags (single, debounce, etc.)
   rule._mstate = {}             -- runtime modifier state (once, cool_down, every_other)
   rule.gen = 0                  -- run generation: bumped by killTimers so superseded
                                 -- async continuations can be discarded on resume
   rule.failCount = 0            -- consecutive errored runs (disableOnError policy)
+  rule.active = 0               -- runs currently suspended (in-flight)
   makeLogger(rule, tostring)    -- rule name prefixes log output
+  return rule
+end
 
-  local modifiers = r._modifiers or {}
-  local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
-  scanHead(head, trs)             -- scanHead may modify ast...
-  -- sanity check that scanHead found something triggerable
-  if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
-    rules[RULEIDX], namedRules[rule.name] = nil, nil -- remove rule from registry
-    error("Rule has no triggers: " .. src)
-  end 
-  local fun  = ER.csp.compile(r, r._srcmap)  -- compile rule action into CSP (with srcmap if available)
-  rule.fun = fun
+-- attachRun: timer registry, cancellation, and the run entry point.
+local function attachRun(rule)
   rule.timers = {}
 
-  local function postR(ev,time)
+  function rule.postR(ev,time)
     local ref,t
     ref,t = sourceTrigger:post(ev,time,nil,function(ref)
       rule.timers[ref] = nil
@@ -192,7 +185,7 @@ local function compRule(r, opts, src)
     if ref then rule.timers[ref] = t end
     return ref
   end
-  local function setTimeoutR(fun,time)
+  function rule.setTimeoutR(fun,time)
     local ref
     ref = setTimeout(function()
       rule.timers[ref] = nil
@@ -201,12 +194,12 @@ local function compRule(r, opts, src)
     rule.timers[ref] = time
     return ref
   end
-  local function cancelR(ref)
+  function rule.cancelR(ref)
     rule.timers[ref]=nil
     return sourceTrigger:cancel(ref)
   end
 
-  local function killTimers()
+  function rule.killTimers()
     local old = rule.timers
     rule.timers = {}
     -- Pending since-timer state is cancelled with its timer: the next
@@ -222,28 +215,32 @@ local function compRule(r, opts, src)
     end
   end
 
-  local function runRule(...)
-    if modifiers.single then killTimers() end
+  function rule.runRule(...)
+    if rule.modifiers.single then rule.killTimers() end
     rule.stats.runs = rule.stats.runs + 1
+    rule.active = rule.active + 1
     return ruleRunner(rule.fun, rule, ...)
   end
+end
 
-  local function mkEvVars(key,ev)
-    local vars = {
-      event = {ev.event and setmetatable(ev.event, ER.EventMT) or nil},
-      _evKey = {key},
-      post = {postR},
-      cancel = {cancelR},
-      setTimeout = {setTimeoutR},
-      enable = {function(arg) ER.enable(arg or rule,true) end},
-      disable = {function(arg) ER.enable(arg or rule,false) end},
-    }
-    vars.env = { event = vars.event }
-    for k,v in pairs(ev.p or {}) do vars[k] = {v} end
-    return vars
-  end
+-- mkEvVars: the per-invocation variable environment exposed to the CSP VM.
+local function mkEvVars(rule, key, ev)
+  local vars = {
+    event = {ev.event and setmetatable(ev.event, ER.EventMT) or nil},
+    _evKey = {key},
+    post = {rule.postR},
+    cancel = {rule.cancelR},
+    setTimeout = {rule.setTimeoutR},
+    enable = {function(arg) ER.enable(arg or rule,true) end},
+    disable = {function(arg) ER.enable(arg or rule,false) end},
+  }
+  vars.env = { event = vars.event }
+  for k,v in pairs(ev.p or {}) do vars[k] = {v} end
+  return vars
+end
 
-  -- All triggers are subscribed to
+-- setupTriggers: subscribe the scanned device/variable/custom triggers.
+local function setupTriggers(rule, trs, opts)
   for key, event in pairs(trs.triggers) do
     setmetatable(event, ER.EventMT)
     local recalcDaily = event._recalc
@@ -252,31 +249,30 @@ local function compRule(r, opts, src)
       if rule._disabled then return end
       if recalcDaily then
         rule:log("silent", opts.dailyListPrefix, "Recalculating Daily timers")
-        for _,r in pairs(rules) do r:setupDaily() end
+        for _,r in pairs(rules) do
+          if r.setupDaily then r:setupDaily() end  -- interval-only rules have none
+        end
         return
       end
       if opts.started then rule:log("normal", opts.startPrefix, ev.event) end
-      return runRule({
-        vars = mkEvVars(key,ev)})
-      end
-    )
+      return rule.runRule({ vars = mkEvVars(rule, key, ev) })
+    end)
   end
+end
 
-  local skipDailys = false
+-- setupInterval: interval triggers; returns true if the rule has one
+-- (an interval suppresses daily scheduling).
+local function setupInterval(rule, trs, opts)
+  if not trs.interval then return false end
   local intervalTimer
   local intervalEvent = {type='INTERVAL', id=rule.id}
-  if trs.interval then
-    sourceTrigger:subscribe(intervalEvent, function(ev)
-      rule:log("verbose", opts.startPrefix, "(interval)")
-      runRule({
-        vars = mkEvVars('INTERVAL',{event=intervalEvent})})
-      end
-    )
-    skipDailys = true
-  end
+  sourceTrigger:subscribe(intervalEvent, function(ev)
+    rule:log("verbose", opts.startPrefix, "(interval)")
+    rule.runRule({ vars = mkEvVars(rule, 'INTERVAL', {event=intervalEvent}) })
+  end)
 
   function rule:setupInterval()
-    if intervalTimer then cancelR(intervalTimer); intervalTimer = nil end
+    if intervalTimer then rule.cancelR(intervalTimer); intervalTimer = nil end
     if trs.interval then
       local value = trs.interval()
       if type(value) ~= 'number' then error("Invalid interval time: "..tostring(value)) end
@@ -284,7 +280,7 @@ local function compRule(r, opts, src)
       if value < 0 then value=-value delay = (os.time() // value + 1)*value - os.time() end
       local nextTime = os.time() + delay
       local function loop()
-        if not rule._disabled then postR(intervalEvent) end
+        if not rule._disabled then rule.postR(intervalEvent) end
         nextTime = nextTime + value
         intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
       end
@@ -292,33 +288,33 @@ local function compRule(r, opts, src)
     end
   end
   rule:setupInterval()
+  return true
+end
 
+-- setupDailys: daily/between time triggers + rule:setupDaily scheduling.
+local function setupDailys(rule, trs, opts)
   rule.dailys = {}
-  if not skipDailys then
-    local dailys = trs.dailys -- @daily inhibits between
-    if next(trs.dailys) == nil then dailys = trs.between end
+  local dailys = trs.dailys -- @daily inhibits between
+  if next(trs.dailys) == nil then dailys = trs.between end
 
-    for _, t in ipairs(dailys) do
-      local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
-      DAILYID = DAILYID + 1
-      sourceTrigger:subscribe(subev, function(ev)
-        if rule._disabled then return end
-        rule:log("verbose", opts.startPrefix,tostring(subev))
-        runRule({
-          vars = mkEvVars('DAILY',ev)})
-        end
-      )
-      rule.dailys[t] = subev
-    end
+  for _, t in ipairs(dailys) do
+    local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
+    DAILYID = DAILYID + 1
+    sourceTrigger:subscribe(subev, function(ev)
+      if rule._disabled then return end
+      rule:log("verbose", opts.startPrefix, tostring(subev))
+      rule.runRule({ vars = mkEvVars(rule, 'DAILY', ev) })
+    end)
+    rule.dailys[t] = subev
   end
 
   local dtimers = {}
   function rule:setupDaily(catch)
     if next(rule.dailys) == nil then return end
-    for _, t in pairs(dtimers) do cancelR(t) end
+    for _, t in pairs(dtimers) do rule.cancelR(t) end
     dtimers = {}
     local now = vm.host.ostime()
-    local midnight = ER.midnight() -- recomputed below, keep for structure
+    local midnight = ER.midnight()
     local ts = {}
     for tr,subev in pairs(rule.dailys) do ts[tr()] = subev end
     for t0,subev in pairs(ts) do
@@ -326,26 +322,28 @@ local function compRule(r, opts, src)
       if t < ER.D2024 then t = t + midnight end
       -- if time has already passed for today, skip
       if t >= now then
-        rule:log("verbose", opts.dailyListPrefix,"Daily trigger scheduled fo".."r "..ER.timeStr(t))
-        dtimers[#dtimers+1] = postR(subev,t-now)
+        rule:log("verbose", opts.dailyListPrefix,"Daily trigger scheduled for "..ER.timeStr(t))
+        dtimers[#dtimers+1] = rule.postR(subev,t-now)
       elseif catch then -- unless we are in catch mode..
         rule:log("verbose", opts.dailyListPrefix,"Daily trigger "..ER.timeStr(t).." missed, catching now")
-        postR(subev,0)
+        rule.postR(subev,0)
       end
     end
   end
 
   rule:setupDaily(trs.hasCatch and true)
+end
 
+-- defineRuleAPI: the public rule object surface.
+local function defineRuleAPI(rule, trs, opts)
   -- rule:run() lets the user fire the rule manually from code.
   function rule:run(event)
     self:log("verbose", self.opts.startPrefix, "(manual)")
-    runRule({vars=mkEvVars("MANUAL",{event=event})})
+    rule.runRule({vars=mkEvVars(rule, "MANUAL", {event=event})})
   end
 
   function rule:dumpTriggers(pref)
     for _, tr in pairs(trs.triggers) do
-      local a = getmetatable(tr)
       print(pref or "  ", self.opts.triggerListPrefix, tr)
     end
     for t,_ in pairs(rule.dailys) do
@@ -353,16 +351,45 @@ local function compRule(r, opts, src)
     end
   end
 
+  -- Lifecycle: 'enabled' ↔ 'disabled' (terminate cancels pending activity,
+  -- see killTimers; in-flight runs are counted in rule.active).
+  function rule:state()
+    if self._disabled then return 'disabled' end
+    return 'enabled'
+  end
   function rule.start(event) rule:run(event) return rule end
   function rule.disable(id) rule._disabled = true; return rule end
   function rule.enable() rule._disabled = nil; rule.failCount = 0; return rule end
-  function rule.terminate() killTimers(); return rule end
+  function rule.terminate() rule.killTimers(); return rule end
 
   function rule.info()
     print(tostring(rule)..":", rule.src)
     rule:dumpTriggers("  ")
     return rule
   end
+end
+
+local function compRule(r, opts, src)
+  local head = r[2]               -- the condition part (scan for triggers)
+  opts = opts or {}
+  local rule = newRule(opts, src)
+  rule.modifiers = r._modifiers or {}  -- raw modifier flags (single, debounce, etc.)
+  attachRun(rule)
+
+  local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
+  scanHead(head, trs)
+  -- sanity check that scanHead found something triggerable
+  if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
+    rules[rule.id], namedRules[rule.name] = nil, nil -- remove rule from registry
+    error("Rule has no triggers: " .. src)
+  end 
+  rule.fun = ER.csp.compile(r, r._srcmap)  -- compile rule into CSP (with srcmap if available)
+
+  setupTriggers(rule, trs, opts)
+  if not setupInterval(rule, trs, opts) then
+    setupDailys(rule, trs, opts)
+  end
+  defineRuleAPI(rule, trs, opts)
 
   if opts.defined then
     rule:log("normal", rule.opts.ruleDefPrefix, "registered:", rule.src // cfg.ruleLen)
@@ -691,8 +718,11 @@ function ruleRunner(f, ctx, perInvokeOpts)
 
   local function onDone(...)
     -- Clean completion (condition false, or the action finished) resets the
-    -- disableOnError error streak.
-    if ctx.isRule and ctx.failCount then ctx.failCount = 0 end
+    -- disableOnError error streak, and drops the in-flight run counter.
+    if ctx.isRule then
+      if ctx.failCount then ctx.failCount = 0 end
+      if ctx.active then ctx.active = ctx.active - 1 end
+    end
     if ctx.onDone then ctx.onDone(...) end
     if synced then
       -- completed asynchronously after ruleRunner already returned nil
@@ -725,6 +755,7 @@ function ruleRunner(f, ctx, perInvokeOpts)
 
   if not ok then
     if ctx.isRule then
+      if ctx.active then ctx.active = ctx.active - 1 end -- aborted run
       ruleError(ctx, err)
       return nil
     else
