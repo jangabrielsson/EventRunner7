@@ -101,6 +101,29 @@ DAILY trigger is enough regardless of which expression produced it.
 
 ---
 
+## Error policy: disableOnError
+
+When a rule's evaluation errors at runtime, the error is logged and the
+rule is disabled — protection against error storms (a broken rule firing on
+every trigger). Control it per rule at registration:
+
+```lua
+rule("... => ...", {disableOnError = 3})      -- disable after 3 consecutive errored runs
+rule("... => ...", {disableOnError = false})  -- never disable; keep running, just log
+```
+
+- default (`true`): disable on the first runtime error
+- `N` (number): disable after N consecutive errored runs; any clean run —
+  the condition evaluates false, or the action completes — resets the counter
+- `false`: never disable
+- `rule.enable()` re-enables and resets the counter
+
+Compile/registration errors are not affected: they always fail at
+registration, and `er.eval(src)` returns `nil, errmsg` on failure (an async
+expression returns plain `nil` while still running).
+
+---
+
 ## Verbosity levels
 
 Set on a rule object at any time before (or after) registration:

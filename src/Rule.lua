@@ -157,6 +157,7 @@ local function compRule(r, opts, src)
   rule._mstate = {}             -- runtime modifier state (once, cool_down, every_other)
   rule.gen = 0                  -- run generation: bumped by killTimers so superseded
                                 -- async continuations can be discarded on resume
+  rule.failCount = 0            -- consecutive errored runs (disableOnError policy)
   function rule:log(minLevel, prefix, a1,...)
     local level = VERBOSITY[self.verbosity or "normal"] or 1
     local min   = VERBOSITY[minLevel] or 1
@@ -352,7 +353,7 @@ local function compRule(r, opts, src)
 
   function rule.start(event) rule:run(event) return rule end
   function rule.disable(id) rule._disabled = true; return rule end
-  function rule.enable() rule._disabled = nil; return rule end
+  function rule.enable() rule._disabled = nil; rule.failCount = 0; return rule end
   function rule.terminate() killTimers(); return rule end
 
   function rule.info()
@@ -546,7 +547,7 @@ local yieldHandlers = {
         resumeRunner(table.pack(ER.csp.resume(cf, ms)), ctx, cb)
       end)
       if not ok then
-        ctx:log("normal", o.errorPrefix, err)
+        if ctx.isRule then ruleError(ctx, err) else ctx:log("normal", o.errorPrefix, err) end
       end
     end, ms)
     if ctx.timers then ctx.timers[ref] = ms end  -- track so single can cancel
@@ -577,7 +578,7 @@ local yieldHandlers = {
           resumeRunner(table.pack(ER.csp.resume(cf, table.unpack(args, 1, args.n))), ctx, cb)
         end)
         if not ok then
-          ctx:log("normal", o.errorPrefix, err)
+          if ctx.isRule then ruleError(ctx, err) else ctx:log("normal", o.errorPrefix, err) end
         end
       end
     })
@@ -595,7 +596,7 @@ local yieldHandlers = {
             resumeRunner(table.pack(ER.csp.resume(cf, false)), ctx, cb)
           end)
           if not ok then
-            ctx:log("normal", o.errorPrefix, err)
+            if ctx.isRule then ruleError(ctx, err) else ctx:log("normal", o.errorPrefix, err) end
           end
         end, timeout)
         if ctx.timers then ctx.timers[timeref] = timeout end  -- track so single/terminate can cancel
@@ -648,6 +649,32 @@ local function beautifyArgs(args,res)
   return res
 end
 
+-- Apply the disableOnError policy to a runtime error that aborted a rule
+-- evaluation:
+--   true (default)  → disable immediately (backward compatible)
+--   false           → never disable; keep running, just log
+--   N (number)      → disable after N consecutive errored runs; any clean
+--                     completion (condition false, or the action finishes)
+--                     resets the counter
+local function ruleError(ctx, err)
+  ctx:log("silent", ctx.opts.errorPrefix, err)
+  local policy = ctx.opts.disableOnError
+  if policy == false then return end
+  if policy == nil or policy == true or type(policy) ~= 'number' then
+    ctx:log("silent", ctx.opts.errorPrefix, "Disabled")
+    ctx.disable()
+    return
+  end
+  local n = (ctx.failCount or 0) + 1
+  ctx.failCount = n
+  if n >= policy then
+    ctx:log("silent", ctx.opts.errorPrefix, fmt("Disabled after %d consecutive errors", n))
+    ctx.disable()
+  else
+    ctx:log("silent", ctx.opts.errorPrefix, fmt("%d consecutive error(s) — disables at %d", n, policy))
+  end
+end
+
 -- ruleRunner(f, ctx, perInvokeOpts)
 --   ctx            = rule object (ctx.isRule=true) or makeExprCtx() result
 --   perInvokeOpts  = {vars=mkEvVars(...)} for trigger callbacks; nil for expressions
@@ -661,6 +688,9 @@ function ruleRunner(f, ctx, perInvokeOpts)
   evalOpts.gen = ctx.gen or 0  -- snapshot of the run generation at suspension
 
   local function onDone(...)
+    -- Clean completion (condition false, or the action finished) resets the
+    -- disableOnError error streak.
+    if ctx.isRule and ctx.failCount then ctx.failCount = 0 end
     if ctx.onDone then ctx.onDone(...) end
     if synced then
       -- completed asynchronously after ruleRunner already returned nil
@@ -693,9 +723,7 @@ function ruleRunner(f, ctx, perInvokeOpts)
 
   if not ok then
     if ctx.isRule then
-      ctx:log("silent", evalOpts.errorPrefix, err)
-      ctx:log("silent", evalOpts.errorPrefix, "Disabled")
-      ctx.disable()
+      ruleError(ctx, err)
       return nil
     else
       error(err, 2)  -- re-throw: outer eval's pcall catches it
@@ -715,6 +743,8 @@ end
 --   Rule form  ("cond => action"): registers the rule, returns the rule object.
 --   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
 --   Async expr ("wait(n); ..."):   returns nil, logs 💤; logs 📋 when done.
+--   Failure: returns (nil, errmsg) — so callers can distinguish a failed
+--   eval from an async/suspended one (which returns plain nil).
 local function eval(src,opts)
   opts = opts or {}
   setmetatable(ER.er.opts, {__index = dfltPrefix}) -- override default options with provided ones, need to do it here as user may have reassigned ER.er.opts
@@ -726,13 +756,14 @@ local function eval(src,opts)
     if not ok then
       if not opts.throw then
         printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
-        return
+        return nil, trimErr(err)   -- explicit failure status
       end
       error(err, 0)
     end
   end
   local isRule = (ast[1] == 'RULE')
   local result
+  local errmsg
 
   local ok, err = pcall(function()
     if isRule then
@@ -746,10 +777,9 @@ local function eval(src,opts)
   end)
 
   if not ok then
-    if not opts.throw then
-      printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
-    end
     if opts.throw then error(err, 0) end
+    printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+    errmsg = trimErr(err)
   end
 
   -- For bare expressions: log the sync result if we got one.
@@ -761,6 +791,7 @@ local function eval(src,opts)
     end
   end
 
+  if errmsg then return nil, errmsg end
   return result and table.unpack(result, 1, result.n)
 end
 
