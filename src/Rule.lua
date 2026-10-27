@@ -79,21 +79,33 @@ local function shouldLog(flag, sub)
   return false
 end
 
+-- makeLogger(obj, nameFn) installs obj:log(minLevel, prefix, ...) with
+-- verbosity gating (rule.verbosity field, falling back to opts.verbosity)
+-- and error-log enrichment (trimErr + src annotation) when prefix is the
+-- error prefix. nameFn, when given, returns the name to prefix the output
+-- with (rule name); expression contexts log without a name. Non-error args
+-- are passed through as-is (they may be tables — events, etc.).
+local function makeLogger(obj, nameFn)
+  function obj:log(minLevel, prefix, a1, ...)
+    local level = VERBOSITY[self.verbosity or self.opts.verbosity or "normal"] or 1
+    local min   = VERBOSITY[minLevel] or 1
+    if level < min then return end
+    local name = nameFn and nameFn(self)
+    if prefix == self.opts.errorPrefix and self.opts.src then
+      a1 = trimErr(a1 or "")   -- normalized to a string; safe to concat
+      if name then printErr(prefix, name..": "..a1, ..., "</br>  src: "..self.opts.src)
+      else printErr(prefix, a1, ..., "</br>  src: "..self.opts.src) end
+    else
+      if name then print(prefix, name..":", a1, ...) else print(prefix, a1, ...) end
+    end
+  end
+  return obj
+end
+
 -- makeExprCtx: wraps a plain opts table as a context for bare expression eval.
 local function makeExprCtx(opts)
   local ctx = { isRule = false, opts = opts, onDone = opts.onDone }
-  function ctx:log(minLevel, prefix, a1, ...)
-    local level = VERBOSITY[self.opts.verbosity or "normal"] or 1
-    local min   = VERBOSITY[minLevel] or 1
-    if level < min then return end
-    if prefix == self.opts.errorPrefix and self.opts.src then
-      a1 = trimErr(a1 or "")
-      printErr(prefix, a1, ..., "</br>  src: "..self.opts.src)
-    else
-      print(prefix, a1, ...)
-    end
-  end
-  return ctx
+  return makeLogger(ctx, nil)
 end
 
 ER.D2024 = os.time({year=2024, month=1, day=1}) -- Date before which all daily times are assumed to be (i.e. their date part is ignored and they are scheduled for the next occurrence of that time)
@@ -158,17 +170,7 @@ local function compRule(r, opts, src)
   rule.gen = 0                  -- run generation: bumped by killTimers so superseded
                                 -- async continuations can be discarded on resume
   rule.failCount = 0            -- consecutive errored runs (disableOnError policy)
-  function rule:log(minLevel, prefix, a1,...)
-    local level = VERBOSITY[self.verbosity or "normal"] or 1
-    local min   = VERBOSITY[minLevel] or 1
-    if level < min then return end
-    if prefix == self.opts.errorPrefix and self.src then
-      a1 = trimErr(a1 or "")
-      printErr(prefix, tostring(self)..":", a1,..., "</br>  src: "..self.src)
-    else
-      print(prefix, tostring(self)..":", a1,...)
-    end
-  end
+  makeLogger(rule, tostring)    -- rule name prefixes log output
 
   local modifiers = r._modifiers or {}
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
