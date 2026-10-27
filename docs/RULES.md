@@ -56,6 +56,51 @@ r.dumpTriggers()  -- print registered trigger/daily list to console
 
 ---
 
+## Rule heads: compile-time binding and purity
+
+### Compile-time binding
+
+Names in a rule condition are resolved when the rule is **registered**
+(compiled), not when it fires:
+
+```lua
+rule("dID = 88")
+rule("dID:value => log('hupp')")   -- dID is 88, captured at registration
+```
+
+If `dID` changes later, already-registered rules still see 88. Re-register
+the rule — or `er.reset()` to re-register everything — to rebind.
+
+Daily time expressions are the exception: they are re-evaluated whenever
+daily timers are (re)scheduled — at midnight and when a variable they
+depend on triggers recalculation.
+
+### Head purity
+
+A rule condition may only call whitelisted functions. Side-effecting or
+unknown calls are **registration errors** — a rule can never appear to work
+and then fail mysteriously later:
+
+- condition modifiers: `trueFor`, `first_in_win`, `once`, `cool_down`, `every_other`
+- pure builtins: `fmt`, `date`, `day`, `month`, `wday`, `min`, `max`, `sum`,
+  `average`, `size`, `map`, `filter`, `reduce`, `global`, `rnd`, `round`, ...
+- `log` — the sanctioned debug probe (prints, but returns its arguments)
+
+Indexed/field calls (`math.floor(x)`, `obj:fn(x)`) and inline lambdas are
+not classified. To whitelist your own pure helper:
+
+```lua
+fibaro.ER._headFuns.myFun = true   -- before registering rules that call it
+```
+
+### Daily time dedup
+
+Duplicate daily times in a condition (`@{17:00, 17:00}`, or two expressions
+evaluating to the same time) collapse to a single scheduled event — one
+DAILY trigger is enough regardless of which expression produced it.
+
+---
+
 ## Verbosity levels
 
 Set on a rule object at any time before (or after) registration:
