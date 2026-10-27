@@ -1,5 +1,0 @@
-=== rule_modifier_since5000 ===
-
-  PASS: since: fires after condition holds 5 time units
-
-  1 passed

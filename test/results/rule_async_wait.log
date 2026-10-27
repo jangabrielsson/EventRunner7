@@ -1,6 +1,0 @@
-=== rule_async_wait5000 ===
-
-  PASS: async: wait(5) then return a*3
-  PASS: async: chained waits
-
-  2 passed

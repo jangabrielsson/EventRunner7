@@ -1,5 +1,0 @@
-=== rule_trigger_var5000 ===
-
-  PASS: trigger var: condition true -> action returns 10
-
-  1 passed
