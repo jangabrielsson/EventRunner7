@@ -1,21 +1,24 @@
 --%%name:EventRunnerTest
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%%offline:true
---%%file:$fibaro.lib.speed,speed
---%%file:src/Sim.lua,sim
---%%file:tests/testfuns.lua,test
+--%%include:../EventRunner.inc
+--%%mode:offline
+--%%file:../src/Sim.lua,sim
+--%%file:../tests/testfuns.lua,test
 --%%time:2026/04/28 12:00:00
 
 -- testsuit for EventScript 
--- runs in real time so beware of time triggers far off in the future.
+-- Run with: flua --api local --step --max-hours 1 tests/eventrunner_flua_test.lua
+-- --step fast-forwards to each timer deadline (plua speedTime semantics),
+-- so the wait() chain completes at CPU speed; without it the suite runs in
+-- real time and waits out every wait().
 -- We always start at 2026/04/28 12:00:00
--- Loads a set of plua devices (QAs) to test with and test against. These are not compatible with speedTime.
--- Focus for this testsuit is to test the integration of EventScript with devices and resources. Standard EventScript features are tested in eventrunner_test.lua which runs with speedTime.
+-- Loads a set of simulated devices (tests/stdQAs) to test with and test
+-- against. These fire change events immediately when a property is changed.
+-- Focus for this testsuit is to test the integration of EventScript with devices and resources. Standard EventScript features are tested in eventrunner_test.lua which runs with fast-forwarded virtual time.
 
 local function main(er) ER = er
   local rule, variables, test = er.eval, er.variables, er.test
-  local function loadDevice(name) return er.loadPluaDevice(name) end
+  local function loadDevice(name) return er.loadSimDevice(name) end
 
   -- Set up a HomeTable, devices we have in the home
   local HT = {
@@ -28,6 +31,7 @@ local function main(er) ER = er
       motion1 = loadDevice("motionSensor"),
       motion2 = loadDevice("motionSensor"),
       motion3 = loadDevice("motionSensor"),
+      motion4 = loadDevice("motionSensor"),
       door1 = loadDevice("doorSensor"),
       lamp1 = loadDevice("multilevelSwitch"),
       lamp2 = loadDevice("multilevelSwitch"),
@@ -157,13 +161,15 @@ local function main(er) ER = er
   -- Uses hall.motion1 (starts false/safe). After group: motion1=false.
   -- ────────────────────────────────────────────────────────────────────────────
 
-  -- check(13): motionSensor:breached — also fires check(3) rule, but that uses once() so no double-fire
+  -- check(13): motionSensor:breached — the motion1 breach also fires the
+  -- check(3) rule (once() on {motion1,motion2}), consuming it so group 14's
+  -- motion2 breach cannot re-trigger the reset that would break check(24)
   rule("once(hall.motion3:breached) => check(13)")
-  rule("wait(1.0); hall.motion3:value = true")
+  rule("wait(1.0); hall.motion3:value = true; hall.motion1:value = true")
 
-  -- check(14): motionSensor:safe — motion1 back to safe; triggers trueFor in check(4) countdown
+  -- check(14): motionSensor:safe — motion1 back to safe; restarts the trueFor countdown for check(4)
   rule("once(hall.motion3:safe) => check(14)")
-  rule("wait(1.4); hall.motion3:value = false")
+  rule("wait(1.4); hall.motion3:value = false; hall.motion1:value = false")
 
   -- ────────────────────────────────────────────────────────────────────────────
   -- TEST GROUP 6: floodSensor — breached / safe
@@ -189,12 +195,12 @@ local function main(er) ER = er
 
   -- ────────────────────────────────────────────────────────────────────────────
   -- TEST GROUP 8: temperatureSensor — temp rises above threshold
-  -- Uses bedroom.temp1 (starts nil). After group: temp1={value=25,unit='C'}.
+  -- Uses bedroom.temp1 (starts nil). After group: temp1=25.
   -- ────────────────────────────────────────────────────────────────────────────
 
   -- check(18): temp > 24
   rule([[once(bedroom.temp1:temp > 24) => check(18)]])
-  rule("wait(7.0); bedroom.temp1:value = {value=25, unit='C'}")
+  rule("wait(7.0); bedroom.temp1:value = 25")
 
   -- ────────────────────────────────────────────────────────────────────────────
   -- TEST GROUP 9: humiditySensor — value rises above threshold
@@ -247,13 +253,15 @@ local function main(er) ER = er
 
   -- ────────────────────────────────────────────────────────────────────────────
   -- TEST GROUP 14: trueFor — sustained breach fires rule
-  -- Uses hall.motion2 (starts false; distinct from motion1 used in groups 3/5).
-  -- motion2 is set true at 13.0s; trueFor(2s) fires ~15s → check(24).
+  -- Uses hall.motion4, a sensor outside RULE3's {motion1,motion2} set — a
+  -- breach here cannot re-trigger RULE3's motion2 reset, so the breach is
+  -- sustained for the full 2s window.
+  -- motion4 is set true at 13.0s; trueFor(2s) fires ~15s → check(24).
   -- ────────────────────────────────────────────────────────────────────────────
 
-  -- check(24): motion2 breached for 2 seconds
-  rule([[trueFor(00:00:02,hall.motion2:breached) => check(24)]])
-  rule("wait(13.0); hall.motion2:value = true")
+  -- check(24): motion4 breached for 2 seconds
+  rule([[trueFor(00:00:02,hall.motion4:breached) => check(24)]])
+  rule("wait(13.0); hall.motion4:value = true")
 
 end
 
@@ -266,5 +274,6 @@ function QuickApp:onInit()
     profile.stop()
     -- report for the top 10 functions, sorted by execution time
     print(profile.report(20))
+    os.exit(0)
   end, 20*1000) -- stop the test after 20 seconds of real time, which should be enough for all the rules to have triggered
 end

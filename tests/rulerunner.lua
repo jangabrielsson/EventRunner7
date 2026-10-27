@@ -1,14 +1,6 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
---%%file:../src/Tokenizer.lua,tokenizer
---%%file:../src/Parser.lua,parser
---%%file:../src/CSP.lua,csp
---%%file:../src/Utils.lua,utils
---%%file:../src/Props.lua,props
---%%file:../src/Compiler.lua,compiler
---%%file:../src/ScriptFuns.lua,scriptfuns
---%%file:../src/Rule.lua,rule
---%%file:../src/Templates.lua,templates
+--%%include:../EventRunner.inc
 --%%file:../src/Setup.lua,stdfuns
 --%%u:{label='info', text='EventRunnner 7'}
 

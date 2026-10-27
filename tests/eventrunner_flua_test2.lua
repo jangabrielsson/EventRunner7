@@ -1,21 +1,21 @@
 --%%name:EventRunnerTest
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%%offline:true
---%%file:$fibaro.lib.speed,speed
---%%file:src/Sim.lua,sim
---%%file:tests/testfuns.lua,test
+--%%include:../EventRunner.inc
+--%%mode:offline
+--%%file:../src/Sim.lua,sim
+--%%file:../tests/testfuns.lua,test
 --%%time:2026/04/28 12:00:00
 
 -- testsuit for EventScript 
 -- runs in real time so beware of time triggers far off in the future.
 -- We always start at 2026/04/28 12:00:00
--- Loads a set of plua devices (QAs) to test with and test against. These are not compatible with speedTime.
--- Focus for this testsuit is to test the integration of EventScript with devices and resources. Standard EventScript features are tested in eventrunner_test.lua which runs with speedTime.
+-- Loads a set of simulated devices (tests/stdQAs) to test with and test
+-- against. These fire change events immediately when a property is changed.
+-- Focus for this testsuit is to test the integration of EventScript with devices and resources. Standard EventScript features are tested in eventrunner_test.lua which runs with fast-forwarded virtual time.
 
 local function main(er) ER = er
   local rule, variables, test = er.eval, er.variables, er.test
-  local function loadDevice(name) return er.loadPluaDevice(name) end
+  local function loadDevice(name) return er.loadSimDevice(name) end
 
   -- Set up a HomeTable, devices we have in the home
   local HT = {
@@ -79,7 +79,7 @@ local function main(er) ER = er
     local done = true
     print("✅",n,"done")
     for i=1,nChecks do if not checks[i] then done = false; break end end
-    if done then print("✅ All "..nChecks.." checks passed, test complete") end
+    if done then print("✅ All "..nChecks.." checks passed, test complete"); os.exit(0) end
   end
 
   rule("kitchenLamps = {kitchen.lamp1,kitchen.lamp2}") -- test creating a variable with a table of devices, and that it works in rules
@@ -101,9 +101,11 @@ local function main(er) ER = er
   rule("!{kitchen.lamp1,kitchen.lamp2}:isDead => check(5)") -- test :isDead reduces to false if all of the devices in the list are dead
   rule("wait(2); kitchen.lamp1:prop = {'dead', false}")
 
+  -- RULE8 registered before RULE6: when hall.lamp1 turns on, the set-reduce
+  -- condition must be evaluated before RULE6's action turns the lamp off
+  rule("{hall.lamp1,hall.lamp2}:isOn =>  check(8)") -- reduce behaviour, when lamp1 turns on.
   rule("hall.lamp1:isOn => hall.lamp1:off; check(6)") 
   rule("hall.lamp1:isOff => check(7)") 
-  rule("{hall.lamp1,hall.lamp2}:isOn =>  check(8)") -- reduce behaviour, when lamp1 turns on.
   rule("hall.lamp1:on")
 
   rule("security.remote1:central.keyId == 3 => check(9)") -- test that we can trigger on remote controller events

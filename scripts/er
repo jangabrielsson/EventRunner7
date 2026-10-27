@@ -3,8 +3,15 @@
 #
 # Usage:
 #   er "wait(4); log('OK')"
-#   er -t 30 "@08:00 => log('morning')"
+#   er "@08:00 => log('morning')"        # fires at CPU speed via --step
 #   er --raw "log('bare lua')"      # skip rule() wrapper
+#
+# Runs under flua --step (deterministic deadline-ordered fast-forward), so
+# time rules fire at CPU speed: wait(4) fires instantly, and a @08:00 daily
+# trigger fires as soon as the clock steps to 08:00. The run exits 0 when
+# the rules are done (ER's midnight loop is marked housekeeping); --max-hours
+# 24 bounds the window so a daily rule fires once instead of re-firing every
+# simulated day, and -t is a wall-clock leash as a final safety net.
 
 RUNFOR=10
 RAW=false
@@ -19,10 +26,17 @@ done
 
 if [[ $# -eq 0 ]]; then
   echo "Usage: er [-t <seconds>] [--raw] \"<rule>\" [\"<rule2>\" ...]"
+  echo "       -t N  wall-clock leash in seconds (default 10)"
   exit 1
 fi
 
 RUNNER="$(cd "$(dirname "$0")/.." && pwd)/tests/rulerunner.lua"
+# flua ≥ 0.1.91 resolves --%%include/--%%file relative to the declaring
+# file, so the runner's header works from any cwd.
+# --step fast-forwards to each timer deadline; ER's midnight loop is marked
+# housekeeping (_FLUA.background, flua ≥ 0.1.96), so the run counts as idle
+# once the rules have fired and exits 0 — -t is just a wall-clock leash in
+# case a rule schedules an endless chain of timers.
 
 {
   for arg in "$@"; do
@@ -32,4 +46,4 @@ RUNNER="$(cd "$(dirname "$0")/.." && pwd)/tests/rulerunner.lua"
       printf 'rule([==[%s]==])\n' "$arg"
     fi
   done
-} | flua --api local --nogreet --run-for "-$RUNFOR" "$RUNNER"
+} | flua --api local --nogreet --step --max-hours 24 --run-for "-$RUNFOR" "$RUNNER"

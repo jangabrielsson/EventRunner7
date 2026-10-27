@@ -16,6 +16,10 @@ non-zero, so no code path silently passes.
 flua --check qa.lua              # 1. static: syntax, --%% directives, deprecated APIs
 flua --api local qa.lua          # 2. run offline; the QA must exit itself
 echo $?                          # 3. exit code: 0 = pass, non-zero = fail
+flua test                        # or: the whole suite — every *_test.lua under
+                                 # the cwd, one flua process per file, a per-file
+                                 # timeout, and a PASS/FAIL/TIME report (exit 0
+                                 # only when everything passes)
 ```
 
 - The run lasts until the QA calls `exit(0)` / `os.exit(0)` (HC3 names) — a
@@ -47,6 +51,10 @@ itself in package.preload; main loads last), and on the controller every
 assertion is a no-op (flua-only `_FLUA` is absent: no printing, no
 counting, `finish()` returns 0). In flua the shipped copy is the full
 library. Global spelling: `fluaTest.new()`.
+
+`_FLUA` is flua's **emulator marker**: flua always sets it, the HC3 never
+does — the plua equivalent is `fibaro.plua`, which flua does NOT set.
+Migrate `if fibaro.plua then ... end` to `if _FLUA then ... end`.
 
 The hand-rolled equivalent (plain Lua, for QAs that must stay dependency-free):
 
@@ -146,8 +154,15 @@ Timer logic must be reproducible — never sleep in a test QA:
 flua --api local --start '2027/10/6 12:00:00' qa.lua   # fixed start time
 flua --api local --speed 60 qa.lua                     # 60x virtual speed
 flua --api local --instant qa.lua                      # timers fire immediately
+flua --api local --step qa.lua                         # deadline-ordered fast-forward (os.time()-coherent)
 flua --api local --max-hours 24 qa.lua                 # bound the run
 ```
+
+`--instant` collapses the whole timer heap into one pass — safe only for
+QAs that never compute delays from `os.time()`/`os.date()` (pure
+`setTimeout` chains). Event engines with `@@`-rules and any
+`os.time()`-relative re-scheduling need `--step` (fast, deadline by
+deadline, `os.time()` equals each fired deadline) or `--speed` (flowing).
 
 ## Mock the outside world (`net.*Server`)
 

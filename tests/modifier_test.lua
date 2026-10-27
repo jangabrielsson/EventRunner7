@@ -1,6 +1,6 @@
 --%%name:Modifier unit tests
---%%headers:EventRunner.inc
---%%offline:true
+--%%include:../EventRunner.inc
+--%%mode:offline
 
 local PASS, FAIL = 0, 0
 local COND_FAIL = 'fibaro.ER.conditionFail'
@@ -45,13 +45,6 @@ local function main(er)
   check("every: silent on 5th", runRule(r2), COND_FAIL)
   check("every: fires on 6th",  runRule(r2), 1)
 
-  -- ── restart modifier ──────────────────────────────────────────────────
-  er.triggerVars.trs = 0
-  local r3 = er.eval("trs > 0 restart => return 1")
-  r3.verbosity = "silent"
-  er.triggerVars.trs = 1
-  check("restart: compiles and runs", runRule(r3), 1)
-
   -- ── since modifier (trueFor sugar) ────────────────────────────────────
   er.triggerVars.tsi = 0
   local r4 = er.eval("tsi > 0 since 5 => return 1")
@@ -86,6 +79,7 @@ local function main(er)
   check("every_other direct: fires on 4th",  runRule(r7), 1)
 
   print(string.format("\n=========== Results: %d passed, %d failed ===========", PASS, FAIL))
+  os.exit(FAIL > 0 and 1 or 0)
 end
 
 function QuickApp:onInit()

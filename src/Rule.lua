@@ -107,6 +107,11 @@ end
 local function midnightLoop(er)
   local dt = os.date("*t")
   local midnight = os.time{year=dt.year, month=dt.month, day=dt.day+1, hour=0, min=0, sec=0}
+  -- Under flua, mark the loop timer as housekeeping so it does not count
+  -- as pending work: a test QA is considered idle once real rules/timers
+  -- drain, so --run-for's exit-when-idle terminates instead of spinning to
+  -- the wall cap. Inert on the HC3 (_FLUA is nil) and on older flua.
+  local loopFn
   local function loop()
     setupGlobalVariables()
     for _,r in pairs(rules) do
@@ -115,9 +120,14 @@ local function midnightLoop(er)
     end
     local dt = os.date("*t")
     midnight = os.time{year=dt.year, month=dt.month, day=dt.day+1, hour=0, min=0, sec=0}
-    setTimeout(loop, (midnight-os.time())*1000)
+    setTimeout(loopFn, (midnight-os.time())*1000)
   end
-  setTimeout(loop, (midnight-os.time())*1000)
+  -- Under flua, mark the loop as housekeeping so it does not count as
+  -- pending work: a test QA is considered idle once real rules/timers
+  -- drain, so --run-for's exit-when-idle terminates instead of spinning to
+  -- the wall cap. Inert on the HC3 and on flua without the API.
+  loopFn = (_FLUA and _FLUA.background and _FLUA.background(loop)) or loop
+  setTimeout(loopFn, (midnight-os.time())*1000)
 end
 
 ---------------------- Create rule ---------------------------------
@@ -919,7 +929,7 @@ local function bootEventRunner(cb)
   er.propertyFuns = ER.propertyFuns
   er.loadSimDevice = ER.loadSimDevice
   er.createSimGlobal = ER.defineSimGlobalVariable
-  er.loadPluaDevice = ER.loadPluaDevice
+  er.loadDevice = ER.loadDevice
   er.base64encode = ER.base64encode
   ER.isRule = isRule
   ER.getRule = getRule

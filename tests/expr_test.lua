@@ -1,8 +1,8 @@
 --%%name:Expression compiler unit tests
---%%headers:EventRunner.inc
---%%file:src/Sim.lua,sim
---%%file:$fibaro.lib.speed,speed
---%%offline:true
+--%%include:../EventRunner.inc
+--%%file:../src/Sim.lua,sim
+--%%file:../test/speed.lua,speed
+--%%mode:offline
 
 local function main()
   -- Capture after EventRunner has initialized system modules

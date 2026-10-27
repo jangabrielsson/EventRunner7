@@ -1,12 +1,12 @@
 --%%name:Test ground
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%% offline:true
+--%%include:../EventRunner.inc
+--%%mode:offline
 
---%%file:src/Setup.lua,stdfuns
---%%file:$fibaro.lib.speed,speed
---%%file:tests/testfuns.lua,test
---%%file:src/Sim.lua,sim
+--%%file:../src/Setup.lua,stdfuns
+--%%file:../test/speed.lua,speed
+--%%file:../tests/testfuns.lua,test
+--%%file:../src/Sim.lua,sim
 --%%time:2026/04/28 09:00:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into

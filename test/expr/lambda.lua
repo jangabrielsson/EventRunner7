@@ -1,7 +1,7 @@
 --%%name:expr_lambda
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   -- Arrow lambda, single param, immediately invoked

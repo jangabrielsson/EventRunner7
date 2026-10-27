@@ -1,7 +1,7 @@
 --%%name:expr_variables
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   -- Assignment and retrieval

@@ -2,14 +2,14 @@
 # test/run-tests.sh — Regression test runner for EventRunner7
 #
 # Runs each test file in test/expr/ and test/rules/ as a separate
-# plua process.  Isolated processes ensure rules never interfere
+# flua process.  Isolated processes ensure rules never interfere
 # between tests.  Each test writes a log to test/results/<name>.log.
 #
 # Usage:
 #   ./test/run-tests.sh              # run all tests
 #   ./test/run-tests.sh expr         # expression tests only
 #   ./test/run-tests.sh rules        # rule tests only
-#   ./test/run-tests.sh -v           # verbose (show plua output)
+#   ./test/run-tests.sh -v           # verbose (show flua output)
 #   ./test/run-tests.sh --clean      # remove old logs first
 
 set -e
@@ -23,7 +23,16 @@ cd "$PROJECT_DIR"
 PASS=0
 FAIL=0
 VERBOSE=false
-TIMEOUT=15  # seconds per test (plua --run-for 0 relies on os.exit)
+# Virtual-time fast-forward: --step advances the clock to each timer's
+# deadline before its callback runs (plua speedTime semantics), so ER's
+# os.time()-relative delay math stays coherent and the run completes at CPU
+# speed. --max-hours caps the simulated window so a hung test cannot run
+# forever.
+# NOTE: --instant would be faster but breaks ER: it collapses the whole
+# timer heap into one pass, corrupting ER's os.time()-based event engine.
+# NOTE: --speed runs the clock continuously, so virtual time passes while
+# test code executes — exact-time assertions drift and flake.
+FLUA=(flua --api local --nogreet --color never --step --max-hours 24)
 
 # Parse flags
 TESTS=()
@@ -62,7 +71,7 @@ for test_file in "${TESTS[@]}"; do
 
   if $VERBOSE; then
     echo "── $label ──────────────────────────────"
-    if plua --fibaro --run-for "$TIMEOUT" "$test_file" 2>&1; then
+    if "${FLUA[@]}" "$test_file" 2>&1; then
       PASS=$((PASS + 1))
       echo "  PASS"
     else
@@ -72,7 +81,7 @@ for test_file in "${TESTS[@]}"; do
     echo ""
   else
     printf "  %-45s " "$label"
-    output=$(plua --fibaro --run-for "$TIMEOUT" "$test_file" 2>&1) && rc=$? || rc=$?
+    output=$("${FLUA[@]}" "$test_file" 2>&1) && rc=$? || rc=$?
     if [[ $rc -eq 0 ]]; then
       echo "PASS"
       PASS=$((PASS + 1))

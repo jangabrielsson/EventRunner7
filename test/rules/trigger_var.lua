@@ -1,7 +1,7 @@
 --%%name:rule_trigger_var
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   er.triggerVars.t = 0

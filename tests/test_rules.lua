@@ -1,9 +1,9 @@
 --%%name:Rule unit tests
---%%headers:EventRunner.inc
---%%file:src/Sim.lua,sim
---%%file:tests/test_rule_runner.lua,test
---%%file:$fibaro.lib.speed,speed
---%%offline:true
+--%%include:../EventRunner.inc
+--%%file:../src/Sim.lua,sim
+--%%file:../tests/test_rule_runner.lua,test
+--%%file:../test/speed.lua,speed
+--%%mode:offline
 
 local fmt = string.format
 

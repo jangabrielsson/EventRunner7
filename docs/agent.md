@@ -15,7 +15,7 @@
   - [4.2 Agent Provider abstraction](#42-agent-provider-abstraction)
   - [4.3 RuleIntent schema](#43-ruleintent-schema)
   - [4.4 EventScript Compiler](#44-eventscript-compiler)
-  - [4.5 Validator (plua bridge)](#45-validator-plua-bridge)
+  - [4.5 Validator (flua bridge)](#45-validator-flua-bridge)
   - [4.6 Conflict Analyzer](#46-conflict-analyzer)
   - [4.7 Simulator (dry-run)](#47-simulator-dry-run)
   - [4.8 Deployer](#48-deployer)
@@ -63,12 +63,12 @@ compiler's job.
 
 2. **ER's own parser is the validator.**
    Validity is checked by running the generated rules through EventRunner's
-   real parser/compiler via `plua` (offline), not by a Python reimplementation.
+   real parser/compiler via `flua` (offline), not by a Python reimplementation.
    A rule is only valid if `er.eval(...)` accepts it.
 
 3. **Offline-first.**
    Context gather and deploy are the only steps that need the HC3. Compilation,
-   validation, conflict analysis, and simulation all run offline (plua +
+   validation, conflict analysis, and simulation all run offline (flua +
    `src/Sim.lua`).
 
 4. **Human-in-the-loop.**
@@ -101,13 +101,13 @@ compiler's job.
                         │   EventScript Compiler (deterministic)       │
                         │        │  EventScript rule strings            │
                         │        ▼                                     │
-                        │   Validator (plua, offline)                  │
+                        │   Validator (flua, offline)                  │
                         │        │  valid?  ──no──► repair loop ──► agent
                         │        ▼  yes                                │
                         │   Conflict Analyzer (static + agent)         │
                         │        │  conflict list / explanations       │
                         │        ▼                                     │
-                        │   Simulator (plua + Sim.lua, optional)       │
+                        │   Simulator (flua + Sim.lua, optional)       │
                         │        │  dry-run trace                      │
                         │        ▼                                     │
                         │   Deployer (quickApp files API, versioned)   │
@@ -122,7 +122,7 @@ compiler's job.
 
 A thin REST client (`httpx`) that builds a `ContextBundle` — the single JSON
 document handed to the agent. Credentials come from the same `.env` convention
-plua uses (`HC3_URL`, username/password).
+flua uses (`HC3_URL`, username/password).
 
 Sources (all documented in `.github/skills/hc3-rest-api/SKILL.md`):
 
@@ -250,14 +250,15 @@ The compiler is the only place EventScript text is produced. Anything the
 compiler can't express is a compiler limitation to fix — not an invitation
 for the agent to write code.
 
-### 4.5 Validator (plua bridge)
+### 4.5 Validator (flua bridge)
 
 Runs generated rules through the **real** ER stack offline:
 
 1. Write a throwaway QuickApp test file (same pattern as `test/rules/*.lua`):
    `main(er)` calls `er.eval(src)` for every generated rule.
-2. Run `plua --fibaro --offline --run-for N <file>` (or the `plua` Python API,
-   which keeps everything in-process since plua is a pip package).
+2. Run `flua --api local --run-for N <file>` (or drive flua from Python —
+   it ships as the `fibaro-flua` pip package, so the whole engine stays
+   in-process).
 3. Parse results: rule registration errors, trigger scan errors
    (`scanHead: missing op`), etc. are validation failures.
 4. On failure, feed the error message + offending intent back to the agent
@@ -305,9 +306,9 @@ intents and re-validated.
 
 ### 4.7 Simulator (dry-run)
 
-Uses `src/Sim.lua` + plua offline simulation (same machinery as
+Uses `src/Sim.lua` + flua offline simulation (same machinery as
 `tests/eventrunner_testground*.lua` and the `er.loadSimDevice`,
-`er.createSimGlobal`, `er.loadPluaDevice` APIs):
+`er.createSimGlobal`, `er.loadDevice` APIs):
 
 1. Instantiate simulated devices from the `ContextBundle` types.
 2. Load the merged rule set.
@@ -358,7 +359,7 @@ $ er-agent "when there is motion in the kitchen after sunset, \
   ▸ Agent: compiled 1 intent → 2 rules
     RULE "Kitchen motion light"
       77:breached & between(sunset,sunrise) => 54:on; wait(00:05); 54:off
-  ▸ Validated offline with plua ✓
+  ▸ Validated offline with flua ✓
   ▸ Conflict scan: 0 new conflicts (2 informational notes)
   ▸ Simulate? [y/N]
   ▸ Deploy? [y/N]   (shows diff)
@@ -398,7 +399,7 @@ future web UI.
 
 ```
 agent/                          # new top-level dir in this repo
-  pyproject.toml                # python 3.10+, httpx, pydantic, plua
+  pyproject.toml                # python 3.10+, httpx, pydantic, fibaro-flua
   README.md
   src/er_agent/
     __init__.py
@@ -407,9 +408,9 @@ agent/                          # new top-level dir in this repo
     context.py                  # HC3 REST client → ContextBundle
     intents.py                  # RuleIntent / ContextBundle models
     compiler.py                 # RuleIntent → EventScript
-    validator.py                # plua bridge (offline compile/run)
+    validator.py                # flua bridge (offline compile/run)
     conflicts.py                # static analysis
-    simulator.py                # plua + Sim.lua dry-run bridge
+    simulator.py                # flua + Sim.lua dry-run bridge
     deploy.py                   # quickApp files API, backups, rollback
     providers/
       base.py                   # AgentProvider protocol + registry
@@ -425,19 +426,19 @@ agent/                          # new top-level dir in this repo
     test_compiler.py            # intent fixtures → expected EventScript
     test_conflicts.py
     test_deterministic_provider.py
-    test_validator.py           # uses plua offline against this repo
+    test_validator.py           # uses flua offline against this repo
     fixtures/
       context_bundle.json
       intents/
 ```
 
-`plua` points at **this** repository's `EventRunner.inc` + `src/*.lua` for
-validation/simulation, so the agent always validates against the exact ER
-version it will deploy.
+The flua validator points at **this** repository's `EventRunner.inc` +
+`src/*.lua` for validation/simulation, so the agent always validates against
+the exact ER version it will deploy.
 
 ## 9. Roadmap (phased)
 
-- **Phase 0 — Groundwork.** Spec review; plua validation harness for
+- **Phase 0 — Groundwork.** Spec review; flua validation harness for
   arbitrary rule strings (a `validate_rule(src)` test file); compiler
   skeleton with 10 intent fixtures compiling correctly.
 - **Phase 1 — Deterministic core.** `ContextProvider` (HC3 read-only),

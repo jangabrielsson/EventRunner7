@@ -1,8 +1,8 @@
 --%%name:expr_errors
---%%headers:EventRunner.inc
---%%file:src/Sim.lua,sim
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../src/Sim.lua,sim
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function dehtml(s)
   s = s:gsub("</br>", "\n")

@@ -1,7 +1,7 @@
 --%%name:rule_truefor
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   -- trueFor: condition must be continuously true for N seconds.

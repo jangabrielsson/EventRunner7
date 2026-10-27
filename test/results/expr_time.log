@@ -1,4 +1,4 @@
-=== expr_time5555 ===
+=== expr_time5000 ===
 
   PASS: time add: 10:00 + 00:30 = seconds(10.5h)
   PASS: time sub: 12:00 - 10:00 = 2h in seconds

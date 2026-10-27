@@ -1,8 +1,8 @@
 --%%name:rule_time_catchup
---%%headers:EventRunner.inc
---%%file:$fibaro.lib.speed,speed
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/speed.lua,speed
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 --%%time:2026/06/12 09:00:00
 
 local function main(er)

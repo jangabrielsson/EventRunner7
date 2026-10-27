@@ -99,11 +99,15 @@ function ER.loadSimDevice(name,id)
   return device.id
 end
 
-function ER.loadPluaDevice(path)
-  local p = os.getenv("DEVICELIB") or ""
-  local code = fibaro.plua.lib.readFile(p..path..".lua")
-  local d = fibaro.plua.lib.loadQAString(code,{headers={"desktop:false"}})
-  assert(d)
-  simDevices[d.device.id] = d.device
-  return d.device.id
+-- Load a standalone QuickApp file as a device in the emulator.
+-- flua's replacement for plua's fibaro.plua.lib.loadQAString device loading:
+-- the file is installed and booted as a real QA (its own --%% header is
+-- parsed, --%%mode:offline keeps it on the simulated HC3) and its device id
+-- is returned. The QA must be self-contained — flua runs each QA in its
+-- own Lua environment, so it cannot see this QA's globals.
+function ER.loadDevice(path)
+  local qaId, err = _FLUA.loadQAfromFile(path, {"mode:offline"})
+  assert(qaId, err)
+  simDevices[qaId] = true
+  return qaId
 end

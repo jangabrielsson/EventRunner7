@@ -117,8 +117,12 @@ local function preSetup(er)
 
     local IPaddress
     local function getIPaddress(name)
-        if fibaro.plua then
-            return fibaro.plua.config.IPAddress
+        if _FLUA then
+            -- flua: the emulator marker is the global _FLUA (fibaro.plua is
+            -- nil). _FLUA.configFile holds the Lua config flua loads at
+            -- startup (.flua.lua, ~/.flua.lua, or the legacy ~/.plua/config.lua)
+            -- — same file plua kept IPAddress in.
+            return _FLUA.configFile and _FLUA.configFile.IPAddress
         elseif IPaddress then return IPaddress 
         else
             name = name or ".*"

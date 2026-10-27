@@ -1,6 +1,6 @@
 --%%name:Named Scene unit tests
---%%headers:EventRunner.inc
---%%offline:true
+--%%include:../EventRunner.inc
+--%%mode:offline
 
 local PASS, FAIL = 0, 0
 
@@ -50,7 +50,7 @@ local function main(er)
 
   -- ── Test 1: activate-only shorthand ────────────────────────────────────
   er.eval("scene cozy = { light1:value=30, light2:level=50 }")
-  local r1 = er.eval("true => cozy:activate")
+  local r1 = er.eval("@00:00 => cozy:activate")
   r1.verbosity = "silent"
   runRule(r1)
   check("activate-only: light1.value set", d1._values.value, 30)
@@ -64,14 +64,14 @@ local function main(er)
       deactivate: { light1:value=0,  light2:level=0  }
     }
   ]])
-  local r2 = er.eval("true => movienight:activate")
+  local r2 = er.eval("@00:00 => movienight:activate")
   r2.verbosity = "silent"
   runRule(r2)
   check("subsections: activate light1.value", d1._values.value, 10)
   check("subsections: activate light2.level", d2._values.level, 20)
 
   d1._values = {}; d2._values = {}
-  local r3 = er.eval("true => movienight:deactivate")
+  local r3 = er.eval("@00:00 => movienight:deactivate")
   r3.verbosity = "silent"
   runRule(r3)
   check("subsections: deactivate light1.value", d1._values.value, 0)
@@ -79,7 +79,7 @@ local function main(er)
 
   -- ── Test 3: deactivate on activate-only scene → runtime error ──────────
   er.eval("scene plain = { light1:value=99 }")
-  local r4 = er.eval("true => plain:deactivate")
+  local r4 = er.eval("@00:00 => plain:deactivate")
   r4.verbosity = "silent"
   runRule(r4)
   check("deactivate no-body: runtime error", r4._disabled, true)
@@ -88,7 +88,7 @@ local function main(er)
   ER.defglobals.refLevel = 10
   er.eval("scene dynscene = { light1:bright=refLevel }")
   ER.globals.refLevel = 20    -- change value AFTER scene declaration
-  local r5 = er.eval("true => dynscene:activate")
+  local r5 = er.eval("@00:00 => dynscene:activate")
   r5.verbosity = "silent"
   d1._values = {}
   runRule(r5)
@@ -98,7 +98,7 @@ local function main(er)
   ER.defglobals.refLevel = 999  -- change again
   d1._values = {}
   er.eval("scene litscene = { light1:bright=42 }")
-  local r6 = er.eval("true => litscene:activate")
+  local r6 = er.eval("@00:00 => litscene:activate")
   r6.verbosity = "silent"
   runRule(r6)
   check("literal: stored directly, not thunk", d1._values.bright, 42)
@@ -111,12 +111,13 @@ local function main(er)
       activate:   { light1:value=22 }
     }
   ]])
-  local r7 = er.eval("true => reversed:activate")
+  local r7 = er.eval("@00:00 => reversed:activate")
   r7.verbosity = "silent"
   runRule(r7)
   check("reversed order: activate runs correct block", d1._values.value, 22)
 
   print(string.format("\n=========== Results: %d passed, %d failed ===========", PASS, FAIL))
+  os.exit(FAIL > 0 and 1 or 0)
 end
 
 function QuickApp:onInit()

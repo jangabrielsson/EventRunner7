@@ -1,17 +1,16 @@
 --%%name:EventRunnerTest
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%%offline:true
--- %%save:dist/EventRunner7.fqa
---%%file:$fibaro.lib.speed,speed
---%%file:src/Sim.lua,sim
---%%file:tests/testfuns.lua,test
+--%%include:../EventRunner.inc
+--%%mode:offline
+--%%file:../test/speed.lua,speed
+--%%file:../src/Sim.lua,sim
+--%%file:../tests/testfuns.lua,test
 --%%time:2026/04/28 12:00:00
 
 -- testsuit for EventScript 
 -- Runs in simulated time (speedTime) to allow testing of time based features without having to wait for real time to pass.
 -- We alway start at 2026/04/28 12:00:00
--- Loads a set of simulated predefined devices (tests/stdQAs) and global variables to test against. This resources fires change event immediately when a property is changed and works with speedTime. If we used plua simulated devices/resources it would not work with speedTime as they use the plua internal time, and would arrrive after speedTime finish...
+-- Loads a set of simulated predefined devices (tests/stdQAs) and global variables to test against. This resources fires change event immediately when a property is changed and works with fast-forwarded virtual time. If we used device QAs loaded at runtime (er.loadDevice) it would not work with the time fast-forward, as those QAs run their own timers against the engine clock.
 
 local function main(er) ER = er
   local rule, test = er.eval, er.test
@@ -56,6 +55,9 @@ local function main(er) ER = er
   test("local a=0; for x,v in pairs({a=1,b=2,c=3}) do a=a+v end; return a",{6})
 
   -- Builtin functions
+  -- --step holds the virtual clock at the pinned instant between timer
+  -- deadlines, so host-side os.date/os.time captures agree with the
+  -- expression's now/ostime to the second.
   test("return HM(now)",{os.date("%H:%M")})
   test("return HMS(now)",{os.date("%H:%M:%S")})
   test("return sign(0)",{1})

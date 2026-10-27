@@ -1,8 +1,8 @@
 --%%name:rule_device_triggers
---%%headers:EventRunner.inc
---%%file:src/Sim.lua,sim
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../src/Sim.lua,sim
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   local sw  = er.loadSimDevice("binarySwitch")

@@ -1,6 +1,6 @@
 # EventScript Debug Tooling
 
-EventScript provides a set of runtime debug functions that help you understand why rules fire (or don't). All functions work on both **plua** (development) and the real **HC3** (production) — output goes through the standard log console in both environments.
+EventScript provides a set of runtime debug functions that help you understand why rules fire (or don't). All functions work on both **flua** (development) and the real **HC3** (production) — output goes through the standard log console in both environments.
 
 ## Table of Contents
 

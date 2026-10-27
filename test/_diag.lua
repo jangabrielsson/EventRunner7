@@ -1,6 +1,6 @@
 --%%name:subst_diag
---%%headers:EventRunner.inc
---%%offline:true
+--%%include:../EventRunner.inc
+--%%mode:offline
 
 local function main(er)
   -- Test the new substitution-based template

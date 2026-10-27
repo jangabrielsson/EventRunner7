@@ -8,8 +8,8 @@
 -- the QuickApp name (--%%name:expr_arithmetic → test/results/expr_arithmetic.log).
 --
 -- Usage in a test file:
---   --%%headers:EventRunner.inc
---   --%%file:test/harness.lua,harness
+--   --%%include:../../EventRunner.inc
+--   --%%file:../../test/harness.lua,harness
 --
 --   local function main(er)
 --     local got = er.eval("return 3 + 4")
@@ -28,7 +28,7 @@ local log_file = nil
 local function log_open()
   if log_file then return end
   local tag = rawget(_G, "__TAG") or "unknown_test"
-  -- Strip trailing device ID that plua appends ("EXPR_ARITHMETIC5555" → "EXPR_ARITHMETIC")
+  -- Strip trailing device ID that flua appends ("EXPR_ARITHMETIC5555" → "EXPR_ARITHMETIC")
   local name = tag:match("^(.-)%d+$") or tag
   local path = "test/results/" .. name:lower() .. ".log"
   log_file = io.open(path, "w")
@@ -149,7 +149,7 @@ local exit_scheduled = false
 function schedule_exit()
   if exit_scheduled then return end
   exit_scheduled = true
-  -- Brief delay lets plua drain any pending timers before exit.
+  -- Brief delay lets flua drain any pending timers before exit.
   setTimeout(function()
     log_summary()
     os.exit(FAIL > 0 and 1 or 0)

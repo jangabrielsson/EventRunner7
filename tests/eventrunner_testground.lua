@@ -1,11 +1,9 @@
 --%%name:Test ground
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%%offline:true
--- %%save:dist/EventRunner7.fqa
---%%file:$fibaro.lib.speed,speed
---%%file:tests/testfuns.lua,test
---%%file:src/Sim.lua,sim
+--%%include:../EventRunner.inc
+--%%mode:offline
+--%%file:../tests/testfuns.lua,test
+--%%file:../src/Sim.lua,sim
 --%%time:2026/04/28 10:10:00
 
 -- Scratch pad for testing new feature. Actual test suite to go into
@@ -31,7 +29,5 @@ end
 
 function QuickApp:onInit()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
-  --fibaro.speedTime(1*24,function() -- Run for 24 hours of simulated time
-    fibaro.EventRunner(main)
-  --end)
+  fibaro.EventRunner(main)
 end

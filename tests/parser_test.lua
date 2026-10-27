@@ -1,7 +1,7 @@
 --%%name:Parser unit tests
---%%offline:true
+--%%mode:offline
 
---%%headers:EventRunner.inc
+--%%include:../EventRunner.inc
 
 local function main(er)
   local parse = fibaro.ER.parse
@@ -268,6 +268,7 @@ checkErr("unexpected token",    "= x")
 
 -- ── summary ───────────────────────────────────────────────────────────────
 print(string.format("\n%d passed, %d failed  (%d total)", passed, failed, passed+failed))
+os.exit(failed > 0 and 1 or 0)
 end
 
 function QuickApp:onInit()

@@ -90,6 +90,7 @@ local function module(ER)
     isDead = {
       trigger = {type='device', property='dead'},
       get = get,
+      reduce = table.mapAnd,
     },
     state = {
       trigger = {type='device', property='state'},

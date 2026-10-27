@@ -1,7 +1,7 @@
 --%%name:rule_modifier_cooldown
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   -- Without cooldown: trigger fires immediately

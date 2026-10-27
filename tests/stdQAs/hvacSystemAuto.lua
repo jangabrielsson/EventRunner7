@@ -11,7 +11,18 @@
 -- * heatingThermostatSetpoint - set point for heating, supported units: "C" - Celsius, "F" - Fahrenheit
 
 -- handle action for mode change 
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_hvacSystemAuto"(SimQuickApp)
+local QuickApp = Sim_hvacSystemAuto
+function QuickApp:__init(id)
+  SimQuickApp.__init(self, id)
+  self.tag = "Sim_hvacSystemAuto:"..id
+  -- set supported modes for thermostat
+  self:updateProperty("supportedThermostatModes", {"Auto", "Off", "Heat", "Cool"})
+  -- setup default values
+  self:updateProperty("thermostatMode", "Auto")
+  self:setCoolingThermostatSetpoint(23)
+  self:setHeatingThermostatSetpoint(20)
+end
 
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
@@ -40,14 +51,6 @@ end
 
 function QuickApp:onInit()
     self:debug(self.name,self.id)
-
-    -- set supported modes for thermostat
-    self:updateProperty("supportedThermostatModes", {"Auto", "Off", "Heat", "Cool"})
-
-    -- setup default values
-    self:updateProperty("thermostatMode", "Auto")
-    self:setCoolingThermostatSetpoint(23)
-    self:setHeatingThermostatSetpoint(20)
 end
 
 -- HVAC system auto type have no actions to handle 

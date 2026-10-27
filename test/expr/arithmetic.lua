@@ -1,7 +1,7 @@
 --%%name:expr_arithmetic
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   test_expr(er, "return 3 + 4",           7,         "addition")

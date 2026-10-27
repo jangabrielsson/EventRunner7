@@ -1,7 +1,7 @@
 --%%name:expr_logical
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   test_expr(er, "return true & true",     true,   "AND: true & true")

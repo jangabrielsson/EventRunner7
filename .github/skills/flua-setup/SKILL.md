@@ -121,9 +121,10 @@ every unpacked file).
 | `--ui [PORT]` | serve the sim API for `viewer/index.html` (stays up until Ctrl-C) |
 | `--watch` | restart QAs when their files change |
 | `--check` | static checks only (syntax, unknown `--%%` directives, deprecated APIs) |
-| `--run-for N` | 0 = until exit(); N>0 = at least N virtual s, then exit when idle; N<0 = exactly abs(N) s |
+| `--run-for N` | 0 = until exit(); N>0 = at least N virtual s, then exit when idle (N wall s is a hard deadline — exit 1 if it cuts the run short with work pending); N<0 = exactly abs(N) virtual s (step mode: run until idle, at most abs(N) wall s — far timers still fire). Tag perpetual housekeeping loops `_FLUA.background(fn)` — they fire while the run lives but never keep it alive, so a run exits 0 when the real work drains |
 | `--speed N` | virtual time speed (N=60 runs 60x faster) |
-| `--instant` | timers fire immediately, time jumps ahead |
+| `--instant` | timers fire immediately, time jumps ahead — unsafe for `os.time()`-relative delay logic and `@@`-rules; use `--step` or `--speed` for those |
+| `--step` | deterministic deadline-ordered fast-forward (plua speedTime): one timer at a time, `os.time()` equals each fired deadline — the fast mode for event engines |
 | `--start WHEN` | virtual start time, e.g. `2027/10/6 12:00:20` |
 | `--debugger [PORT]` | attach the mobdebug remote debugger (default 8172) |
 | `--color always\|auto\|never` | ANSI colors on QA log lines |
@@ -153,6 +154,33 @@ baking policy, and the import-vs-update semantics: `assets/fqa-format.md`.
 A typo'd directive warns at runtime (`unknown --%% directive`) and
 `flua --check` flags it with the file context.
 
+## Migrating from plua
+
+- **Check first**: `flua --check` warns on the plua spelling
+  (`-- %%save` with a space — silently ignored otherwise) and on unknown
+  directives.
+- **Emulator marker**: plua code checks `if fibaro.plua then` — flua does
+  NOT set `fibaro.plua` (it is nil). flua's marker is the global `_FLUA`:
+  `if _FLUA then ... end` (always set by flua, absent on the HC3).
+- **`--%%conceal:x=<v>` → `--%%clobber:x=<v>`** — and flua takes the value
+  RAW: plua evaluates it as Lua, flua bakes it verbatim. Write
+  `--%%clobber:key=placeholder` without quotes — a quoted
+  `"<placeholder>"` bakes the quote characters into the package.
+- **`--%%save:file` is a plua directive flua does not implement** (ignored).
+  State persistence across restarts is `--%%db:+file.json`.
+- **`--%%proxy:true` is the legacy alias for `--%%mode:proxy`** — it needs
+  online mode + HC3 credentials, and is not a casual flag.
+- **Packaging**: `--%%var:name=expr,"<pkg>"` declares the PACKAGE value
+  (baked by `flua export` / `--tool pack`; your own `uploadQA` gets the
+  evaluated value instead). Build and verify before committing:
+  `flua -t pack main.lua -o dist/MyQA.fqa -f` (`-f` overwrites) — then
+  check the .fqa per the verification recipe in
+  `assets/fqa-format.md`.
+- **Tools**: `flua --tool` lists all 13 (`catalog`, `createDB`, `downloadFQA`,
+  `downloadQA`, `newQA`, `pack`, `setup`, `ui`, `unpack`, `updateQA`,
+  `uploadFQA`, `uploadFile`, `uploadQA`) — `flua --tool <name> --help` for
+  each tool's own usage.
+
 ## The `--%%include` defaults directive
 
 A QA can pull its defaults from another file — explicit and per-QA, the
@@ -170,9 +198,16 @@ path relative to the main file (like `--%%file`):
 
 The QA's own directives win per key (the mode family as a whole — a QA can
 opt out of an included `--%%mode:offline`); `--%%file` lists append;
-includes nest and a missing include is an error. This replaced the old
-`.directives` working-directory file (ambiguous with QAs in different
-subdirectories — each QA now declares its defaults explicitly).
+includes nest and a missing include is an error. A `--%%file` declared
+inside an include resolves relative to that include's own directory (a
+file directive always means relative to the file that declared it). This
+replaced the old `.directives` working-directory file (ambiguous with QAs
+in different subdirectories — each QA now declares its defaults
+explicitly).
+
+**plua migration**: plua's `--%%headers:X` maps directly to flua's
+`--%%include:X` (rename the directive); plua resolved `--%%file` paths
+cwd-relative, flua anchors them to the declaring file instead.
 
 ## Working with agents
 

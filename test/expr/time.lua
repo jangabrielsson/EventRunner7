@@ -1,7 +1,7 @@
 --%%name:expr_time
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 --%%time:2026/04/28 12:00:00
 
 local function main(er)
@@ -19,7 +19,8 @@ local function main(er)
   test_expr(er, "return 14:00 > now", true,
     "time compare: 14:00 > now(12:00)")
 
-  -- now at frozen time ~12:00:00 (may drift 1-2s from --%%time: to eval)
+  -- now at frozen time 12:00:00. --step holds the virtual clock at the
+  -- pinned instant between timer deadlines, so exact assertions hold.
   local n = er.eval("return now")
   assert_truthy(n >= 43200 and n <= 43205,
     "now: ~12:00:00 in range 43200-43205")
@@ -61,7 +62,7 @@ local function main(er)
   assert_truthy(type(plus1h) == "number" and plus1h > 1e9,
     "+/: returns epoch timestamp")
 
-  -- uptime is nil in plua offline mode (no HC3 API); just verify it's a number or nil
+  -- uptime is nil in flua offline mode (no HC3 API); just verify it's a number or nil
   local up = er.eval("return uptime")
   assert_truthy(up == nil or (type(up) == "number" and up >= 0),
     "uptime: nil or non-negative")

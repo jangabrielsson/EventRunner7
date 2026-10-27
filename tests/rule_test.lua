@@ -1,9 +1,15 @@
 --%%name:Rule unit tests
---%%headers:EventRunner.inc
---%%offline:true
+--%%include:../EventRunner.inc
+--%%mode:offline
 
 -- ── Test harness ──────────────────────────────────────────────────────────
 local PASS, FAIL = 0, 0
+local pending = 0
+
+local function finish()
+  print(string.format("Results: %d passed, %d failed", PASS, FAIL))
+  os.exit(FAIL > 0 and 1 or 0)
+end
 
 local function check(name, got, expected)
   if got == expected then
@@ -47,8 +53,10 @@ end
 
 -- testAsync(name, src, fire, expected)
 --   Like testRule but for async actions (contain wait).
---   The assertion runs inside onDone after plua drains the timer queue.
+--   The assertion runs inside onDone after flua drains the timer queue;
+--   the suite exits once the last async test completes.
 local function testAsync(name, src, fire, expected)
+  pending = pending + 1
   local er   = fibaro.ER._testER
   local rule = er.eval(src)
   rule.verbosity = "silent"
@@ -58,6 +66,8 @@ local function testAsync(name, src, fire, expected)
     else
       check(name, v, expected)
     end
+    pending = pending - 1
+    if pending == 0 then finish() end
   end
   fire(er, rule)
 end
@@ -95,7 +105,7 @@ local function main(er)
       er.triggerVars.tvar = 0   -- condition is false → onDone never called
       rule:run()
     end,
-    nil)
+    fibaro.ER.ruleFail)
 
   -- ── plain expression tests ────────────────────────────────────────────
   testExpr("expr: arithmetic",             "return 3 + 4 * 2",    11)
@@ -132,10 +142,8 @@ local function main(er)
   check("rule: tostring RULE prefix",        tostring(r):sub(1,4),  "RULE")
   check("rule: default verbosity is normal", r.verbosity,           "silent")  -- we just set it
 
-  -- ── summary (fires after async tests complete) ────────────────────────
-  setTimeout(function()
-    print(string.format("Results: %d passed, %d failed", PASS, FAIL))
-  end, 100)
+  -- ── summary (fires after the last async test completes) ──────────────
+  if pending == 0 then finish() end
 end
 
 function QuickApp:onInit()

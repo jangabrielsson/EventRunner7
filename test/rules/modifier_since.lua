@@ -1,7 +1,7 @@
 --%%name:rule_modifier_since
---%%headers:EventRunner.inc
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   -- 'since' requires the condition to be continuously true for N seconds.

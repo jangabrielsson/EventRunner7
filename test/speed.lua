@@ -1,0 +1,18 @@
+-- test/speed.lua — flua replacement for plua's built-in $fibaro.lib.speed.
+--
+-- plua's speed lib provided fibaro.speedTime(hours, fn): run fn, then
+-- fast-forward the virtual clock by `hours` (firing every timer due inside
+-- that window, in deadline order) and finish the run. flua drives virtual
+-- time from the CLI instead of from inside the QA, so run a suite that uses
+-- speedTime with:
+--
+--   flua --api local --speed 3600 --max-hours 24 test.lua
+--
+-- --speed paces the virtual clock N times real time (timers fire in correct
+-- deadline order — ER's midnight loop and @@ intervals depend on it; the
+-- --instant mode collapses the timer heap and breaks ER's event engine) and
+-- --max-hours caps the simulated window so the run cannot continue forever.
+--
+-- fn() runs immediately at boot; the `hours` argument is kept so each call
+-- site still documents the simulation window it was written for.
+function fibaro.speedTime(hours, fn) fn() end

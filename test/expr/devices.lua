@@ -1,8 +1,8 @@
 --%%name:expr_devices
---%%headers:EventRunner.inc
---%%file:src/Sim.lua,sim
---%%file:test/harness.lua,harness
---%%offline:true
+--%%include:../../EventRunner.inc
+--%%file:../../src/Sim.lua,sim
+--%%file:../../test/harness.lua,harness
+--%%mode:offline
 
 local function main(er)
   -- Load simulated devices.  Each returns a device ID stored in a global

@@ -1,15 +1,14 @@
 --%%name:EventRunnerTest
 --%%type:com.fibaro.deviceController
---%%headers:EventRunner.inc
---%%offline:true
---%%file:$fibaro.lib.speed,speed
---%%file:src/Sim.lua,sim
---%%file:tests/testfuns.lua,test
+--%%include:../EventRunner.inc
+--%%mode:offline
+--%%file:../src/Sim.lua,sim
+--%%file:../tests/testfuns.lua,test
 --%%time:2026/04/28 12:00:00
 
 local function main(er) ER = er
   local rule, variables, test = er.eval, er.variables, er.test
-  local function loadDevice(name) return er.loadPluaDevice(name) end
+  local function loadDevice(name) return er.loadSimDevice(name) end
 
   rule([[fact = function(n,f)
     if n == 0 then return 1 end
@@ -31,6 +30,7 @@ function QuickApp:onInit()
   -- profile.start()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
   fibaro.EventRunner(main)
+  os.exit(0)  -- benchmarks print during boot; ER's midnight loop would otherwise keep the run alive
   --setTimeout(function() 
   --  profile.stop()
     -- report for the top 10 functions, sorted by execution time

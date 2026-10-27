@@ -47,7 +47,14 @@ and run it with `flua --api local qa.lua` — with virtual time for timer
 logic, so tests never wait for real time:
 
 ```bash
-flua --api local --instant qa.lua                 # timers fire immediately
+# --step: deterministic deadline-ordered fast-forward (plua speedTime
+# semantics) — the clock holds at each deadline while code runs, so
+# os.time()-relative delay math (ER's @@/daily timers) stays coherent and
+# the run completes at CPU speed. Preferred for ER tests.
+# --instant collapses the timer heap: it BREAKS ER's event engine (delays
+# are computed against the clock), so only use it for QAs without
+# os.time()-relative timer logic.
+flua --api local --step qa.lua                    # deterministic fast-forward
 flua --api local --start '2027/10/6 12:00:00' qa.lua   # pin the virtual date
 flua --api local --speed 60 qa.lua                # 60x virtual speed
 ```
