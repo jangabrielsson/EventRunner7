@@ -754,9 +754,16 @@ This release includes various improvements and bug fixes."
     info "Step 3: Creating release artifacts..."
     create_artifacts
     
-    # Step 3.5: Run regression tests (aborts release on failure)
+    # Step 3.5: Static check + regression tests (aborts release on failure)
+    info "Step 3.5: Static check..."
+    if ! flua --check EventRunner7.lua; then
+      error "Static check failed — release aborted."
+      exit 1
+    fi
+    success "Static check passed"
+
     if [ -f "test/run-tests.sh" ]; then
-      info "Step 3.5: Running regression tests..."
+      info "Running regression tests..."
       if ! bash ./test/run-tests.sh; then
         error "Regression tests failed — release aborted."
         exit 1
