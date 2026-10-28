@@ -1,5 +1,160 @@
 # Changelog
 
+## [v0.2.0] - 2026-10-28
+
+## Changes in v0.2.0
+
+- ✨ **Feature**: release: add flua --check to the release gate (step 3.5)
+- 📚 **Docs**: fix stale flua-feedback reference in run-tests-migration
+- 📚 **Docs**: move flua feedback notes into docs/reviews/
+- 📚 **Docs**: move evolution and test-migration notes into docs/reviews/
+- 📚 **Docs**: move reviews into docs/reviews/
+- 📚 **Docs**: close the rule-layer review — resolution summary
+  - all eight findings implemented or accepted; records the follow-up work
+  - (modifier combination enforcement, rule:recompile(), interval lifecycle,
+  - async watchdog protocol, doc updates). Test net: 27 → 38.
+- 🐛 **Fix**: interval scheduler survives single; stops on disable, restarts on enable
+  - regression (from the recompile commit): the interval timer was tracked
+  - in rule.timers, so single's killTimers cancelled the scheduler after
+  - the first fire. It is untracked again; disable()/terminate()/recompile()
+  - cancel it explicitly via rule._intervalTimer.
+  - disable() stops the interval scheduler (a disabled rule consumes no
+  - timers); enable() restarts it — clock-aligned intervals resume at the
+  - next boundary, relative intervals restart from enable time.
+  - fix a latent crash from the compRule split: rule.dailys was only set
+  - for daily rules, so dumpTriggers errored at registration for
+  - interval-only rules (eval returned nil while the scheduler kept
+  - running — time_triggers masked it by never using the returned rule)
+  - Tests: interval_single (regression), interval_disable (stop/restart)
+- ✨ **Feature**: rule:recompile() rebinds a rule in place
+  - subscriptions are now stored on the rule (rule.subs) and the interval
+  - timer is tracked via rule.setTimeoutR, so terminate()/recompile() can
+  - cancel it (terminate() previously did not stop interval rules)
+  - recompile(): rebuilds parse/compile/scan from rule.src first (a broken
+  - source leaves the old binding running), then tears down (killTimers,
+  - unsubscribe, reset _mstate/trueFor/failCount/stats) and re-registers on
+  - the same rule object
+  - RULES.md: recompile documented in the binding section and the rule
+  - object method list
+  - Test: recompile — dID rebound from one sim device to another; old device
+  - stops firing, new one fires
+- 📚 **Docs**: EventScript modifier section — composition rule, cooldown timing note, rejected combinations
+  - cooldown: counted from when the condition passed, not action completion
+  - since: 'same logic as trueFor' instead of 'alias'
+  - composing paragraph points to the RULES.md combination table and the
+  - two parser-rejected combinations
+- 📚 **Docs**: update AST_Format for the structured modifiers and gate chain
+  - RULE modifier table: {single, debounce, modifiers=[{since/cooldown/every/first_in,...}]}
+  - instead of parser desugaring
+  - YIELD node: {'YIELD', tag, ...} — documents the sinceGate tag alongside sleep
+  - rule compilation: IF(CFUN(_ruleCondition, gate_chain), ...) with the
+  - per-gate compilation and state-home table
+- ✨ **Feature**: parser rejects bad modifier combinations at registration
+  - duplicate modifiers (cooldown 3 cooldown 5, since 5 since 10, ...)
+  - error: gates share one state slot and behave unexpectedly
+  - single + first_in errors (debounce implies single, so it is caught too):
+  - single cancels the window-end reset timer and the once flag sticks
+  - RULES.md combination table updated to 'registration error'.
+  - Tests: four new cases in expr/errors.lua (duplicate, both orders of
+  - single/first_in, debounce/first_in)
+- 📚 **Docs**: modifier combination semantics table with flagged combinations
+  - documents left-to-right gate composition and that single/debounce are
+  - rule-level (position-independent)
+  - flags: cooldown+every and first_in+every/cooldown as order-sensitive,
+  - since+debounce and debounce+cooldown as surprising
+  - not recommended (verified empirically): single+first_in (reset timer
+  - cancelled by killTimers), duplicate modifiers sharing one state slot
+  - (cooldown 3 cooldown 5 never fires; since 5 since 10 fires after 15s)
+- ♻️ **Refactor**: first-class modifier pipeline replaces parser AST rewrites
+  - Parser emits structured modifiers (node[4].modifiers) instead of
+  - rewriting since/cooldown/every/first_in into function calls
+  - Compiler builds an explicit gate chain: since → YIELD 'sinceGate',
+  - cooldown/every/first_in → CFUN gates, debounce → wait(T) action prefix
+  - Gate cores live in Rule.lua with state in one home (rule._mstate /
+  - rule.trueFor); the public async functions (trueFor, cool_down,
+  - every_other, first_in_win) delegate to the same cores
+  - scanHead: HOPS.YIELD accepts only the sinceGate tag — wait/sleep in
+  - a head now errors clearly instead of the generic op assert
+  - Tests: modifier_gates — behavioral (since suspends, cooldown/every
+  - suppress, first_in fires once per window and resets at window end)
+- 🐛 **Fix**: since windows no longer carry a 30-day async watchdog
+  - asyncFun protocol gains an explicit no-watchdog state: (true, false)
+  - = async, function owns its timers and promises to call cb
+  - (protocol documented at the handler)
+  - trueFor returns (true, false): the since timer is the only timer, so
+  - windows of any length (> 30 days) can no longer be resumed mid-window
+  - killTimers resets rule.active: cancelled runs are dead
+  - Test: since_long (31-day window: exactly one timer holding the full window)
+- ♻️ **Refactor**: split compRule into lifecycle builders; add rule:state()
+  - newRule, attachRun, mkEvVars, setupTriggers, setupInterval,
+  - setupDailys, defineRuleAPI replace the compRule god-function
+  - rule:state() accessor ('enabled'/'disabled') and rule.active
+  - in-flight run counter (surfaced by info())
+  - fix latent crash: daily-recalc loop now guards interval-only rules,
+  - which never get a setupDaily method
+  - Test: lifecycle
+- ♻️ **Refactor**: share one logger between rules and expression contexts
+  - makeLogger(obj, nameFn) installs obj:log with verbosity gating and
+  - error-log enrichment; rule:log and makeExprCtx:log were duplicated.
+  - Preserves rule.verbosity field gating and table-valued log args.
+- ✨ **Feature**: configurable disableOnError policy for rule runtime errors
+  - true (default): disable on first error (unchanged behavior)
+  - N: disable after N consecutive errored runs; clean completions
+  - (condition false, or action finishes) reset the counter
+  - false: never disable, just log
+  - rule.enable() re-enables and resets the counter
+  - er.eval returns (nil, errmsg) on failure so callers can distinguish
+  - failed from async/suspended (plain nil)
+  - Test: error_policy (threshold, reset, never-disable, enable-reset, eval status)
+- 📚 **Docs**: document rule-head binding, purity whitelist and daily dedup
+- ✨ **Feature**: enforce rule-head purity and fix rule timer lifecycle
+  - Head-purity whitelist:
+  - ER._headFuns: side-effecting or unknown functions in rule conditions are
+  - now registration errors; log() is the sanctioned debug exception
+  - clear error messages for unknown head ops
+  - Timer lifecycle fixes:
+  - single/terminate no longer wedge pending 'since' windows (trueFor ref
+  - validated against the timer registry; state reset in killTimers)
+  - async watchdogs tracked in rule.timers so killTimers cancels them
+  - run-generation guard discards callbacks from superseded runs
+  - ExecutionEnv seam:
+  - async functions receive cb.env (rule/event/setTimeout/cancel/post);
+  - modifiers no longer reach into CSP snapshots and var frames
+  - Tests: head_purity, since_single, async_cancel (errors.lua updated)
+- ✨ **Feature**: chore: stop tracking __pycache__ under .github/skills
+- ✨ **Feature**: chore: add .codewhale to .gitignore
+- ✨ **Feature**: chore: stop tracking test run logs
+- 📚 **Docs**: add flua migration feedback and runner notes
+  - flua-feedback_from_eventrunner7.md records where flua behavior cost
+  - time during the migration (path resolution, --instant/--speed
+  - clock semantics, --run-for, json.encode) and their resolutions
+  - across 0.1.91-0.1.97. run-tests-migration.md documents the runner
+  - differences between plua and flua and the fixes they required.
+- ♻️ **Refactor**: migrate from plua to flua
+  - test QAs: --%%headers -> --%%include (declaring-file relative,
+  - flua >= 0.1.91); the er-load.lua boot-loader workaround is gone
+  - remove plua directives from EventRunner7.lua; $fibaro.lib.speed
+  -> test/speed.lua stub with the CLI driving virtual time
+  - runner on --step (plua speedTime semantics): deterministic clock,
+  - strict time assertions restored, regression 28/28 in ~6 s
+  - fix what the migration surfaced: hvacSystemAuto as a Sim_ class,
+  - isDead set reduce, device-suite once()/trueFor choreography,
+  - testfuns completion counting, compact json.encode expectations
+  - mark ER's midnight loop as housekeeping (_FLUA.background) so
+  --run-for exits when idle
+  - er script: flua --step, no repo-root cwd dependency
+  - skills, docs and .luarc.json updated for flua
+- ✨ **Feature**: update documentation and scripts for flua integration
+- ✨ **Feature**: switched to flua development tool feat: add HC3 REST API and Fibaro API support in Lua feat: implement global fibaro API methods for device management chore: configure Lua language server settings and diagnostics chore: update VSCode launch configurations for flua debugging chore: add task for uploading files to HC3 docs: create AGENTS.md for AI agent guidance in QuickApp development fix: correct EventRunner7 header and save directive fix: improve time handling in rule processing refactor: enhance utility functions for table manipulation
+- ✨ **Feature**: Add Fibaro Lua annotations and EventRunner Agent documentation
+  - Introduced a new Lua file with comprehensive annotations for the Fibaro API, detailing functions for device management, API calls, and logging.
+  - Added a draft specification for the EventRunner Agent, outlining its purpose, architecture, components, and design principles for converting plain-English automation requests into validated EventRunner rules.
+  - Created release notes for version 0.1.50, highlighting new features and download links.
+  - Implemented a new HTTP client function in Setup.lua for asynchronous API calls to the Fibaro HC3, supporting GET, POST, PUT, and DELETE methods.
+
+
+*Generated automatically from git commits*
+
 ## [v0.1.50] - 2026-08-14
 
 ## Changes in v0.1.50
