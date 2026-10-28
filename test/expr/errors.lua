@@ -182,6 +182,22 @@ local function main(er)
     "46:value first_in 'a' => return 1",
     "'first_in' requires a time window")
 
+  testRuleError("duplicate modifier",
+    "x == 1 cooldown 3 cooldown 5 => return 1",
+    "Duplicate 'cooldown'")
+
+  testRuleError("single + first_in",
+    "x == 1 single first_in 07:00..08:00 => return 1",
+    "cannot be combined with 'first_in'")
+
+  testRuleError("first_in + single (reversed)",
+    "x == 1 first_in 07:00..08:00 single => return 1",
+    "cannot be combined with 'first_in'")
+
+  testRuleError("debounce + first_in",
+    "x == 1 debounce 2 first_in 07:00..08:00 => return 1",
+    "cannot be combined with 'first_in'")
+
   -- ── Runtime errors — cursor placement ────────────────────────────────────
 
   do

@@ -821,6 +821,14 @@ local function module(ER)
         end
         local modifiers = {}
         local gates = {}  -- ordered modifier gates: {'since',T} {'cooldown',T} {'every',N} {'first_in',W}
+        local function addGate(name, arg)
+          for _, g in ipairs(gates) do
+            if g[1] == name then
+              parseError("Duplicate '"..name.."' modifier — gates share one state slot and behave unexpectedly (see RULES.md, 'Combining modifiers')")
+            end
+          end
+          gates[#gates+1] = {name, arg}
+        end
         local consumedModifier = false
         while peek(1) do
           local tok = peek(1)
@@ -831,8 +839,7 @@ local function module(ER)
             if not peek(1) or peek(1).type == 'rule' then
               parseError("'since' requires a duration (e.g. since 5)")
             end
-            local T = parseExp()
-            gates[#gates+1] = {'since', T}
+            addGate('since', parseExp())
             consumedModifier = true
           elseif tok.type == 'debounce' then
             next()
@@ -846,16 +853,14 @@ local function module(ER)
             if not peek(1) or peek(1).type == 'rule' then
               parseError("'cooldown' requires a duration (e.g. cooldown 5)")
             end
-            local T = parseExp()
-            gates[#gates+1] = {'cooldown', T}
+            addGate('cooldown', parseExp())
             consumedModifier = true
           elseif tok.type == 'every' then
             next()
             if not peek(1) or peek(1).type == 'rule' then
               parseError("'every' requires a count (e.g. every 3)")
             end
-            local N = parseExp()
-            gates[#gates+1] = {'every', N}
+            addGate('every', parseExp())
             consumedModifier = true
           elseif tok.type == 'first_in' then
             next(); local W = parseExp()
@@ -864,10 +869,20 @@ local function module(ER)
             end
             -- the BETW window; the gate also gets the raw stop expression so
             -- it can schedule a proactive reset at window end
-            gates[#gates+1] = {'first_in', W}
+            addGate('first_in', W)
             consumedModifier = true
           else
             break
+          end
+        end
+        -- single (and debounce, which implies it) cancels the window-end
+        -- reset timer that first_in schedules, so the once flag would stick
+        -- and the rule stop firing in later windows.
+        if modifiers.single then
+          for _, g in ipairs(gates) do
+            if g[1] == 'first_in' then
+              parseError("'single' (and 'debounce', which implies it) cannot be combined with 'first_in': single cancels the window-end reset timer (see RULES.md, 'Combining modifiers')")
+            end
           end
         end
         if peek(1) and peek(1).type == 'rule' then

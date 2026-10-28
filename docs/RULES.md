@@ -246,8 +246,8 @@ rule("d == 1 single since 00:05 => log('quiet for 5s')")
 | `first_in` + `every` / `cooldown` | same order-sensitivity; niche | ⚠ |
 | `since` + `debounce` | window delay *plus* wait delay; single resets both — usually one delay too many | ⚠ |
 | `debounce` + `cooldown` | cooldown starts at *trigger* time (gate evaluation), not action-completion time; re-triggers during the cooldown are dropped entirely, not debounced | ⚠ |
-| `single` + `first_in` | single cancels the window-end reset timer, so the once flag can stick and the rule stops firing in later windows (until a trigger evaluates it outside a window) | ✗ not recommended |
-| the same modifier twice (`since 5 since 10`, `cooldown 3 cooldown 5`, …) | both gates share one state slot, with surprising results: `since 5 since 10` fires after 5+10 s (sequential windows), `cooldown 3 cooldown 5` never fires | ✗ not recommended |
+| `single` + `first_in` | single cancels the window-end reset timer, so the once flag would stick and the rule stop firing in later windows — the parser rejects it (debounce implies single, so it is rejected too) | ✗ registration error |
+| the same modifier twice (`since 5 since 10`, `cooldown 3 cooldown 5`, …) | both gates share one state slot, with surprising results — the parser rejects it | ✗ registration error |
 
 ---
 
