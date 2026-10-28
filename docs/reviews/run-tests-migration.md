@@ -70,7 +70,7 @@ Behavior difference:
 - `--instant` was tried first (looks like the natural "no waiting" mode) and
   **breaks ER**: it collapses the timer heap, so `@@` intervals never fire
   and `wait()` fires at the end of the run (reproduced; see
-  `docs/flua-feedback.md` #3).
+  `docs/reviews/flua-feedback_from_eventrunner7.md` #3).
 - `--speed 3600` was the interim replacement but its clock runs
   **continuously**, so virtual time passes while test code executes and
   exact-time assertions flake. Two test files were temporarily weakened to
