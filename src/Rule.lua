@@ -209,6 +209,8 @@ local function attachRun(rule)
     -- Bump the run generation: callbacks from the superseded run's
     -- in-flight async functions are discarded when they arrive.
     rule.gen = rule.gen + 1
+    rule.active = 0    -- all suspended runs are dead once their timers are
+                       -- cancelled (single: the new run re-counts itself)
     for ref in pairs(old) do
       clearTimeout(ref)          -- cancel raw setTimeout timers (wait/sleep/async watchdogs)
       sourceTrigger:cancel(ref)  -- cancel event-queue posts (postR)
@@ -612,24 +614,34 @@ local yieldHandlers = {
       end
     })
     local res = {pcall(fun, fcb, ...)}
-    local timeout = tonumber(res[2]) or 3000
+    -- Async function protocol — fun(cb, ...) returns:
+    --   true, timeout  → async; watchdog resumes cb(false) after timeout ms
+    --                    (nil timeout defaults to 3000 ms)
+    --   true, -1      → sync: fun already called cb, no watchdog
+    --   true, false   → async, no watchdog: fun owns its timers and
+    --                    promises to call cb
+    --   false, err    → error: resume with no result
+    local timeout = res[2]
     if res[1] then
       -- Async, wait for callback or timeout
-      if timeout >= 0 then
-        timeref = setTimeout(function()
-          if ctx.timers then ctx.timers[timeref] = nil end
-          timeref = nil
-          timedOut = true
-          ctx:log("verbose", o.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
-          local ok, err = pcall(function()
-            resumeRunner(table.pack(ER.csp.resume(cf, false)), ctx, cb)
-          end)
-          if not ok then
-            if ctx.isRule then ruleError(ctx, err) else ctx:log("normal", o.errorPrefix, err) end
-          end
-        end, timeout)
-        if ctx.timers then ctx.timers[timeref] = timeout end  -- track so single/terminate can cancel
-      end -- -1 means sync, func called cb directly so no timeout needed
+      if timeout ~= false then
+        timeout = tonumber(timeout) or 3000
+        if timeout >= 0 then
+          timeref = setTimeout(function()
+            if ctx.timers then ctx.timers[timeref] = nil end
+            timeref = nil
+            timedOut = true
+            ctx:log("verbose", o.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
+            local ok, err = pcall(function()
+              resumeRunner(table.pack(ER.csp.resume(cf, false)), ctx, cb)
+            end)
+            if not ok then
+              if ctx.isRule then ruleError(ctx, err) else ctx:log("normal", o.errorPrefix, err) end
+            end
+          end, timeout)
+          if ctx.timers then ctx.timers[timeref] = timeout end  -- track so single/terminate can cancel
+        end
+      end -- -1: sync, cb already called; false: no watchdog
     else
       ctx:log("normal", o.errorPrefix, fmt("Async func".."tion error: %s", tostring(res[2])))
       timedOut = true

@@ -357,7 +357,7 @@ local function module(ER)
           trueFor.ref = env.setTimeout(function() 
             trueFor.ref = nil; cb(true) 
           end, time*1000)
-          return 3600*24*30*1000 --math.huge (ms — watchdog must outlive the condition timer)
+          return false -- no watchdog: the since timer owns this suspension
         else -- already true and we have a live timer waiting
           cb(false) -- do nothing
         end
