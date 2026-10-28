@@ -183,7 +183,7 @@ rule("doorbell:pressed single => wait(0.5); chime:play")
 
 ### `since <duration>`
 
-The condition must have been *continuously* true for `<duration>` seconds before the action fires. Desugars to `trueFor(duration, condition)`.
+The condition must have been *continuously* true for `<duration>` seconds before the action fires. Compiles to a since gate (the same logic as the `trueFor(duration, condition)` function).
 
 ```lua
 rule("motion:breached since 00:02 => alarm:on")
@@ -219,7 +219,11 @@ rule("tempSensor:value every 4 => log('Temp: %d', tempSensor:value)")
 
 ### Combining modifiers
 
-Modifiers compose left-to-right. Common combinations:
+Modifiers compose **left-to-right** in the order written: each gate wraps the
+ones before it, so `since 00:01 cooldown 00:10` evaluates the since window
+first, then the cooldown. `single` and `debounce` are rule-level (they act on
+the run and its timers, not on the condition), so their position among the
+other modifiers does not matter.
 
 ```lua
 rule("button:pressed single cooldown 2 => wait(100); light:toggle")
@@ -227,7 +231,23 @@ rule("button:pressed single cooldown 2 => wait(100); light:toggle")
 
 rule("noise:detected since 00:01 cooldown 00:10 => sendAlert()")
 -- Sustained noise for 1 min triggers alert; won't re-alert for 10 min.
+
+rule("d == 1 single since 00:05 => log('quiet for 5s')")
+-- Every trigger restarts the since window: fires 5 s after the *last*
+-- trigger, one run at a time.
 ```
+
+| Combination | Semantics | Verdict |
+|---|---|---|
+| `single` + `debounce` | debounce implies single; the pending wait resets on re-trigger | ✓ |
+| `since` + `cooldown` | true for T₁, and at least T₂ since the last fire | ✓ |
+| `since` + `single` | triggers restart the since window; fires T after the last trigger (one run at a time) | ✓ |
+| `cooldown` + `every` | **order matters**: the outer gate consumes the inner gate's evaluations — `every 3 cooldown 5` counts every trigger, `cooldown 5 every 3` counts only cooldown-passing triggers | ⚠ order-sensitive |
+| `first_in` + `every` / `cooldown` | same order-sensitivity; niche | ⚠ |
+| `since` + `debounce` | window delay *plus* wait delay; single resets both — usually one delay too many | ⚠ |
+| `debounce` + `cooldown` | cooldown starts at *trigger* time (gate evaluation), not action-completion time; re-triggers during the cooldown are dropped entirely, not debounced | ⚠ |
+| `single` + `first_in` | single cancels the window-end reset timer, so the once flag can stick and the rule stops firing in later windows (until a trigger evaluates it outside a window) | ✗ not recommended |
+| the same modifier twice (`since 5 since 10`, `cooldown 3 cooldown 5`, …) | both gates share one state slot, with surprising results: `since 5 since 10` fires after 5+10 s (sequential windows), `cooldown 3 cooldown 5` never fires | ✗ not recommended |
 
 ---
 
