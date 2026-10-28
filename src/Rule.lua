@@ -169,6 +169,7 @@ local function newRule(opts, src)
                                 -- async continuations can be discarded on resume
   rule.failCount = 0            -- consecutive errored runs (disableOnError policy)
   rule.active = 0               -- runs currently suspended (in-flight)
+  rule.subs = {}                -- trigger subscriptions (for recompile)
   makeLogger(rule, tostring)    -- rule name prefixes log output
   return rule
 end
@@ -217,6 +218,13 @@ local function attachRun(rule)
     end
   end
 
+  -- subscribe: keep the subscription object so recompile can unsubscribe.
+  function rule.subscribe(event, handler)
+    local sub = sourceTrigger:subscribe(event, handler)
+    rule.subs[#rule.subs + 1] = sub
+    return sub
+  end
+
   function rule.runRule(...)
     if rule.modifiers.single then rule.killTimers() end
     rule.stats.runs = rule.stats.runs + 1
@@ -247,7 +255,7 @@ local function setupTriggers(rule, trs, opts)
     setmetatable(event, ER.EventMT)
     local recalcDaily = event._recalc
     event._recalc = nil
-    sourceTrigger:subscribe(event, function(ev)
+    rule.subscribe(event, function(ev)
       if rule._disabled then return end
       if recalcDaily then
         rule:log("silent", opts.dailyListPrefix, "Recalculating Daily timers")
@@ -266,15 +274,14 @@ end
 -- (an interval suppresses daily scheduling).
 local function setupInterval(rule, trs, opts)
   if not trs.interval then return false end
-  local intervalTimer
   local intervalEvent = {type='INTERVAL', id=rule.id}
-  sourceTrigger:subscribe(intervalEvent, function(ev)
+  rule.subscribe(intervalEvent, function(ev)
     rule:log("verbose", opts.startPrefix, "(interval)")
     rule.runRule({ vars = mkEvVars(rule, 'INTERVAL', {event=intervalEvent}) })
   end)
 
   function rule:setupInterval()
-    if intervalTimer then rule.cancelR(intervalTimer); intervalTimer = nil end
+    if rule._intervalTimer then rule.cancelR(rule._intervalTimer); rule._intervalTimer = nil end
     if trs.interval then
       local value = trs.interval()
       if type(value) ~= 'number' then error("Invalid interval time: "..tostring(value)) end
@@ -284,9 +291,9 @@ local function setupInterval(rule, trs, opts)
       local function loop()
         if not rule._disabled then rule.postR(intervalEvent) end
         nextTime = nextTime + value
-        intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
+        rule._intervalTimer = rule.setTimeoutR(loop, (nextTime-os.time())*1000)
       end
-      intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
+      rule._intervalTimer = rule.setTimeoutR(loop, (nextTime-os.time())*1000)
     end
   end
   rule:setupInterval()
@@ -302,12 +309,11 @@ local function setupDailys(rule, trs, opts)
   for _, t in ipairs(dailys) do
     local subev = setmetatable({type='DAILY', id=rule.id, subid=DAILYID}, ER.EventMT)
     DAILYID = DAILYID + 1
-    sourceTrigger:subscribe(subev, function(ev)
+    rule.subscribe(subev, function(ev)
       if rule._disabled then return end
       rule:log("verbose", opts.startPrefix, tostring(subev))
       rule.runRule({ vars = mkEvVars(rule, 'DAILY', ev) })
-    end)
-    rule.dailys[t] = subev
+    end)    rule.dailys[t] = subev
   end
 
   local dtimers = {}
@@ -363,6 +369,48 @@ local function defineRuleAPI(rule, trs, opts)
   function rule.disable(id) rule._disabled = true; return rule end
   function rule.enable() rule._disabled = nil; rule.failCount = 0; return rule end
   function rule.terminate() rule.killTimers(); return rule end
+
+  -- recompile: rebind the rule in place from its source. Names/IDs in the
+  -- condition are resolved at compile time, so changing a global (e.g. dID)
+  -- does not affect a registered rule until it is recompiled — or the QA
+  -- restarts / er.reset() re-registers everything.
+  function rule:recompile()
+    -- Rebuild everything from the stored source BEFORE touching the live
+    -- rule, so a broken source leaves the old binding running.
+    local ast = ER.parse(self.src)
+    if ast[1] ~= 'RULE' then
+      error("recompile: source is not a rule: " .. self.src, 0)
+    end
+    local csp = ER.compileRuleBody(ast)
+    local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
+    scanHead(csp[2], trs)
+    if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
+      error("Rule has no triggers: " .. self.src, 0)
+    end
+    local fun = ER.csp.compile(csp, csp._srcmap)
+
+    -- Teardown: cancel all timers (the interval timer is tracked now, so
+    -- this stops it too), drop subscriptions, reset modifier state and
+    -- stats. The rule object keeps its identity — id, name, and references
+    -- stay valid.
+    self.killTimers()
+    for _, sub in ipairs(self.subs) do sourceTrigger:unsubscribe(sub) end
+    self.subs = {}
+    self._mstate = {}
+    self.trueFor = nil
+    self.failCount = 0
+    self.stats = { runs = 0, successes = 0, failures = 0 }
+
+    -- Commit the new binding
+    self.fun = fun
+    self.modifiers = csp._modifiers or {}
+    setupTriggers(self, trs, self.opts)
+    if not setupInterval(self, trs, self.opts) then
+      setupDailys(self, trs, self.opts)
+    end
+    self:log("verbose", self.opts.ruleDefPrefix, "recompiled:", self.src // cfg.ruleLen)
+    return self
+  end
 
   function rule.info()
     print(tostring(rule)..":", rule.src)

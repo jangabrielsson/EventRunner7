@@ -52,6 +52,11 @@ tostring(rule)   -- "RULE1", "RULE2", ...
 
 r.start()       -- fire the rule manually, regardless of event state
 r.dumpTriggers()  -- print registered trigger/daily list to console
+r.enable()      -- re-enable a disabled rule (also resets the error streak)
+r.disable()     -- disable: triggers stop firing (pending runs finish)
+r.terminate()   -- cancel all pending timers and in-flight runs
+r.recompile()   -- rebind the rule in place from its source (see below)
+r:state()       -- "enabled" | "disabled"; r.active = runs in flight
 ```
 
 ---
@@ -68,8 +73,15 @@ rule("dID = 88")
 rule("dID:value => log('hupp')")   -- dID is 88, captured at registration
 ```
 
-If `dID` changes later, already-registered rules still see 88. Re-register
-the rule — or `er.reset()` to re-register everything — to rebind.
+If `dID` changes later, already-registered rules still see 88. To rebind:
+
+- `rule:recompile()` — rebinds a single rule in place: cancels its timers
+  (including interval timers), drops its trigger subscriptions, resets
+  modifier state and stats, then re-parses and re-registers everything from
+  the rule's source. The rule object (id, name, references) stays valid.
+- re-register the rule (and terminate the old one)
+- `er.reset()` to re-register everything
+- restart the QuickApp
 
 Daily time expressions are the exception: they are re-evaluated whenever
 daily timers are (re)scheduled — at midnight and when a variable they
