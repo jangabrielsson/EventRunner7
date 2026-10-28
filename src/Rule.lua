@@ -170,6 +170,8 @@ local function newRule(opts, src)
   rule.failCount = 0            -- consecutive errored runs (disableOnError policy)
   rule.active = 0               -- runs currently suspended (in-flight)
   rule.subs = {}                -- trigger subscriptions (for recompile)
+  rule.dailys = {}              -- daily subevents (filled by setupDailys;
+                                -- interval-only rules keep it empty)
   makeLogger(rule, tostring)    -- rule name prefixes log output
   return rule
 end
@@ -291,18 +293,20 @@ local function setupInterval(rule, trs, opts)
       local function loop()
         if not rule._disabled then rule.postR(intervalEvent) end
         nextTime = nextTime + value
-        rule._intervalTimer = rule.setTimeoutR(loop, (nextTime-os.time())*1000)
+        -- Untracked: the scheduler timer is not a run timer — single's
+        -- killTimers must not cancel it. disable()/terminate()/recompile()
+        -- cancel it explicitly via rule._intervalTimer.
+        rule._intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
       end
-      rule._intervalTimer = rule.setTimeoutR(loop, (nextTime-os.time())*1000)
+      rule._intervalTimer = setTimeout(loop, (nextTime-os.time())*1000)
     end
   end
-  rule:setupInterval()
+  if not rule._disabled then rule:setupInterval() end
   return true
 end
 
 -- setupDailys: daily/between time triggers + rule:setupDaily scheduling.
 local function setupDailys(rule, trs, opts)
-  rule.dailys = {}
   local dailys = trs.dailys -- @daily inhibits between
   if next(trs.dailys) == nil then dailys = trs.between end
 
@@ -366,9 +370,27 @@ local function defineRuleAPI(rule, trs, opts)
     return 'enabled'
   end
   function rule.start(event) rule:run(event) return rule end
-  function rule.disable(id) rule._disabled = true; return rule end
-  function rule.enable() rule._disabled = nil; rule.failCount = 0; return rule end
-  function rule.terminate() rule.killTimers(); return rule end
+  function rule.disable(id)
+    rule._disabled = true
+    -- Stop the interval scheduler: a disabled rule should not consume
+    -- timers. Alignment is recomputed on enable.
+    if rule._intervalTimer then rule.cancelR(rule._intervalTimer); rule._intervalTimer = nil end
+    return rule
+  end
+  function rule.enable()
+    rule._disabled = nil
+    rule.failCount = 0
+    -- Restart the interval scheduler: clock-aligned intervals resume at
+    -- the next boundary; relative intervals restart from enable time.
+    if rule.setupInterval then rule:setupInterval() end
+    return rule
+  end
+  function rule.terminate()
+    rule.killTimers()
+    -- the interval scheduler timer is untracked; cancel it explicitly
+    if rule._intervalTimer then rule.cancelR(rule._intervalTimer); rule._intervalTimer = nil end
+    return rule
+  end
 
   -- recompile: rebind the rule in place from its source. Names/IDs in the
   -- condition are resolved at compile time, so changing a global (e.g. dID)
@@ -394,6 +416,7 @@ local function defineRuleAPI(rule, trs, opts)
     -- stats. The rule object keeps its identity — id, name, and references
     -- stay valid.
     self.killTimers()
+    if self._intervalTimer then self.cancelR(self._intervalTimer); self._intervalTimer = nil end
     for _, sub in ipairs(self.subs) do sourceTrigger:unsubscribe(sub) end
     self.subs = {}
     self._mstate = {}

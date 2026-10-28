@@ -52,8 +52,9 @@ tostring(rule)   -- "RULE1", "RULE2", ...
 
 r.start()       -- fire the rule manually, regardless of event state
 r.dumpTriggers()  -- print registered trigger/daily list to console
-r.enable()      -- re-enable a disabled rule (also resets the error streak)
-r.disable()     -- disable: triggers stop firing (pending runs finish)
+r.enable()      -- re-enable (resets the error streak; interval rules resume —
+                -- clock-aligned at the next boundary, relative from enable time)
+r.disable()     -- disable: triggers stop firing and the interval scheduler stops
 r.terminate()   -- cancel all pending timers and in-flight runs
 r.recompile()   -- rebind the rule in place from its source (see below)
 r:state()       -- "enabled" | "disabled"; r.active = runs in flight
