@@ -301,6 +301,15 @@ function compCfun(ast)
   return res
 end
 
+-- YIELD(tag, args...): suspends with the tag; the tag string passes through
+-- (the CSP tree compiler wraps it in CONST). Used by the since modifier gate
+-- (tag 'sinceGate') and by the wait() intrinsic (tag 'sleep').
+local function compYield(ast)
+  local res = {'YIELD', ast[2]}
+  for i = 3, #ast do res[#res + 1] = compile(ast[i]) end
+  return res
+end
+
 -- ── Built-in intrinsics ───────────────────────────────────────────────────
 -- wait(seconds)  →  YIELD('sleep', seconds)
 -- ms may be a numeric literal or any expression; time literals like 00:05
@@ -312,6 +321,7 @@ end
 -- ── Dispatch table ────────────────────────────────────────────────────────
 
 local comp = {}
+comp.YIELD = compYield
 
 comp.NUMBER = compNumber
 comp.STRING = compString
@@ -469,16 +479,48 @@ end
 -- compileRuleBody: compile a RULE ast node directly into the CSP IF-table
 -- that compRule() expects.  Bypasses the _compRule runtime indirection.
 -- Returns (rule_csp) with rule_csp._srcmap already set.
+--
+-- Modifiers (ast[4] = { single=true, debounce=T_ast,
+--                       modifiers={{'since',T},{'cooldown',T},{'every',N},{'first_in',W}} })
+-- become an explicit gate chain inside the ruleCondition wrapper, in source
+-- order:
+--   since    → {'YIELD','sinceGate', T, cond}        (suspends; state in rule.trueFor)
+--   cooldown → {'CFUN', ER.coolDownGate, cond, T}    (state in rule._mstate)
+--   every    → {'CFUN', ER.everyOtherGate, cond, N}  (state in rule._mstate)
+--   first_in → {'CFUN', ER.firstInWinGate, cond, W, W[3]}  (state in rule._mstate)
+--   debounce → wait(T) prefixed to the action, plus the single flag
+-- The ruleCondition CFUN stays outermost, so stats/logging see the whole
+-- gated condition as before.
 function ER.compileRuleBody(ast)
   -- ast = {'RULE', condition_ast, action_ast [, modifiers]}
   _srcmap = {}
   local result
   local ok, err = pcall(function()
-    local cond = {"CFUN", ER.ruleCondition, ast[2]}
+    local cond = ast[2]
+    local mods = ast[4] or {}
+    for _, m in ipairs(mods.modifiers or {}) do
+      local name, arg = m[1], m[2]
+      if name == 'since' then
+        cond = {'YIELD', 'sinceGate', arg, cond}
+      elseif name == 'cooldown' then
+        cond = {'CFUN', ER.coolDownGate, cond, arg}
+      elseif name == 'every' then
+        cond = {'CFUN', ER.everyOtherGate, cond, arg}
+      elseif name == 'first_in' then
+        cond = {'CFUN', ER.firstInWinGate, cond, arg, arg[3]}
+      else
+        error("Unknown rule modifier: " .. tostring(name))
+      end
+    end
+    cond = {"CFUN", ER.ruleCondition, cond}
     isCondition = true
     local c_cond = compile(cond)
     isCondition = false
     local c_action = compile(ast[3])
+    -- debounce: wait(T) before the action
+    if mods.debounce then
+      c_action = {'PROGN', {'YIELD', 'sleep', compile(mods.debounce)}, c_action}
+    end
     local c_fail = compile({'RETURN', {'STRING', ER.ruleFail}})
     result = {'IF', c_cond, c_action, c_fail}
     if _srcmap then result._srcmap = _srcmap end

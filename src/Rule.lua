@@ -457,6 +457,14 @@ function HOPS.CALL(ast,trs)
   stdScan(ast,trs)
 end
 
+-- Modifier gates compile into YIELD nodes; only the since gate suspends.
+function HOPS.YIELD(ast,trs)
+  if ast[2] ~= 'sinceGate' then
+    error("Yield '"..tostring(ast[2]).."' is not allowed in a rule condition")
+  end
+  stdScan(ast,trs) -- scan the duration and the wrapped condition for triggers
+end
+
 function HOPS.GETPROP(ast,trs)
   local obj = exprFun(ast[2])()
   local key = ast[3]
@@ -560,6 +568,119 @@ end
 --   ctx.onDone       -- optional completion callback
 --   ctx:log(level, prefix, ...)  -- verbosity-gated print
 --
+-- ── Modifier gates (first-class) ──────────────────────────────────────────
+-- The CFUN gates receive the VM ctx and read rule/env through ctx:getOpts().
+-- State lives in one home per gate: rule._mstate (cool_down, every_other,
+-- once) or rule.trueFor (since). The public async functions in ScriptFuns
+-- (trueFor, cool_down, every_other, first_in_win, once) delegate to these
+-- cores, so user-written conditions share the modifier logic.
+
+-- coolDown(rule, condval, T): fire only if >= T since last fire.
+function ER._coolDown(rule, condval, T)
+  if not condval then return false end  -- preserve AND short-circuit semantics
+  local mstate = rule._mstate
+  local state = mstate.cool_down or {}
+  mstate.cool_down = state
+  local now = os.time()
+  if not state.lastFired or (now - state.lastFired) >= T then
+    state.lastFired = now
+    return true
+  end
+  return false
+end
+
+-- everyOther(rule, condval, N): fire only on every Nth true evaluation.
+function ER._everyOther(rule, condval, N)
+  if not condval then return false end
+  local mstate = rule._mstate
+  local state = mstate.every_other or {count=0}
+  mstate.every_other = state
+  state.count = state.count + 1
+  if state.count % N == 0 then return true end
+  return false
+end
+
+-- firstInWin(rule, env, condval, inWindow, stopVal): once() with a proactive
+-- reset at the window end, so the rule can fire again in the NEXT occurrence
+-- of the window. stopVal is seconds-since-midnight (<86400) or an epoch
+-- timestamp (>=86400).
+function ER._firstInWin(rule, env, condval, inWindow, stopVal)
+  if not condval then return false end
+  local mstate = rule._mstate
+  if inWindow then
+    if not mstate.once then
+      mstate.once = true
+      local msEnd
+      if stopVal >= 86400 then  -- epoch timestamp
+        msEnd = (stopVal - os.time()) * 1000
+      else                      -- seconds since midnight
+        local now_secs = os.time() - ER.midnight()
+        local stop_adj = stopVal >= now_secs and stopVal or stopVal + 86400
+        msEnd = (stop_adj - now_secs) * 1000
+      end
+      if msEnd > 0 then
+        if mstate.once_timer then clearTimeout(mstate.once_timer) end
+        mstate.once_timer = env.setTimeout(function()
+          mstate.once = nil
+          mstate.once_timer = nil
+        end, msEnd)
+      end
+      return true
+    end
+    return false
+  end
+  -- Outside window: cancel any pending reset and clear the flag
+  if mstate.once_timer then
+    env.cancel(mstate.once_timer)
+    mstate.once_timer = nil
+  end
+  mstate.once = nil
+  return false
+end
+
+-- sinceGate(env, rule, time, condval, resume) → 'suspended' | 'resumed'
+-- Continuously-true gate: arms a window timer on the first true evaluation
+-- and resumes true when it fires; cancels it when the condition turns false.
+function ER._sinceGate(env, rule, time, condval, resume)
+  local state = rule.trueFor or {}
+  rule.trueFor = state
+  if condval then
+    -- A ref whose timer is no longer registered was cancelled out from
+    -- under us (single/terminate killTimers): start a fresh window
+    -- instead of wedging with a stale ref.
+    local pending = state.ref and (not rule.timers or rule.timers[state.ref])
+    if not pending then
+      state.ref = nil
+      state.trigger = env.event
+      state.ref = env.setTimeout(function()
+        state.ref = nil
+        resume(true)
+      end, time*1000)
+      return 'suspended'
+    end
+    resume(false)  -- already true and we have a live timer waiting
+  elseif state.ref then
+    env.cancel(state.ref)
+    state.ref = nil
+    resume(false)
+  else
+    resume(false)
+  end
+  return 'resumed'
+end
+
+-- CFUN gate wrappers: (cont, ctx, ...) — rule/env from ctx:getOpts().
+function ER.coolDownGate(cont, ctx, condval, T)
+  return cont(ER._coolDown(ctx:getOpts().rule, condval, T))
+end
+function ER.everyOtherGate(cont, ctx, condval, N)
+  return cont(ER._everyOther(ctx:getOpts().rule, condval, N))
+end
+function ER.firstInWinGate(cont, ctx, condval, inWindow, stopVal)
+  local opts = ctx:getOpts()
+  return cont(ER._firstInWin(opts.rule, opts.env, condval, inWindow, stopVal))
+end
+
 -- yield handlers receive (continuationFn, ctx, cb, ...yieldArgs)
 local yieldHandlers = {
   sleep = function(cf, ctx, cb, sec)
@@ -647,6 +768,18 @@ local yieldHandlers = {
       timedOut = true
       return cb() -- resume with no result on error
     end
+  end,
+  sinceGate = function(cf, ctx, cb, time, condval)
+    local env = cf.ctx.opts and cf.ctx.opts.env
+    local resume = function(val)
+      local ok, err = pcall(function()
+        resumeRunner(table.pack(ER.csp.resume(cf, val)), ctx, cb)
+      end)
+      if not ok then
+        if ctx.isRule then ruleError(ctx, err) else ctx:log("normal", ctx.opts.errorPrefix, err) end
+      end
+    end
+    ER._sinceGate(env, ctx, time, condval, resume)
   end,
 }
 

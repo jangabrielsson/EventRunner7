@@ -820,6 +820,7 @@ local function module(ER)
           end
         end
         local modifiers = {}
+        local gates = {}  -- ordered modifier gates: {'since',T} {'cooldown',T} {'every',N} {'first_in',W}
         local consumedModifier = false
         while peek(1) do
           local tok = peek(1)
@@ -831,7 +832,7 @@ local function module(ER)
               parseError("'since' requires a duration (e.g. since 5)")
             end
             local T = parseExp()
-            cond = {'CALL', {'NAME','trueFor'}, T, cond}
+            gates[#gates+1] = {'since', T}
             consumedModifier = true
           elseif tok.type == 'debounce' then
             next()
@@ -846,7 +847,7 @@ local function module(ER)
               parseError("'cooldown' requires a duration (e.g. cooldown 5)")
             end
             local T = parseExp()
-            cond = {'AND', cond, {'CALL', {'NAME','cool_down'}, T}}
+            gates[#gates+1] = {'cooldown', T}
             consumedModifier = true
           elseif tok.type == 'every' then
             next()
@@ -854,16 +855,16 @@ local function module(ER)
               parseError("'every' requires a count (e.g. every 3)")
             end
             local N = parseExp()
-            cond = {'AND', cond, {'CALL', {'NAME','every_other'}, N}}
+            gates[#gates+1] = {'every', N}
             consumedModifier = true
           elseif tok.type == 'first_in' then
             next(); local W = parseExp()
             if W[1] ~= 'BETW' then
               parseError("'first_in' requires a time window expression (e.g. 07:00..08:00)")
             end
-            -- pass both the BETW result and the raw stop expression so
-            -- first_in_win can schedule a proactive reset at window end
-            cond = {'AND', cond, {'CALL', {'NAME','first_in_win'}, W, W[3]}}
+            -- the BETW window; the gate also gets the raw stop expression so
+            -- it can schedule a proactive reset at window end
+            gates[#gates+1] = {'first_in', W}
             consumedModifier = true
           else
             break
@@ -872,13 +873,15 @@ local function module(ER)
         if peek(1) and peek(1).type == 'rule' then
           next()  -- consume '=>'
           local action = parseBlock()
-          -- debounce: prepend wait(T) to the action block
-          if modifiers.debounce then
-            table.insert(action, 2, {'CALL', {'NAME','wait'}, modifiers.debounce})
-          end
           if peek(1) then parseError("Unexpected token after rule action") end
           local node = {'RULE', cond, action}
-          if modifiers.single then node[4] = {single=true} end
+          -- structured modifiers: compiler turns gates into the condition's
+          -- gate chain and debounce into a wait(T) action prefix
+          local m = {}
+          if modifiers.single then m.single = true end
+          if modifiers.debounce then m.debounce = modifiers.debounce end
+          if #gates > 0 then m.modifiers = gates end
+          if m.single or m.debounce or m.modifiers then node[4] = m end
           return node
         elseif consumedModifier then
           parseError("Expected '=>' after rule modifiers")

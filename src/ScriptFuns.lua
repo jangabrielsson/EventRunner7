@@ -341,77 +341,24 @@ local function module(ER)
     local async = ER.async
     
     function async.trueFor(cb,time,expr)
+      -- Delegate to the since gate core (ER._sinceGate); the 'since' modifier
+      -- compiles to a YIELD that uses the same core.
       local env = cb.env
       local rule = env.rule
-      local trueFor = rule.trueFor or {}
-      rule.trueFor = trueFor
-      if expr then -- test is true
-        -- A ref whose timer is no longer registered was cancelled out from
-        -- under us (single/terminate killTimers): start a fresh window
-        -- instead of wedging with a stale ref. Expressions have no timer
-        -- registry, so the ref is trusted there.
-        local pending = trueFor.ref and (not rule.timers or rule.timers[trueFor.ref])
-        if not pending then -- new, or stale after cancellation
-          trueFor.ref = nil
-          trueFor.trigger = env.event
-          trueFor.ref = env.setTimeout(function() 
-            trueFor.ref = nil; cb(true) 
-          end, time*1000)
-          return false -- no watchdog: the since timer owns this suspension
-        else -- already true and we have a live timer waiting
-          cb(false) -- do nothing
-        end
-      elseif trueFor.ref then -- test is false, and we have timer
-        env.cancel(trueFor.ref)
-        trueFor.ref = nil
-        cb(false)
-      else
-        cb(false) -- do nothing
-      end
-      return -1 -- not async...
+      local status = ER._sinceGate(env, rule, time, expr, cb)
+      if status == 'suspended' then return false end
+      return -1 -- sync: cb already called
     end
     
     -- first_in_win: like once() but proactively resets at the window end time
     -- so the rule can fire again in the NEXT occurrence of the window.
     -- stopVal is seconds-since-midnight (< 86400) or an epoch timestamp (>= 86400).
     function async.first_in_win(cb, inWindow, stopVal)
-      local rule = cb.env and cb.env.rule
-      local mstate = rule and rule._mstate or cb.ctx
-      if inWindow then
-        if not mstate.once then
-          mstate.once = true
-          -- Schedule a reset at the end of the window
-          local msEnd
-          if stopVal >= 86400 then  -- epoch timestamp
-            msEnd = (stopVal - os.time()) * 1000
-          else                      -- seconds since midnight
-            local now_secs = os.time() - ER.midnight()
-            local stop_adj = stopVal >= now_secs and stopVal or stopVal + 86400
-            msEnd = (stop_adj - now_secs) * 1000
-          end
-          if msEnd > 0 and rule then
-            if mstate.once_timer then clearTimeout(mstate.once_timer) end
-            local ref
-            ref = setTimeout(function()
-              mstate.once = nil
-              mstate.once_timer = nil
-              if rule.timers then rule.timers[ref] = nil end
-            end, msEnd)
-            mstate.once_timer = ref
-            if rule.timers then rule.timers[ref] = msEnd end
-          end
-          cb(true)
-        else cb(false) end
-      else
-        -- Outside window: cancel any pending reset and clear the flag
-        if mstate.once_timer then
-          clearTimeout(mstate.once_timer)
-          if rule and rule.timers then rule.timers[mstate.once_timer] = nil end
-          mstate.once_timer = nil
-        end
-        mstate.once = nil
-        cb(false)
-      end
+      -- Delegate to the first-in-window gate core; the 'first_in' modifier
+      -- compiles to a CFUN gate that uses the same core.
+      local env = cb.env
+      local rule = env.rule
+      cb(ER._firstInWin(rule, env, true, inWindow, stopVal))
       return -1 -- not async
     end
     
@@ -421,31 +368,16 @@ local function module(ER)
     end
     
     function async.cool_down(cb, T)
-      local rule = cb.env and cb.env.rule
-      local mstate = rule and rule._mstate or cb.ctx
-      local state = mstate.cool_down or {}
-      mstate.cool_down = state
-      local now = os.time()
-      if not state.lastFired or (now - state.lastFired) >= T then
-        state.lastFired = now
-        cb(true)
-      else
-        cb(false)
-      end
+      local env = cb.env
+      local rule = env.rule
+      cb(ER._coolDown(rule, true, T))
       return -1 -- not async
     end
     
     function async.every_other(cb, N)
-      local rule = cb.env and cb.env.rule
-      local mstate = rule and rule._mstate or cb.ctx
-      local state = mstate.every_other or {count=0}
-      mstate.every_other = state
-      state.count = state.count + 1
-      if state.count % N == 0 then
-        cb(true)
-      else
-        cb(false)
-      end
+      local env = cb.env
+      local rule = env.rule
+      cb(ER._everyOther(rule, true, N))
       return -1 -- not async
     end
     
