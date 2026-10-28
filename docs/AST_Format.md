@@ -153,7 +153,25 @@ For `FIELD`: compiled to `INDEX(obj, CONST("fieldname"))` — plain Lua table fi
 |--------|--------------------------------------------|-----------------------|
 | `RULE` | `{'RULE', condition_ast, action_ast [, {modifiers}]}` | EventScript rule |
 
-**Modifier table** (optional fourth element): `{single=true}` when the `single` modifier is present. Other modifiers (`since`, `debounce`, `cooldown`, `every`, `first_in`) are desugared directly into the condition AST by the parser rather than stored as flags.
+**Modifier table** (optional fourth element): all modifiers are stored as
+structure — no desugaring in the parser:
+
+```lua
+{
+  single   = true,   -- 'single' flag (also set by 'debounce')
+  debounce = T_ast,  -- 'debounce T' duration
+  modifiers = {      -- ordered gates, in source order
+    {'since',    T_ast},
+    {'cooldown', T_ast},
+    {'every',    N_ast},
+    {'first_in', W_ast},  -- W_ast is a BETW node
+  },
+}
+```
+
+The compiler turns the gates into the condition's gate chain (see Rule
+compilation specifics below). The parser rejects duplicate gate names and
+`single`/`debounce` combined with `first_in`.
 
 ### Functions
 
@@ -336,9 +354,14 @@ Calls `ER.getProp(obj, key)` / `ER.setProp(obj, key, val)` at runtime. The prope
 
 | Opcode  | Shape                                 | Description                   |
 |---------|---------------------------------------|-------------------------------|
-| `YIELD` | `{'YIELD', "sleep"|nil, time}`       | Suspend and resume later      |
+| `YIELD` | `{'YIELD', tag, arg1, ...}`          | Suspend and resume later      |
 
-The `YIELD` instruction pauses the CPS trampoline and returns a token that the runtime can `resume()` later. Used by `wait(seconds)` which compiles to `YIELD('sleep', seconds)`.
+The `YIELD` instruction pauses the CPS trampoline and yields `(tag, arg1, ...)`
+to the runtime; `resume(token, val)` makes the YIELD expression evaluate to
+`val`. The tag selects the host-layer yield handler. Used by:
+
+- `wait(seconds)` → `YIELD('sleep', seconds)`
+- the `since` modifier gate → `YIELD('sinceGate', T, cond)`
 
 ### Tables and functions
 
@@ -402,7 +425,7 @@ The `YIELD` instruction pauses the CPS trampoline and returns a token that the r
 | `RETURN`             | `RETURN`                                                |
 | `BREAK`              | `BREAK`                                                 |
 | `BLOCK` / `SCRIPT`   | `PROGN` (or single expression if one statement)         |
-| `RULE`               | `IF(CALL(_ruleCondition, cond), action, RETURN(STRING(ER.ruleFail)))` |
+| `RULE`               | `IF(CFUN(_ruleCondition, gate_chain), action, RETURN(STRING(ER.ruleFail)))` |
 | `FUNCTION`           | `LAMBDA(params, body)`                                  |
 | `TABLE`              | `MAKETABLE(k1, v1, k2, v2, ...)`                        |
 | `NOW`                | `NOW`                                                   |
@@ -433,15 +456,30 @@ Use `ER.compileASTWithMap(ast)` to get both the CSP tree and the srcmap.
 
 Rules go through a special path:
 
-1. Parser produces `{'RULE', cond_ast, action_ast [, modifiers]}`.
-2. `ER.compileRuleBody()` wraps the rule as:
+1. Parser produces `{'RULE', cond_ast, action_ast [, modifiers]}` with
+   structured modifiers (see the Rules section above).
+2. `ER.compileRuleBody()` wraps each gate around the condition in source
+   order, then the `_ruleCondition` wrapper, then builds the IF:
+
    ```
-   IF(CALL(_ruleCondition, cond_ast), action_ast, RETURN(STRING(ER.ruleFail)))
+   IF(CFUN(_ruleCondition, gates...), action, RETURN(STRING(ER.ruleFail)))
    ```
+
+   Gate compilation:
+
+   | Modifier    | CSP output                                     | State home |
+   |-------------|------------------------------------------------|------------|
+   | `since T`   | `YIELD('sinceGate', T, cond)` — the only gate that suspends | `rule.trueFor` |
+   | `cooldown T` | `CFUN(ER.coolDownGate, cond, T)`              | `rule._mstate.cool_down` |
+   | `every N`    | `CFUN(ER.everyOtherGate, cond, N)`            | `rule._mstate.every_other` |
+   | `first_in W` | `CFUN(ER.firstInWinGate, cond, W, W[3])`      | `rule._mstate.once` |
+   | `debounce T` | `PROGN(YIELD('sleep', T), action)` action prefix, plus the `single` flag | — |
+
 3. The `_ruleCondition` function at runtime calls the condition compiled CSP and returns true/false.
 4. When the condition is false, `RETURN(STRING(ER.ruleFail))` causes an early exit with a sentinel value — the rule runner detects this and suppresses the action.
 
-Modifiers are preserved in the CSP result table as `_modifiers` for the rule runner to handle at runtime.
+Modifiers are preserved in the CSP result table as `_modifiers` for the rule
+runner (the `single` flag drives `killTimers` before each run).
 
 ---
 
