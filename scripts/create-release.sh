@@ -374,6 +374,26 @@ update_changelog() {
 }
 
 # Function to create artifacts
+# Fix .fqa encoding after export: flua export JSON-escapes non-ASCII as
+# \uXXXX (surrogate pairs for astral-plane emojis), which the HC3's
+# importer mangles (emojis show as replacement chars). Re-encode the
+# package with raw UTF-8 — the pre-flua format the HC3 imports correctly.
+fix_fqa_encoding() {
+    local f="$1"
+    if ! command_exists python3; then
+        warning "python3 not found — skipping .fqa re-encoding; emojis may be mangled on the HC3"
+        return
+    fi
+    python3 - "$f" <<'PY'
+import json, sys
+p = sys.argv[1]
+data = json.load(open(p, encoding='utf-8'))
+with open(p, 'w', encoding='utf-8') as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write('\n')
+PY
+}
+
 create_artifacts() {
     info "Creating release artifacts..."
     
@@ -393,6 +413,9 @@ create_artifacts() {
             
             # Execute the build command
             if eval "$build_cmd"; then
+                if [[ "$output" == *.fqa ]]; then
+                    fix_fqa_encoding "$output"
+                fi
                 success "Created $output"
             else
                 warning "Failed to create $output"
