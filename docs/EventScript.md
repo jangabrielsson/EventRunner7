@@ -1223,9 +1223,9 @@ condition [modifier...] => action
 | Modifier | Syntax | Effect |
 |----------|--------|--------|
 | `single` | `cond single =>` | Cancel all pending timers/waits from the current run and start fresh when condition re-fires |
-| `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (alias for `trueFor`) |
+| `since` | `cond since duration =>` | Condition must stay true for `duration` seconds first (same logic as the `trueFor` function) |
 | `debounce` | `cond debounce duration =>` | Wait `duration` s after last true; restart timer if fires again (implies `single`) |
-| `cooldown` | `cond cooldown duration =>` | After action completes, ignore re-triggers for `duration` seconds |
+| `cooldown` | `cond cooldown duration =>` | After a fire, suppress re-triggers for `duration` seconds (counted from when the condition passed, not from action completion) |
 | `every` | `cond every n =>` | Fire only on every `n`-th true evaluation |
 | `first_in` | `cond first_in T1..T2 =>` | Fire only the first time the trigger is true within the time window `T1..T2`; resets at window end |
 
@@ -1252,6 +1252,15 @@ rule("sensor:breached first_in 07:00..08:00 => radio:play")
 -- Modifiers compose:
 rule("button:pressed single cooldown 2 => wait(0.1); light:toggle")
 ```
+
+Modifiers compose **left-to-right**: each gate wraps the ones before it, and
+`single`/`debounce` act on the run rather than the condition (so their
+position does not matter). Some combinations are order-sensitive or
+surprising — see the [RULES.md combination table](RULES.md#combining-modifiers)
+for the full list. The parser rejects two at registration:
+
+- the same modifier twice (`cooldown 3 cooldown 5`, `since 5 since 10`, …)
+- `single` (or `debounce`, which implies it) combined with `first_in`
 
 ## Reserved Keywords
 
