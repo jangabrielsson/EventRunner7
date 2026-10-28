@@ -6,6 +6,7 @@ EventScript provides a set of runtime debug functions that help you understand w
 
 - [Named Rules](#named-rules)
 - [Rule Inspector — `info()`](#rule-inspector----info)
+- [Rule errors and registration failures](#rule-errors-and-registration-failures)
 - [Live Watch — `watchOn()` / `watchOff()`](#live-watch----watchon--watchoff)
 - [Invocation History — `historyOn()` / `showHistory()`](#invocation-history----historyon--showhistory)
 - [Combining Tools](#combining-tools)
@@ -77,6 +78,41 @@ rule("sensor:breached cooldown 00:01 => notify('Door!')", {name="door-alert"})
 ```lua
 rule("@@12:00 => info('door-alert')")
 ```
+
+When the rule has runs in flight, `info()` also reports them:
+
+```
+   active:   2 run(s) in flight
+```
+
+The status line reflects `rule:state()` ('enabled' / 'disabled'), and
+`rule.active` gives the in-flight count programmatically.
+
+---
+
+## Rule errors and registration failures
+
+Rules that fail to **register** report the reason and return no rule
+object. `er.eval` returns `nil` plus an error message, so scripts can tell
+a failure apart from an async/suspended expression (which returns plain
+`nil`):
+
+```lua
+local r, err = rule("setGlobal('y',1) => log('x')")  -- impure head
+if not r then log("Failed: %s", err) end
+-- or fail hard during development: rule(src, {throw=true})
+```
+
+**Head purity**: a condition may only call whitelisted functions (pure
+builtins, condition modifiers, `log`). Anything else — including
+side-effecting helpers — is a registration error. Whitelist your own
+helpers with `fibaro.ER._headFuns.myFun = true`.
+
+Runtime errors that abort a run follow the **disableOnError** policy:
+`true` (default) disables the rule on the first error, `N` disables after N
+consecutive errors (a clean run resets the streak), `false` never disables.
+A disabled rule shows `❌ disabled` in `info()`; `rule.enable()` re-enables
+it and resets the streak.
 
 ---
 
