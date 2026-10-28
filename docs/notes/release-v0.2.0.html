@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EventRunner7 v0.2.0 - Forum Post</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: #333;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .post-content {
+            background: #fafafa;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .copy-button {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .copy-button:hover {
+            background: #0256cc;
+        }
+        .forum-link {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .forum-link:hover {
+            background: #218838;
+        }
+        h2 { color: #0366d6; }
+        h3 { color: #586069; }
+        code { background: #f6f8fa; padding: 2px 4px; border-radius: 3px; }
+        .emoji { font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <h1>EventRunner7 v0.2.0 - Forum Post Helper</h1>
+    
+    <div>
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Forum Post</button>
+    </div>
+    
+    <div class="post-content" id="forumPost">
+<h2>🚀 EventRunner7 - Release v0.2.0</h2>
+
+<h3>What's new in v0.2.0?</h3>
+Under the hood this is a big maintenance release: the rule engine has been reworked (modifiers are now proper gates, the rule lifecycle is explicit, and the test suite grew from 27 to 38 tests). Most of that is invisible — your rules behave the same, only better. Here is what concerns you as a user:
+<h3>Fixed — things you may have noticed</h3>
+<ul>
+<li>single + since could get stuck: after a re-trigger cancelled a pending since-window, the rule never fired again. Windows now restart properly on re-trigger.</li>
+<li>Very long since-windows (over 30 days) silently failed: an internal watchdog cut them off mid-window. Any length now works.</li>
+<li>rule:terminate() did not fully terminate: interval rules kept ticking and late callbacks could still wake up an old run. It now really stops — timers cancelled, interval stopped, stale callbacks discarded.</li>
+<li>Disabled rules kept consuming timers in the background: interval rules ticked forever while disabled. disable() now stops the interval scheduler; enable() resumes it — clock-aligned intervals continue at the next exact boundary, relative ones restart from the enable time.</li>
+<li>One runtime error killed a rule permanently: a single failed HTTP call or an offline device disabled the rule until you re-enabled it manually. New disableOnError option — disableOnError=3 disables only after 3 consecutive errors, disableOnError=false never disables. The default is unchanged.</li>
+<li>Errors at registration are now reported clearly: eval returns nil plus an error message, so scripts can tell "failed" from "still running".</li>
+</ul>
+<h3>New for rule authors</h3>
+<ul>
+<li>rule:recompile() — rebind a single rule in place: rule("dID = 88"); r = rule("dID:value => log('hupp')"); dID = 99; r:recompile() — now it listens to device 99, without restarting the QA or resetting all rules.</li>
+<li>rule:state() and rule.active — ask a rule whether it is enabled/disabled and how many runs are in flight; info() shows it as well.</li>
+<li>Stricter rule heads — side-effecting or unknown functions in a condition now fail at registration instead of misbehaving mysteriously later. log() still works as a debug probe; whitelist your own helpers with: fibaro.ER._headFuns.myFun = true</li>
+<li>Modifier combinations documented — a full semantics table lives in RULES.md, and the parser now rejects two combinations that never worked: duplicate modifiers (cooldown 3 cooldown 5) and single/debounce together with first_in.</li>
+</ul>
+<h3>If you are updating</h3>
+<ul>
+<li>Rules that call impure functions in conditions will now fail at registration — whitelist the helper or move the call into the action.</li>
+<li>The rejected combinations above now give an error at registration instead of misbehaving silently.</li>
+</ul>
+Docs: RULES.md, EventScript.md and AST_Format.md are updated, and the architecture reviews now live in docs/reviews/.
+
+<h3>📥 <strong>Download</strong></h3>
+<ul>
+<li><strong>GitHub Releases</strong>: <a href="https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.2.0">https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.2.0</a></li>
+<li><strong>Direct Downloads</strong>:
+<ul>
+<li><a href="https://github.com/jangabrielsson/EventRunner7/releases/download/v0.2.0/EventRunner7.fqa">EventRunner7.fqa</a></li>
+</ul>
+</li>
+</ul>
+
+<h3>📚 <strong>Documentation</strong></h3>
+<ul>
+<li><strong>Full Documentation</strong>: <a href="https://github.com/jangabrielsson/EventRunner7/blob/main/README.md">https://github.com/jangabrielsson/EventRunner7/blob/main/README.md</a></li>
+</ul>
+
+<hr>
+<p><em>This release was automatically generated from commit dda5871</em></p>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const postContent = document.getElementById('forumPost');
+            const range = document.createRange();
+            range.selectNode(postContent);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#0366d6';
+                }, 2000);
+            } catch (err) {
+                alert('Please manually select and copy the content below');
+            }
+            
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>
