@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-27
 **Scope:** Rule handling only — `src/Rule.lua`, modifier code in `src/ScriptFuns.lua`, trigger scanning, `SourceTrigger` engine in `src/Utils.lua`, and the rule boundaries in `src/Parser.lua` / `src/Compiler.lua`.
-**Complements:** `docs/Architectural_Review.md` (frontend pipeline + CSP VM leak audit, dated 2026-06-02).
+**Complements:** `Architectural_Review.md` (frontend pipeline + CSP VM leak audit, dated 2026-06-02).
 
 ---
 
@@ -10,7 +10,7 @@
 
 All eight findings are implemented or explicitly accepted (status table
 below). The review is closed; this document is kept as the historical record
-of the rule-layer cleanup, complementing `docs/Architectural_Review.md`
+of the rule-layer cleanup, complementing `Architectural_Review.md`
 (frontend/CSP leak audit, 2026-06-02).
 
 Work that grew out of the review, beyond the findings themselves:
