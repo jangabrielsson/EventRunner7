@@ -3,7 +3,7 @@
 --%%include:EventRunner.inc
 --%%file:src/Setup.lua,stdfuns
 --%%u:{label='info', text='EventRunnner 7'}
---%%u:{button='refresh', text='🔄 Rules'}
+--%%u:{button='refresh', text='🔄 Rules', onReleased='refresh'}
 --%%u:{label='status', text='Loading rules...'}
 
 local function main(er, qa)
@@ -28,8 +28,7 @@ function QuickApp:onInit()
   fibaro.EventRunner(function(er) main(er, self) end)
 end
 
-function QuickApp:UIEvent(element, eventType, value)
-  if element == 'refresh' and eventType == 'onReleased' then
-    self:updateView('status','text', fibaro.ER.ruleStatusText())
-  end
+-- UI button handler: 'refresh' is the button id in the %%u rows above.
+function QuickApp:refresh()
+  self:updateView('status','text', fibaro.ER.ruleStatusText())
 end
