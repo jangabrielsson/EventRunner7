@@ -1,6 +1,7 @@
 --%%name:expr_devices
 --%%include:../../EventRunner.inc
 --%%file:../../src/Sim.lua,sim
+--%%file:../../src/Setup.lua,stdfuns
 --%%file:../../test/harness.lua,harness
 --%%mode:offline
 
@@ -27,8 +28,8 @@ local function main(er)
 
   test_expr(er, "sw1:on; return sw1:isOn",    true,  "switch: on → isOn")
   test_expr(er, "sw1:off; return sw1:isOff",  true,  "switch: off → isOff")
-  test_expr(er, "sw1:on; return sw1:value",   1,     "switch: on → value=1")
-  test_expr(er, "sw1:off; return sw1:value",  0,     "switch: off → value=0")
+  test_expr(er, "sw1:on; return sw1:value",   true,  "switch: on → value=true")
+  test_expr(er, "sw1:off; return sw1:value",  false, "switch: off → value=false")
 
   -- toggle
   test_expr(er, "sw1:off; sw1:toggle; return sw1:isOn",  true,  "switch: toggle off→on")

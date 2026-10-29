@@ -13,9 +13,9 @@ local function main(er)
   -- Enable/disable from another rule
   test_rule(er, "#toggleGroup => disable('mygroup')",
     function(er, rule)
-      st:post({type='event', name='toggleGroup'})
+      st:post({type='toggleGroup'})
       -- Now post the group's trigger — should NOT fire because group is disabled
-      st:post({type='event', name='groupTest'})
+      st:post({type='groupTest'})
     end,
     nil,
     "group disable: rule in disabled group does not fire")

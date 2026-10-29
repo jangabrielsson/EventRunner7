@@ -1,6 +1,7 @@
 --%%name:rule_device_triggers
 --%%include:../../EventRunner.inc
 --%%file:../../src/Sim.lua,sim
+--%%file:../../src/Setup.lua,stdfuns
 --%%file:../../test/harness.lua,harness
 --%%mode:offline
 
@@ -36,17 +37,25 @@ local function main(er)
   -- Kick off the chain: turn sw on.
   local kickoff = er.eval("sw:on", { result = true })
 
-  -- Check final result: the last rule returns 'all_triggered'
-  test_rule(er, "step == 6 => return 'final'",
-    function(er2, rule)
-      -- The chain is already running from sw:on above.
-      -- The trigger var step should reach 6 via the device-trigger chain.
-      -- Just wait for it.
-    end,
-    "final",
-    "device trigger chain: sw→step1→step2→sw:off→step3→dim→step5→sens→step6")
+  -- The final rule re-evaluates on every step change; assert only when the
+  -- chain actually completes with the final value.
+  local final_done = false
+  local fr = er.eval("step == 6 => return 'final'")
+  fr.onDone = function(v)
+    if v == 'final' and not final_done then
+      final_done = true
+      assert_truthy(true, "device trigger chain: sw→step1→step2→sw:off→step3→dim→step5→sens→step6")
+      done()
+    end
+  end
 
-  done()
+  -- Safety: fail if the chain never completes.
+  setTimeout(function()
+    if not final_done then
+      assert_truthy(false, "device trigger chain never completed")
+      done()
+    end
+  end, 60000)
 end
 
 function QuickApp:onInit()

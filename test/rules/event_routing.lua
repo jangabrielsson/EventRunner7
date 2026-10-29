@@ -15,7 +15,7 @@ local function main(er)
 
   -- Kick off
   er.triggerVars.step = 0
-  st:post({type='event', name='trigger1'})
+  st:post({type='trigger1'})
 
   -- Assert: after delay, step should be 1
   test_rule(er, "step == 1 => return 'posted'",
@@ -33,7 +33,7 @@ local function main(er)
   er.eval("#trigger2 => post(#delayed2, +/00:00:01)")
   er.eval("#delayed2 => step2 = 1")
 
-  st:post({type='event', name='trigger2'})
+  st:post({type='trigger2'})
 
   test_rule(er, "step2 == 1 => return 'posted_abs'",
     function() end,
@@ -49,8 +49,8 @@ local function main(er)
   er.eval("#cancelled3 => step3 = 99")  -- would set 99 if not cancelled
 
   -- Schedule, then immediately cancel
-  st:post({type='event', name='schedule3'})
-  st:post({type='event', name='cancel3'})
+  st:post({type='schedule3'})
+  st:post({type='cancel3'})
 
   -- After a brief wait, step3 should be 1 (from cancel), not 99
   test_rule(er, "step3 == 1 => return 'cancelled'",
@@ -64,7 +64,7 @@ local function main(er)
   er.eval("#trigger4 => post(#paramEvent{val=42}, +/00:00:01)")
   er.eval("#paramEvent{val='$v'} => step4 = v")
 
-  st:post({type='event', name='trigger4'})
+  st:post({type='trigger4'})
 
   test_rule(er, "step4 == 42 => return 'params_ok'",
     function() end,
@@ -78,7 +78,7 @@ local function main(er)
   er.eval("#count5_a => count5 = count5 + 1")
   er.eval("#count5_b => count5 = count5 + 1")
 
-  st:post({type='event', name='trigger5'})
+  st:post({type='trigger5'})
 
   -- Both delayed events fire → count5 should be 2
   test_rule(er, "count5 == 2 => return 'multi_post'",

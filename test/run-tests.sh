@@ -82,7 +82,9 @@ for test_file in "${TESTS[@]}"; do
   else
     printf "  %-45s " "$label"
     output=$("${FLUA[@]}" "$test_file" 2>&1) && rc=$? || rc=$?
-    if [[ $rc -eq 0 ]]; then
+    # A test that dies in main() never runs its assertions and exits 0 on
+    # idle — require at least one PASS line for a passing verdict.
+    if [[ $rc -eq 0 ]] && echo "$output" | grep -q "PASS:"; then
       echo "PASS"
       PASS=$((PASS + 1))
     else

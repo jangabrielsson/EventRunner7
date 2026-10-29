@@ -1,5 +1,6 @@
 --%%name:rule_global_vars
 --%%include:../../EventRunner.inc
+--%%file:../../src/Sim.lua,sim
 --%%file:../../test/harness.lua,harness
 --%%mode:offline
 
@@ -8,7 +9,7 @@ local function main(er)
   er.createSimGlobal("G_trigger", "0")
 
   -- Rule triggers on global variable change
-  test_rule(er, "$G_trigger == '1' => return 'fired'",
+  test_rule(er, "$G_trigger == 1 => return 'fired'",
     function(er2, rule)
       -- Change the global variable to trigger the rule
       er2.eval("$G_trigger = '1'")
@@ -31,7 +32,7 @@ local function main(er)
       -- G_mode is 'away', not 'sleep', so rule should not fire
       er2.eval("$G_mode = 'away'")
     end,
-    nil,
+    fibaro.ER.ruleFail,
     "gvar rule: no match → no fire")
 
   done()

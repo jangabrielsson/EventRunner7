@@ -12,24 +12,24 @@ local function main(er)
   local sw1 = er.loadSimDevice("binarySwitch")   -- numeric sim id
   local sw2 = er.loadSimDevice("binarySwitch")   -- next id
 
-  er.eval(string.format("dID = %d", sw1.id))
+  er.eval(string.format("dID = %d", sw1))
   local r = er.eval("dID:value => return dID")
 
   local results = {}
   r.onDone = function(v) results[#results + 1] = v end
 
-  sw1:setValue(true)  -- posts a device event → rule fires (async)
+  fibaro.call(sw1, 'setValue', true)  -- posts a device event → rule fires (async)
 
   setTimeout(function()
     assert_eq(#results, 1, "fires on the original device")
-    assert_eq(results[1], sw1.id, "returns the compile-time-bound id")
+    assert_eq(results[1], sw1, "returns the compile-time-bound id")
 
     -- Rebind the global and recompile the rule in place
     er.eval(string.format("dID = %d", sw2.id))
     r:recompile()
 
-    sw1:setValue(false)  -- old device: subscription dropped
-    sw2:setValue(true)   -- new device: fires after recompile
+    fibaro.call(sw1, 'setValue', false)  -- old device: subscription dropped
+    fibaro.call(sw2, 'setValue', true)   -- new device: fires after recompile
 
     setTimeout(function()
       assert_eq(#results, 1, "old device no longer triggers")
