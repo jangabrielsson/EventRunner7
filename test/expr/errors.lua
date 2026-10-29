@@ -131,7 +131,7 @@ local function main(er)
 
   testError("undefined local var",
     "return fopp()",
-    "Undefined variable",
+    "Variable 'fopp' is not defined",
     true)
 
   testError("call non-function",
@@ -238,10 +238,17 @@ local function main(er)
     end)
     local msg = tostring(err)
     assert_truthy(not ok, "runtime error: undefined variable raises")
-    assert_match(msg, "Undefined variable: 'x'", "runtime error: names the variable")
+    assert_match(msg, "Variable 'x' is not defined", "runtime error: names the variable")
     assert_match(msg, " at line 1, col 12", "runtime error: position annotation")
     assert_truthy(not msg:find("</br>  src:"), "runtime error: no duplicated src tail")
   end
+
+  -- ── Friendly-message hints ─────────────────────────────────────────────────
+
+  testError("arithmetic nil hint",
+    "return nil + 1",
+    "a value in the arithmetic is nil",
+    true)
 
   -- ── Cursor placement: nil field access ────────────────────────────────────
 

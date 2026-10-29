@@ -65,6 +65,30 @@ local function trimErr(str)
   return str:match("^#(.+)") or str:match("%d+: #(.*)$") or str
 end
 
+-- hintErr(err): friendly-message translation for common runtime errors.
+-- Maps raw Lua/CSP jargon to guidance that saves a support round-trip.
+-- Only the message part is rewritten; any source annotation stays.
+local function hintErr(err)
+  local name = err:match("^#?Undefined variable: '([^']+)'")
+  if name then
+    return err:gsub("^#?Undefined variable: '[^']+'",
+      fmt("Variable '%s' is not defined — misspelled, or forgot to define it? (er.triggerVars.%s, er.defglobals.%s, or a rule assignment)", name, name, name))
+  end
+  local hints = {
+    {"attempt to index a nil value", "a value is nil where a table/device was expected — check the variable or device ID here"},
+    {"attempt to call a nil value", "a function is nil where a call was made — is it defined? (er.defglobals, er.async)"},
+    {"attempt to perform arithmetic on a nil value", "a value in the arithmetic is nil — check the variable or device property here"},
+    {"attempt to concatenate a table value", "tried to concatenate a table as a string — pick the right field, or use tostring()"},
+    {"attempt to compare a nil value", "a value in the comparison is nil — check the variable or device property here"},
+  }
+  for _, h in ipairs(hints) do
+    if err:find(h[1], 1, true) then
+      return err .. " — " .. h[2]
+    end
+  end
+  return err
+end
+
 -- fmtErr(err, src): normalize an error for logging. CSP-enriched runtime
 -- errors already carry a source annotation ("</br>" + line/col/caret); plain
 -- messages (registration, internal) get the source appended.
@@ -1016,7 +1040,7 @@ local function eval(src,opts)
     if not ok then
       if not opts.throw then
         printErr(opts.errorPrefix, fmtErr(err, src))
-        return nil, trimErr(err)   -- explicit failure status
+        return nil, fmtErr(err, nil)  -- explicit failure status (hinted)
       end
       error(err, 0)
     end
@@ -1039,7 +1063,7 @@ local function eval(src,opts)
   if not ok then
     if opts.throw then error(err, 0) end
     printErr(opts.errorPrefix, fmtErr(err, src))
-    errmsg = trimErr(err)
+    errmsg = fmtErr(err, nil)
   end
 
   -- For bare expressions: log the sync result if we got one.
@@ -1221,6 +1245,7 @@ local function addCSPfuns()
     end
   end
   function vm.host.formatSource(src, pos, len) return ER.sourceAnnotation(src, pos, len) end
+  function vm.host.hintError(msg) return hintErr(msg) end
   function vm.host.formatError(v)  -- non-string error values (thrown tables etc.)
     if type(v) == 'table' then return json.encode(v) end
     return tostring(v)
