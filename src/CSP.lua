@@ -752,11 +752,11 @@ local function module(ER)
     }
     
     local function checkProgn(t)
-      if #t == 2 then print("PROGN SINGLE ARG") end
-      for i=2,#t do
-        local op = t[i][1]
-        if op == 'PROGN' then print("DOUBLE PROGN") end
-      end
+      -- if #t == 2 then print("PROGN SINGLE ARG") end
+      -- for i=2,#t do
+      --   local op = t[i][1]
+      --   if op == 'PROGN' then print("DOUBLE PROGN") end
+      -- end
     end
     
     -- ── SIMPLE COMPILER ──────────────────────────────────────────────────────────────
