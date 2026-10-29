@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EventRunner7 v0.2.1 - Forum Post</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: #333;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .post-content {
+            background: #fafafa;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .copy-button {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .copy-button:hover {
+            background: #0256cc;
+        }
+        .forum-link {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .forum-link:hover {
+            background: #218838;
+        }
+        h2 { color: #0366d6; }
+        h3 { color: #586069; }
+        code { background: #f6f8fa; padding: 2px 4px; border-radius: 3px; }
+        .emoji { font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <h1>EventRunner7 v0.2.1 - Forum Post Helper</h1>
+    
+    <div>
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Forum Post</button>
+    </div>
+    
+    <div class="post-content" id="forumPost">
+<h2>🚀 EventRunner7 - Release v0.2.1</h2>
+
+<h3>What's new in v0.2.1?</h3>
+This release is mostly about understanding what your rules are doing: errors that actually tell you what's wrong, a rule status view right in the app, and friendlier syntax.
+<h3>Errors that tell you what's wrong</h3>
+When a rule fails now, the log names the problem, points at the position, and suggests the fix:
+<ul>
+<li>Variable 'temperatur' is not defined — misspelled, or forgot to define it? (er.triggerVars.temperatur, er.defglobals.temperatur, or a rule assignment)</li>
+<li>Head function 'fnt' is not allowed in a rule condition — did you mean 'fmt'?</li>
+<li>post() posts events; move it into the action</li>
+<li>no such property 'valu' — did you mean 'value'?</li>
+</ul>
+All errors — syntax, registration, and runtime — now use the same shape: message, line and column, and a caret under the problem. throw('...') also actually works now (it silently didn't before).
+<h3>Rule status in the app UI</h3>
+The EventRunner7 device now has a 🔄 Rules button. Press it to see every rule in the app: ✅ running, ❌ disabled, the last error, and what each rule listens to:
+RULE1 entry-light ✅
+   ⚡ door:breached → device 42
+RULE2 ❌ disabled
+   ❌ Variable 'temperatur' is not defined … at line 1, col 24
+The view also updates on its own when a rule errors or completes.
+<h3>Friendlier syntax</h3>
+<ul>
+<li>when … then … — rules can read like English:</li>
+</ul>
+  rule("when door:breached then light:on")
+  rule("when motion:breached since 2min then alarm:on")
+<ul>
+<li>Duration literals — 5s, 30sec, 5min, 2h, 1d instead of clock formats:</li>
+</ul>
+  rule("button:pressed debounce 30s => log('settled')")
+<ul>
+<li>'when' is not reserved — it still works as a variable name.</li>
+</ul>
+<h3>Trigger lists in your own words</h3>
+Registration logs and info() now quote the expression you wrote next to what it resolved to:
+⚡ doorSensor:breached → device 42
+⚡ myLamps:isOn → devices 55, 56, 57
+🕒 @23:00 → 23:00:00
+<h3>Examples to learn from</h3>
+Three runnable example projects in the examples/ folder — motion lights, a morning routine, and a door alert, including one deliberately broken rule so you can see the new error format in action. They run offline in flua with simulated devices; nothing touches your real controller.
+<h3>Fixes</h3>
+<ul>
+<li>List checks like switches:allTrue and temps:average silently always saw "on" — fixed.</li>
+<li>Internal cleanups: faster rule compilation, a stricter test suite that caught several long-hidden test bugs.</li>
+</ul>
+<h3>If you are updating</h3>
+Nothing should break — everything above is additive, and the new error messages are more talkative than before. If a rule now fails at registration, it was already silently broken; the message tells you why.
+
+<h3>📥 <strong>Download</strong></h3>
+<ul>
+<li><strong>GitHub Releases</strong>: <a href="https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.2.1">https://github.com/jangabrielsson/EventRunner7/releases/tag/v0.2.1</a></li>
+<li><strong>Direct Downloads</strong>:
+<ul>
+<li><a href="https://github.com/jangabrielsson/EventRunner7/releases/download/v0.2.1/EventRunner7.fqa">EventRunner7.fqa</a></li>
+</ul>
+</li>
+</ul>
+
+<h3>📚 <strong>Documentation</strong></h3>
+<ul>
+<li><strong>Full Documentation</strong>: <a href="https://github.com/jangabrielsson/EventRunner7/blob/main/README.md">https://github.com/jangabrielsson/EventRunner7/blob/main/README.md</a></li>
+</ul>
+
+<hr>
+<p><em>This release was automatically generated from commit b45b307</em></p>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const postContent = document.getElementById('forumPost');
+            const range = document.createRange();
+            range.selectNode(postContent);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#0366d6';
+                }, 2000);
+            } catch (err) {
+                alert('Please manually select and copy the content below');
+            }
+            
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>
