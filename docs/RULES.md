@@ -12,6 +12,12 @@ Rules are registered by passing them to `er.eval()`. When the condition's trigge
 
 A **plain expression** (no `=>`) runs immediately and returns its value.
 
+`--` starts an end-of-line comment in a rule or expression source string:
+
+```lua
+rule("door:breached => light:on  -- hallway light")
+```
+
 ---
 
 ## eval() API contract

@@ -93,6 +93,12 @@ EventScript uses a simple `triggerExpression => action` syntax where:
 rule("triggerExpression => action")
 ```
 
+`--` starts an end-of-line comment inside a rule or expression source string:
+
+```lua
+rule("door:breached => light:on  -- hallway light")
+```
+
 Rules are defined using the `rule()` function with a string containing the trigger-action pattern.
 The trigger is an expression returning true or false, and when true the action is executed. It can thus be thought of as
 ```lua

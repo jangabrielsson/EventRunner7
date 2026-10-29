@@ -187,7 +187,11 @@ local function module(ER)
             base = P({'METHODCALL', base, name, table.unpack(args)}, nametok)
             isCall = true
           else
-            base = P({'GETPROP', base, name}, nametok)
+            -- span the whole 'obj:prop' expression, not just the name
+            local node = {'GETPROP', base, name}
+            node._pos = base._pos or nametok.pos
+            node._len = nametok.pos + nametok.len - (base._pos or nametok.pos)
+            base = node
             isCall = false
           end
         elseif t.type == 'lpar' or t.type == 'lbra' or t.type == 'string' then
@@ -443,9 +447,19 @@ local function module(ER)
     local function parseDailyexp()
       local t = peek(1)
       if t and t.type == 'daily' then
-        next(); return {'DAILY', parseAddexp()}
+        next()
+        local operand = parseAddexp()
+        local node = {'DAILY', operand}
+        node._pos = t.pos
+        node._len = (operand._pos or t.pos) + (operand._len or t.len) - t.pos
+        return node
       elseif t and t.type == 'interv' then
-        next(); return {'INTERV', parseAddexp()}
+        next()
+        local operand = parseAddexp()
+        local node = {'INTERV', operand}
+        node._pos = t.pos
+        node._len = (operand._pos or t.pos) + (operand._len or t.len) - t.pos
+        return node
       end
       return parseAddexp()
     end
@@ -458,8 +472,12 @@ local function module(ER)
         local t = peek(1)
         if t and (t.type == 'betw' or t.type == 'conc') then
           local op = next()
-          left = P(op.type == 'betw' and {'BETW', left, parseDailyexp()}
-          or {'CONCAT', left, parseDailyexp()}, op)
+          local right = parseDailyexp()
+          -- span the whole 'a..b' expression, not just the operator
+          local node = op.type == 'betw' and {'BETW', left, right} or {'CONCAT', left, right}
+          node._pos = left._pos or op.pos
+          node._len = (right._pos or op.pos) + (right._len or op.len) - node._pos
+          left = node
         else break end
       end
       return left

@@ -390,11 +390,16 @@ local function defineRuleAPI(rule, trs, opts)
   end
 
   function rule:dumpTriggers(pref)
-    for _, tr in pairs(trs.triggers) do
-      print(pref or "  ", self.opts.triggerListPrefix, tr)
+    pref = pref or "  "
+    for key, tr in pairs(trs.triggers) do
+      local src = trs.srcs[key]
+      if src then print(pref, self.opts.triggerListPrefix, src, "→", tr)
+      else print(pref, self.opts.triggerListPrefix, tr) end
     end
     for t,_ in pairs(rule.dailys) do
-      print(pref or "  ", self.opts.dailyListPrefix, ER.timeStr(t()))
+      local src = trs.srcs[t]
+      if src then print(pref, self.opts.dailyListPrefix, src, "→", ER.timeStr(t()))
+      else print(pref, self.opts.dailyListPrefix, ER.timeStr(t())) end
     end
   end
 
@@ -484,9 +489,9 @@ local function compRule(r, opts, src)
   rule.modifiers = r._modifiers or {}  -- raw modifier flags (single, debounce, etc.)
   attachRun(rule)
 
-  local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
+  local trs = { triggers = {}, dailys = {}, between = {}, interval = nil, srcs = {} }
   trs.src = src
-  trs.srcmap = r._srcmap  -- positions for scanHead error annotations
+  trs.srcmap = r._srcmap  -- positions/spans for scanHead error annotations
   scanHead(head, trs)
   -- sanity check that scanHead found something triggerable
   if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
@@ -575,6 +580,18 @@ local function posAt(trs, node)
   return ""
 end
 
+-- spanText(trs, node): the source text the user wrote for a trigger node
+-- (e.g. "doorSensor:breached"), for human-readable trigger descriptions.
+-- We quote the user's own words instead of reverse-resolving ids, so lists,
+-- ambiguous bindings and overlapping resource types all work.
+local function spanText(trs, node)
+  local sp = trs.srcmap and node and trs.srcmap[node]
+  if sp and trs.src then
+    return trs.src:sub(sp.pos, sp.pos + (sp.len or 1) - 1)
+  end
+  return nil
+end
+
 -- Head-purity whitelist: bare-name functions allowed to be CALLed in a rule
 -- condition. The trigger scanner evaluates fragments of the condition at
 -- registration time; a side-effecting function could run once there and
@@ -650,6 +667,7 @@ function HOPS.GETPROP(ast,trs)
     local trigger = gp:getTrigger(o,key)
     local id = trigger.property or trigger.name or trigger.type
     trs.triggers[id..tostring(gp)] = trigger
+    trs.srcs[id..tostring(gp)] = spanText(trs, ast)
   end
 end
 
@@ -659,6 +677,8 @@ function HOPS.BETW(ast,trs)
   assert(type(a) == "number" and type(b) == "number", "BETW operands must be numbers")
   table.insert(trs.between, afun)
   table.insert(trs.between, bfun)
+  trs.srcs[afun] = spanText(trs, ast)
+  trs.srcs[bfun] = spanText(trs, ast)
   trs._recalc = true
   scanHead(ast[2], trs)
   scanHead(ast[3], trs)
@@ -668,6 +688,7 @@ end
 function HOPS.DAILY(ast,trs)
   local times = ast[2]
   trs._recalc = true
+  local single = not (type(times) == 'table' and times[1] == 'MAKETABLE')
   if type(times) == 'table' and times[1] == 'MAKETABLE' then
     times = {}
     for i=3,#ast[2],2 do times[#times+1] = ast[2][i] scanHead(ast[2][i], trs) end
@@ -679,6 +700,8 @@ function HOPS.DAILY(ast,trs)
     else
       assert(type(v) == "number", "DAILY operand must be a number")
       table.insert(trs.dailys, afun)
+      -- span: the whole '@23:00' for a single time, the element for a list
+      trs.srcs[afun] = spanText(trs, single and ast or e)
     end
   end
 end
@@ -696,6 +719,7 @@ function HOPS.GETVAR(ast,trs)
     trs.triggers["GLOB:"..name] = {
       type='global-variable', name = name, _recalc = trs._recalc
     }
+    trs.srcs["GLOB:"..name] = spanText(trs, ast)
   elseif ast[2] == "QV" then
     trs.triggers["QUICK:"..name] = {
       type='quickvar', name = name, _recalc = trs._recalc
@@ -712,6 +736,7 @@ function HOPS.GET(ast,trs)
   local name = ast[2]
   if ER._triggerVars[name] then
     trs.triggers["TRIG:"..name] = {type='trigger-variable', name = name}
+    trs.srcs["TRIG:"..name] = spanText(trs, ast)
     trs.haveVar = true
   end
 end
@@ -722,6 +747,7 @@ function HOPS.TRIGGER_EVENT(ast,trs)
   local id = ast[3]
   local tab = exprFun(tab)() -- evaluate
   trs.triggers[id] = tab
+  trs.srcs[id] = spanText(trs, ast)
 end
 
 function HOPS.MAKETABLE(ast,trs) end -- table contains no triggers
