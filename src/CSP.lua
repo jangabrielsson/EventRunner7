@@ -755,14 +755,6 @@ local function module(ER)
        end,
     }
     
-    local function checkProgn(t)
-      -- if #t == 2 then print("PROGN SINGLE ARG") end
-      -- for i=2,#t do
-      --   local op = t[i][1]
-      --   if op == 'PROGN' then print("DOUBLE PROGN") end
-      -- end
-    end
-    
     -- ── SIMPLE COMPILER ──────────────────────────────────────────────────────────────
     -- Turns {"OPCODE", args...} tables into expression trees.
     -- Scalar args (number, string, boolean, function) are auto-wrapped in CONST.
@@ -849,9 +841,22 @@ local function module(ER)
         local cargs = cal(t, 3)
         f = CFUN(t[2], unpack(cargs))
       elseif op == "PROGN"      then
-        checkProgn(t)
-        local cargs = cal(t, 2)
-        f = PROGN(unpack(cargs))
+        -- Flatten nested PROGNs (PROGN is pure sequencing) and collapse
+        -- single-element sequences — one trampoline hop per level saved.
+        local cargs = {}
+        for i = 2, #t do
+          local c = t[i]
+          if type(c) == 'table' and c[1] == 'PROGN' then
+            for j = 2, #c do cargs[#cargs+1] = ca(c[j]) end
+          else
+            cargs[#cargs+1] = ca(c)
+          end
+        end
+        if #cargs == 1 then
+          f = cargs[1]
+        else
+          f = PROGN(unpack(cargs))
+        end
       elseif op == "LAMBDA"    then
         -- t[2] is a raw list of param name strings; t[3] is the compiled body CSP tree
         f = LAMBDA(t[2], ca(t[3]))
