@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.2.2] - 2026-10-29
+
+## Changes in v0.2.2
+
+- 🐛 **Fix**: wire the refresh button to QuickApp:refresh
+  - the %%u row now declares onReleased='refresh' and the handler is a
+  - QuickApp:refresh method (HC3 UI contract), replacing the UIEvent
+  - dispatch function
+- 📚 **Docs**: user-facing forum post for v0.2.1
+  - friendlier than the commit-log changelog: what users see (talkative
+  - errors with positions and did-you-mean, the Rules status view in the app
+  - UI, when..then and duration-literal syntax, trigger lists in the user's
+  - own words, example projects) and the list-filter fix
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.1] - 2026-10-29
 
 ## Changes in v0.2.1
