@@ -642,7 +642,8 @@ local function module(ER)
       _ctx:restore(outer)
       
       if not ok then
-        local enriched = tostring(packed[1])
+        local errv = packed[1]
+        local enriched = type(errv) == 'string' and errv or vm.host.formatError(errv)
         local src = opts and (opts.src or (opts.rule and opts.rule.src))
         if src then
           if curpos then
@@ -676,7 +677,8 @@ local function module(ER)
       _ctx:restore(outer)
       
       if not ok then
-        local enriched = tostring(packed[1])
+        local errv = packed[1]
+        local enriched = type(errv) == 'string' and errv or vm.host.formatError(errv)
         local opts = token.ctx.opts
         local src = opts and (opts.src or (opts.rule and opts.rule.src))
         if src then
@@ -900,6 +902,7 @@ local function module(ER)
       isAsync = function(fn) return false end,
       onVarWrite = function(name, val) end,
       formatSource = function(src, pos, len) return src .. " :" .. pos end,
+      formatError  = function(v) return tostring(v) end,
       now   = function()  -- seconds since midnight
         local t = os.date("*t")
         return t.hour*3600 + t.min*60 + t.sec

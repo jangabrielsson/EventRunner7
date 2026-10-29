@@ -65,6 +65,17 @@ local function trimErr(str)
   return str:match("^#(.+)") or str:match("%d+: #(.*)$") or str
 end
 
+-- fmtErr(err, src): normalize an error for logging. CSP-enriched runtime
+-- errors already carry a source annotation ("</br>" + line/col/caret); plain
+-- messages (registration, internal) get the source appended.
+local function fmtErr(err, src)
+  err = trimErr(err or "")
+  if src and not err:find("</br>") then
+    err = err .. "</br>  src: " .. src
+  end
+  return err
+end
+
 -- shouldLog(flag [, sub]) normalizes debug-flag values so users can filter by sub-event.
 --   true            → log everything           (current boolean behavior)
 --   false / nil     → log nothing
@@ -92,9 +103,9 @@ local function makeLogger(obj, nameFn)
     if level < min then return end
     local name = nameFn and nameFn(self)
     if prefix == self.opts.errorPrefix and self.opts.src then
-      a1 = trimErr(a1 or "")   -- normalized to a string; safe to concat
-      if name then printErr(prefix, name..": "..a1, ..., "</br>  src: "..self.opts.src)
-      else printErr(prefix, a1, ..., "</br>  src: "..self.opts.src) end
+      a1 = fmtErr(a1, self.opts.src)   -- normalized; annotation added when missing
+      if name then printErr(prefix, name..": "..a1, ...)
+      else printErr(prefix, a1, ...) end
     else
       if name then print(prefix, name..":", a1, ...) else print(prefix, a1, ...) end
     end
@@ -823,7 +834,7 @@ local yieldHandlers = {
             if ctx.timers then ctx.timers[timeref] = nil end
             timeref = nil
             timedOut = true
-            ctx:log("verbose", o.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
+            ctx:log("normal", o.errorPrefix, fmt("Async func".."tion %s timed out after %dms", tostring(fun), timeout))
             local ok, err = pcall(function()
               resumeRunner(table.pack(ER.csp.resume(cf, false)), ctx, cb)
             end)
@@ -1004,7 +1015,7 @@ local function eval(src,opts)
     local ok, err = pcall(function() ast = ER.parse(src) end)
     if not ok then
       if not opts.throw then
-        printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+        printErr(opts.errorPrefix, fmtErr(err, src))
         return nil, trimErr(err)   -- explicit failure status
       end
       error(err, 0)
@@ -1027,7 +1038,7 @@ local function eval(src,opts)
 
   if not ok then
     if opts.throw then error(err, 0) end
-    printErr(opts.errorPrefix, trimErr(err), "</br>  src: "..src)
+    printErr(opts.errorPrefix, fmtErr(err, src))
     errmsg = trimErr(err)
   end
 
@@ -1209,7 +1220,11 @@ local function addCSPfuns()
       trace("SET trigger var", name, "=", val)
     end
   end
-  function vm.host.formatSource(src, pos, len) return ER.sourceMarker(src, pos, len) end
+  function vm.host.formatSource(src, pos, len) return ER.sourceAnnotation(src, pos, len) end
+  function vm.host.formatError(v)  -- non-string error values (thrown tables etc.)
+    if type(v) == 'table' then return json.encode(v) end
+    return tostring(v)
+  end
 end
 
 local function bootEventRunner(cb)

@@ -251,6 +251,15 @@ local tokenMT = {
   end
 }
 
+local function posToLineCol(str, pos)
+  local line, col = 1, 1
+  for i = 1, pos - 1 do
+    if str:sub(i,i) == '\n' then line = line + 1; col = 1
+    else col = col + 1 end
+  end
+  return line, col
+end
+
 local function sourceMarker(str, pos, len)
   local lines = str:split("\n")
   local tot = 0
@@ -311,18 +320,9 @@ local function tokenStream(str)
   local pos = 1
   local ctxStack = {}
   
-  local function posToLineCol(pos)
-    local line, col = 1, 1
-    for i = 1, pos - 1 do
-      if str:sub(i,i) == '\n' then line = line + 1; col = 1
-      else col = col + 1 end
-    end
-    return line, col
-  end
-  
   local function sourceAt(token)
     if not token then return " at end of input" end
-    local line, col = posToLineCol(token.pos)
+    local line, col = posToLineCol(str, token.pos)
     local marker = sourceMarker(str, token.pos, token.len)
     return string.format(" at line %d, col %d%s", line, col, marker)
   end
@@ -390,6 +390,12 @@ end
 ER.tokenizer = tokenizer
 ER.tokenStream = tokenStream
 ER.sourceMarker = sourceMarker
+-- Full error annotation: " at line L, col C</br><source line></br><caret>" —
+-- the same shape parse errors use, so runtime and parse errors read alike.
+ER.sourceAnnotation = function(str, pos, len)
+  local line, col = posToLineCol(str, pos)
+  return string.format(" at line %d, col %d%s", line, col, sourceMarker(str, pos, len))
+end
 
 end
 

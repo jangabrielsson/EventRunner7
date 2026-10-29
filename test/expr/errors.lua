@@ -219,12 +219,29 @@ local function main(er)
   testError("user throw propagates",
     "throw('boom')",
     "boom",
-    false)
+    true)
 
   testError("throw with table value",
     "throw({code=42, msg='oops'})",
     "code",
-    false)
+    true)
+
+  -- ── Unified runtime error format ───────────────────────────────────────────
+
+  do
+    -- Runtime errors carry exactly one source annotation (position + caret),
+    -- not a duplicated "src:" tail.
+    local src = "return 1 + x"
+    local ok, err = pcall(function()
+      local tree, smap = compileASTWithMap(parse(src))
+      vm.eval(vm.compile(tree, smap), { src = src })
+    end)
+    local msg = tostring(err)
+    assert_truthy(not ok, "runtime error: undefined variable raises")
+    assert_match(msg, "Undefined variable: 'x'", "runtime error: names the variable")
+    assert_match(msg, " at line 1, col 12", "runtime error: position annotation")
+    assert_truthy(not msg:find("</br>  src:"), "runtime error: no duplicated src tail")
+  end
 
   -- ── Cursor placement: nil field access ────────────────────────────────────
 

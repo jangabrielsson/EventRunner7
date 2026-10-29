@@ -318,6 +318,12 @@ intrinsics.wait = function(ms_ast)
   return {'YIELD', 'sleep', ms_ast and compile(ms_ast) or 0}
 end
 
+-- throw(value) → THROW: aborts the evaluation with value as the error.
+-- Tables are serialized by the runtime's vm.host.formatError.
+intrinsics.throw = function(val_ast)
+  return {'THROW', compile(val_ast or {'NIL'})}
+end
+
 -- ── Dispatch table ────────────────────────────────────────────────────────
 
 local comp = {}
