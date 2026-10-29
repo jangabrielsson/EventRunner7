@@ -207,6 +207,7 @@ local function newRule(opts, src)
   rule.subs = {}                -- trigger subscriptions (for recompile)
   rule.dailys = {}              -- daily subevents (filled by setupDailys;
                                 -- interval-only rules keep it empty)
+  rule.lastError = nil          -- last runtime error (for the UI status view)
   makeLogger(rule, tostring)    -- rule name prefixes log output
   return rule
 end
@@ -391,16 +392,24 @@ local function defineRuleAPI(rule, trs, opts)
 
   function rule:dumpTriggers(pref)
     pref = pref or "  "
+    for _, l in ipairs(self:triggerLines()) do print(pref, l) end
+  end
+
+  -- triggerLines: the human-readable trigger list (source span + resolved
+  -- pattern), shared by dumpTriggers, info(), and the UI status view.
+  function rule:triggerLines()
+    local lines = {}
     for key, tr in pairs(trs.triggers) do
       local src = trs.srcs[key]
-      if src then print(pref, self.opts.triggerListPrefix, src, "→", tr)
-      else print(pref, self.opts.triggerListPrefix, tr) end
+      if src then lines[#lines+1] = self.opts.triggerListPrefix .. " " .. src .. " → " .. tostring(tr)
+      else lines[#lines+1] = self.opts.triggerListPrefix .. " " .. tostring(tr) end
     end
     for t,_ in pairs(rule.dailys) do
       local src = trs.srcs[t]
-      if src then print(pref, self.opts.dailyListPrefix, src, "→", ER.timeStr(t()))
-      else print(pref, self.opts.dailyListPrefix, ER.timeStr(t())) end
+      if src then lines[#lines+1] = self.opts.dailyListPrefix .. " " .. src .. " → " .. ER.timeStr(t())
+      else lines[#lines+1] = self.opts.dailyListPrefix .. " " .. ER.timeStr(t()) end
     end
+    return lines
   end
 
   -- Lifecycle: 'enabled' ↔ 'disabled' (terminate cancels pending activity,
@@ -420,6 +429,7 @@ local function defineRuleAPI(rule, trs, opts)
   function rule.enable()
     rule._disabled = nil
     rule.failCount = 0
+    rule.lastError = nil
     -- Restart the interval scheduler: clock-aligned intervals resume at
     -- the next boundary; relative intervals restart from enable time.
     if rule.setupInterval then rule:setupInterval() end
@@ -462,6 +472,7 @@ local function defineRuleAPI(rule, trs, opts)
     self._mstate = {}
     self.trueFor = nil
     self.failCount = 0
+    self.lastError = nil
     self.stats = { runs = 0, successes = 0, failures = 0 }
 
     -- Commit the new binding
@@ -480,6 +491,30 @@ local function defineRuleAPI(rule, trs, opts)
     rule:dumpTriggers("  ")
     return rule
   end
+end
+
+-- ruleStatusText: one-line-per-rule summary for the QA UI status view.
+-- '<name> ✅' / '<name> ❌ disabled', in-flight count, last error, and the
+-- human-readable trigger list. Lines join with '</br>' for HC3 labels.
+function ER.ruleStatusText()
+  local ids = {}
+  for id in pairs(rules) do ids[#ids+1] = id end
+  table.sort(ids)
+  local lines = {}
+  for _, id in ipairs(ids) do
+    local r = rules[id]
+    local line = r._disabled and (r.name .. " ❌ disabled") or (r.name .. " ✅")
+    if r.active and r.active > 0 then line = line .. "  💤 " .. r.active .. " in flight" end
+    lines[#lines+1] = line
+    if r.lastError then
+      lines[#lines+1] = "   ❌ " .. tostring(r.lastError)
+    end
+    for _, tl in ipairs(r:triggerLines()) do
+      lines[#lines+1] = "   " .. tl
+    end
+  end
+  if #lines == 0 then return "No rules registered" end
+  return table.concat(lines, "</br>")
 end
 
 local function compRule(r, opts, src)
@@ -1030,6 +1065,8 @@ end
 --                     resets the counter
 local function ruleError(ctx, err)
   ctx:log("silent", ctx.opts.errorPrefix, err)
+  ctx.lastError = fmtErr(err, nil)   -- surfaced by info() and the UI status view
+  if ER._statusHook then pcall(ER._statusHook) end  -- UI live update
   local policy = ctx.opts.disableOnError
   if policy == false then return end
   if policy == nil or policy == true or type(policy) ~= 'number' then
@@ -1065,6 +1102,7 @@ function ruleRunner(f, ctx, perInvokeOpts)
     if ctx.isRule then
       if ctx.failCount then ctx.failCount = 0 end
       if ctx.active then ctx.active = ctx.active - 1 end
+      if ER._statusHook then pcall(ER._statusHook) end  -- UI live update
     end
     if ctx.onDone then ctx.onDone(...) end
     if synced then
