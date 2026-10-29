@@ -178,6 +178,10 @@ local function main(er)
     "setGlobal('y',1) & x == 5 => return 1",
     "Head function 'setGlobal'")
 
+  testRuleError("registration error position",
+    "setGlobal('y',1) & x == 5 => return 1",
+    " at line 1, col 1")
+
   testRuleError("head function typo suggestion",
     "fnt(x) == 5 => return 1",
     "did you mean 'fmt'")

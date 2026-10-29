@@ -485,6 +485,8 @@ local function compRule(r, opts, src)
   attachRun(rule)
 
   local trs = { triggers = {}, dailys = {}, between = {}, interval = nil }
+  trs.src = src
+  trs.srcmap = r._srcmap  -- positions for scanHead error annotations
   scanHead(head, trs)
   -- sanity check that scanHead found something triggerable
   if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
@@ -564,6 +566,15 @@ function ER._propSuggest(obj, key)
   return s and (" — did you mean '"..s.."'?") or ""
 end
 
+-- posAt(trs, node): source annotation for a compiled node, when the srcmap
+-- still has a position entry (compRule sets trs.src/trs.srcmap before the
+-- scan; the srcmap is consumed by csp.compile afterwards).
+local function posAt(trs, node)
+  local sp = trs.srcmap and node and trs.srcmap[node]
+  if sp and trs.src then return ER.sourceAnnotation(trs.src, sp.pos, sp.len) end
+  return ""
+end
+
 -- Head-purity whitelist: bare-name functions allowed to be CALLed in a rule
 -- condition. The trigger scanner evaluates fragments of the condition at
 -- registration time; a side-effecting function could run once there and
@@ -613,7 +624,7 @@ function HOPS.CALL(ast,trs)
       local s = suggest(name, names)
       if s then hint = " — did you mean '"..s.."'?" end
     end
-    error("Head function '"..name.."' is not allowed in a rule condition (side effects would run during trigger scanning)"..hint..". If it is side-effect free, whitelist it with ER._headFuns."..name.." = true", 0)
+    error("Head function '"..name.."' is not allowed in a rule condition (side effects would run during trigger scanning)"..hint..". If it is side-effect free, whitelist it with ER._headFuns."..name.." = true"..posAt(trs, ast[2] or ast), 0)
   end
   stdScan(ast,trs)
 end
@@ -621,7 +632,7 @@ end
 -- Modifier gates compile into YIELD nodes; only the since gate suspends.
 function HOPS.YIELD(ast,trs)
   if ast[2] ~= 'sinceGate' then
-    error("Yield '"..tostring(ast[2]).."' is not allowed in a rule condition")
+    error("Yield '"..tostring(ast[2]).."' is not allowed in a rule condition"..posAt(trs, ast))
   end
   stdScan(ast,trs) -- scan the duration and the wrapped condition for triggers
 end
@@ -634,7 +645,7 @@ function HOPS.GETPROP(ast,trs)
     local gp = ER.resolvePropObject(o,key)
     assert(gp, "GETPROP: cannot resolve object: "..tostring(o))
     if not gp:hasGetProp(key) then
-      error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp)..ER._propSuggest(gp, key))
+      error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp)..ER._propSuggest(gp, key)..posAt(trs, ast))
     end
     local trigger = gp:getTrigger(o,key)
     local id = trigger.property or trigger.name or trigger.type
@@ -718,7 +729,7 @@ function HOPS.MAKETABLE(ast,trs) end -- table contains no triggers
 function scanHead(ast,trs)
   if type(ast) ~= 'table' then return end
   local op = HOPS[ast[1]]
-  assert(op, "scanHead: op '" .. tostring(ast[1]) .. "' is not allowed in a rule condition")
+  assert(op, "scanHead: op '" .. tostring(ast[1]) .. "' is not allowed in a rule condition"..posAt(trs, ast))
   return op(ast,trs)
 end
 
