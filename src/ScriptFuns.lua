@@ -7,7 +7,17 @@ local function module(ER)
     local found,event = ctx:getVar('event')
     if ER.propFilters[key] then
       if type(obj) ~= 'table' then obj = {obj} end
-      return ER.propFilters[key](obj)
+      -- List filters (allTrue, average, ...) operate on resolved device
+      -- values, not raw ids/objects.
+      local values = table.map(function(o)
+        if type(o) == 'table' or type(o) == 'number' then
+          local gp = ER.resolvePropObject(o, 'value')
+          local v = gp and gp:_getProp('value', ctx)
+          return v == nil and o or v  -- only fall back to the raw element on nil
+        end
+        return o
+      end, obj)
+      return ER.propFilters[key](values)
     end
     if type(obj) == 'table' then
       assert(obj[1], "#invalid property access on table without objects :"..tostring(key))
