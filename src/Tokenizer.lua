@@ -144,6 +144,15 @@ local function module(ER)
       local h,m = s:match("(%d+):(%d+)")
       return {type='number', value=tonumber(h)*3600+tonumber(m)*60}
     end},
+    -- Duration literals: 5s / 30sec / 5min / 2h / 2hr / 1d → seconds
+    -- (Lua patterns have no alternation, so one rule per unit; %f[%A]
+    -- requires the unit to not be followed by another letter.)
+    {"0123456789", "%d+%.?%d*sec%f[%A]", function(s) return {type='number', value=tonumber(s:match("%d+%.?%d*"))} end},
+    {"0123456789", "%d+%.?%d*s%f[%A]", function(s) return {type='number', value=tonumber(s:match("%d+%.?%d*"))} end},
+    {"0123456789", "%d+%.?%d*min%f[%A]", function(s) return {type='number', value=tonumber(s:match("%d+%.?%d*"))*60} end},
+    {"0123456789", "%d+%.?%d*hr%f[%A]", function(s) return {type='number', value=tonumber(s:match("%d+%.?%d*"))*3600} end},
+    {"0123456789", "%d+%.?%d*h%f[%A]", function(s) return {type='number', value=tonumber(s:match("%d+%.?%d*"))*3600} end},
+    {"0123456789", "%d+%.?%d*d%f[%A]", function(s) return {type='number', value=tonumber(s:match("%d+%.?%d*"))*86400} end},
     {"0123456789", "%d+:%d+", function(s) error("Time literals must be in HH:MM or HH:MM:SS format: "..s) end}, -- catch common mistake of forgetting leading zeros
     {"0123456789", "%d+:%d+:%d+", function(s) error("Time literals must be in HH:MM or HH:MM:SS format: "..s) end}, -- catch common mistake of forgetting leading zeros
     {"0123456789","%d+%.%d+",function(n) 

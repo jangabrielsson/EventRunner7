@@ -8,6 +8,10 @@ A **rule** is an EventScript expression of the form:
 condition => action
 ```
 
+or, as English sugar, `when condition then action` — the same syntax and
+modifiers inside. Durations take unit suffixes: `5s`, `30sec`, `5min`,
+`2h`, `1d` (always seconds).
+
 Rules are registered by passing them to `er.eval()`. When the condition's triggers fire, the action runs — potentially asynchronously.
 
 A **plain expression** (no `=>`) runs immediately and returns its value.

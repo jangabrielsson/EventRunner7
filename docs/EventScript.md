@@ -93,6 +93,14 @@ EventScript uses a simple `triggerExpression => action` syntax where:
 rule("triggerExpression => action")
 ```
 
+As an alternative that reads more like English, a rule can be written
+`when triggerExpression then action` (same syntax and modifiers inside):
+
+```lua
+rule("when door:breached then light:on")
+rule("when motion:breached since 2min then alarm:on")
+```
+
 `--` starts an end-of-line comment inside a rule or expression source string:
 
 ```lua
@@ -314,11 +322,15 @@ EventScript provides various types of constants for use in expressions.
 
 #### Time Constants
 
-Time values can be specified in `HH:MM:SS` or `HH:MM` format:
+Time values can be specified in `HH:MM:SS` or `HH:MM` format, or as
+**duration literals** with a unit suffix (`5s`, `30sec`, `5min`, `2h`,
+`2hr`, `1d` — always seconds):
 
 ```lua
 rule("sensor:breached & 23:00..05:00 => log('Breached at night')")
 rule("@@00:00:10 => log('Ping every 10 seconds')")
+rule("motion:breached since 2min => alarm:on")
+rule("button:pressed debounce 30s => log('press settled')")
 ```
 
 #### Time Representation

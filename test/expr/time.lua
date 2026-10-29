@@ -9,6 +9,13 @@ local function main(er)
   test_expr(er, "return 10:00 + 00:30", 37800,
     "time add: 10:00 + 00:30 = seconds(10.5h)")
 
+  -- Duration literals: 5s / 30sec / 5min / 2h / 2hr / 1d → seconds
+  test_expr(er, "return 5min + 30s", 330,
+    "duration literals: 5min + 30s = 330s")
+
+  test_expr(er, "return 2h + 2hr + 1d", 100800,
+    "duration literals: 2h + 2hr + 1d = 28h")
+
   test_expr(er, "return 12:00 - 10:00", 7200,
     "time sub: 12:00 - 10:00 = 2h in seconds")
 
