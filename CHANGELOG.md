@@ -1,5 +1,132 @@
 # Changelog
 
+## [v0.2.1] - 2026-10-29
+
+## Changes in v0.2.1
+
+- ✨ **Feature**: examples: three runnable, commented example QAs
+  - motion-lights (the classic rule + window guards + cooldown + counters),
+  - morning-routine (daily/weekday/hourly/first_in), door-alert (since/
+  - debounce + the friendly error format demo). Each runs offline with
+  - simulated devices and a demo driver; README explains how to run and
+  - where to go next.
+- 🧪 **Test**: strict runner + repair long-broken false-green tests
+  - run-tests.sh now requires at least one PASS line: a test that dies in
+  - main() and exits 0 on idle no longer passes. This exposed 9 false
+  - greens, all repaired:
+  - device_triggers/expr_devices: include Setup.lua (er.defvars); the
+  - chain test asserts only on the final completion value
+  - global_vars (expr+rules): include Sim.lua; expectations updated for
+  - marshalled GV values (numbers/bools, not raw strings); condition-fail
+  - sentinel is fibaro.ER.ruleFail, not a field
+  - custom-event tests (events, event_routing, groups): post {type='X'}
+  - — the '#X' syntax subscribes to {type='X'}, not {type='event',name='X'}
+  - recompile: sim devices are numeric ids (no .id), setValue via fibaro.call
+  - modifier_every stub removed — 'every' behavior is covered by
+  - modifier_gates.lua
+  - binarySwitch sim gains a toggle action (devices.lua uses it)
+- 🐛 **Fix**: list filters (allTrue/allFalse/someTrue/...) operate on device values
+  - The propFilters branch passed raw device ids to the filters, so any
+  - list of ids was always all-truthy (allTrue always true). Now resolves
+  - each element to its device value first — only falling back to the raw
+  - element when the resolution is nil (false values must survive).
+- ✨ **Feature**: rules-status view in the QA UI
+  - ER.ruleStatusText(): one-line-per-rule summary (name, enabled/disabled,
+  - in-flight count, last error, human-readable trigger list) joined with
+  - </br> for HC3 labels
+  - rules record rule.lastError on runtime errors (reset by enable()/
+  - recompile()); ER._statusHook fires on completions and errors so the UI
+  - can update live without ER knowing about UI
+  - EventRunner7.lua: status label + 🔄 Rules button, refreshed at boot, on
+  - button press, and via the hook; trigger dump refactored into
+  - rule:triggerLines() shared by dumpTriggers/info()/the status view
+  - Test: status_text (summary contents, hook on completion)
+- ✨ **Feature**: when..then rule sugar and duration literals
+  - 'when cond then action' parses as the same rule as 'cond => action',
+  - with modifiers between (when d == 1 since 2min then ...). 'when' is
+  - not reserved: the parser speculates and falls back, so 'when' still
+  - works as a variable name. Modifier parsing refactored into
+  - parseModifiers/mkRuleNode, shared by both rule forms.
+  - duration literals in the tokenizer: 5s / 30sec / 5min / 2h / 2hr / 1d
+  - → seconds (Lua patterns have no alternation — one rule per unit with
+  - a %f[%A] boundary so '30mins' still fails cleanly)
+  - docs: RULES.md and EventScript.md cover both
+  - Tests: when_sugar (both forms, modifier+duration, 'when' as variable),
+  - duration arithmetic in expr/time
+- ✨ **Feature**: human-readable trigger descriptions in rule logs
+  - scanHead stamps each trigger with the source span the user wrote
+  - (trs.srcs), quoted instead of reverse-resolving ids — so lists,
+  - ambiguous bindings and overlapping resource types all work
+  - dumpTriggers/info()/startup logs now read:
+  - '⚡ doorSensor:breached → #device{"id":42,...}',
+  - '⚡ myLamps:isOn → #device{...}' (one span, several devices),
+  - '🕒 @23:00 → 23:00:00'
+  - parser spans fixed so GETPROP/BETW/DAILY/INTERV nodes cover the whole
+  - expression (were: property name / operator token / nothing)
+  - docs: '--' end-of-line comments documented in RULES.md and EventScript.md
+- ✨ **Feature**: perf: flatten nested PROGNs at CSP compile time
+  - compile() now expands nested PROGN children and collapses single-element
+  - sequences — one trampoline hop per nesting level saved, and --trace dumps
+  - are flat. Fixes the nested PROGNs the debounce action prefix introduced
+  - (PROGN(YIELD, PROGN(...))) and any future manual wrappers; removes the
+  - now-obsolete checkProgn debug hook.
+  - Constant folding deliberately NOT done: negligible win on an event-driven
+  - workload vs. real risk of coercion/subtle-semantics drift. Revisit only
+  - with measurements (test/speed.lua).
+- ✨ **Feature**: registration errors now carry a source position
+  - scanHead errors (head-purity violations, unknown ops/yields, bad
+  - properties) annotate with ' at line L, col C' + source + caret, using
+  - the srcmap that is still alive during the scan (compRule sets
+  - trs.src/trs.srcmap; csp.compile consumes it afterwards). Same shape as
+  - parse and runtime errors.
+  - Test: registration error position (col 1 of the offending call)
+- ✨ **Feature**: did-you-mean suggestions in rule/registration errors
+  - unknown head function: nearest whitelist match ('did you mean fmt?') or
+  - specific guidance for known side-effecting builtins ('post() posts
+  - events; move it into the action')
+  - GETPROP no-such-property: nearest real property name, both at
+  - registration (scanHead) and at runtime (getProp)
+  - Tests: typo suggestion, impure-builtin hint, property typo (sim device)
+- ✨ **Feature**: friendly-message translation for common runtime errors
+  - vm.host.hintError hook: the CSP enrichment runs host translations, so
+  - every path (rules, expressions, direct vm.eval) gets hinted messages
+  - 'Undefined variable: x' → 'Variable x is not defined — misspelled, or
+  - forgot to define it? (er.triggerVars.x, er.defglobals.x, or a rule
+  - assignment)'
+  - common 'attempt to ...' Lua errors get guidance appended (index nil,
+  - call nil, arithmetic/compare nil, concatenate table)
+  - eval returns the hinted message as its (nil, errmsg) status
+  - Tests: updated undefined-var expectations; arithmetic-nil hint case
+- ✨ **Feature**: unified runtime error format; throw() now works
+  - one error shape everywhere: 'msg at line L, col C' + source line +
+  - caret (ER.sourceAnnotation in Tokenizer; vm.host.formatSource uses it),
+  - so parse and runtime errors read alike
+  - the rule layer no longer appends a duplicated 'src:' tail: fmtErr adds
+  - the source only when the message has no annotation (registration and
+  - internal errors); CSP-enriched messages pass through verbatim
+  - throw(value) compiles to the THROW instruction (was never wired up —
+  - 'Undefined variable: throw'); non-string thrown values (tables) are
+  - serialized via the new vm.host.formatError hook
+  - async function timeout now logs at normal instead of verbose
+  - Tests: errors.lua throw cases now assert the caret and genuinely match
+  - the thrown value; new unified-format checks (names the variable, position
+  - annotation, no duplicated src tail)
+- ♻️ **Refactor**: comment out debug print statements in checkProgn function
+- 📚 **Docs**: EventScript_debug — info() active line, registration failures, disableOnError
+  - new section covers head-purity registration errors, eval's nil+err return
+  - (and {throw=true}), and the disableOnError runtime error policy with
+  - rule.enable() reset; info() samples note rule:state() and rule.active
+- 📚 **Docs**: update ARCHITECTURE.md for the rule-layer rework
+  - module line counts refreshed
+  - rule lifecycle rewritten: structured modifiers + gate chain, execution
+  - env + generation guard, lifecycle API (state/active/recompile), and the
+  - disableOnError error policy
+  - trigger scanning table: CALL whitelist + YIELD sinceGate; extension
+  - points: ER._headFuns, disableOnError; links to docs/reviews/
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.0] - 2026-10-28
 
 ## Changes in v0.2.0
