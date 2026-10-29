@@ -12,24 +12,24 @@ local function module(ER)
     if type(obj) == 'table' then
       assert(obj[1], "#invalid property access on table without objects :"..tostring(key))
       local fobj = ER.resolvePropObject(obj[1],key)
-      if not fobj:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
+      if not fobj:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)"..ER._propSuggest(fobj, key)) end
       local reduce = fobj:hasReduce(key)
       if not reduce then 
         return table.map(function(o) 
           o = ER.resolvePropObject(o,key)
-          if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
+          if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)"..ER._propSuggest(o, key)) end
           return o:_getProp(key, event)
         end, obj)
       end
       return reduce(function(o) 
         o = ER.resolvePropObject(o,key)
-        if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)") end
+        if not o:hasGetProp(key) then error("#no such property :"..tostring(key).." (get)"..ER._propSuggest(o, key)) end
         return o:_getProp(key, event)
       end, obj)
     end
     obj = ER.resolvePropObject(obj,key)
     assert(obj,"No object found for property access :"..tostring(key))
-    assert(obj:hasGetProp(key), "no such property :"..tostring(key).." (get)")
+    assert(obj:hasGetProp(key), "no such property :"..tostring(key).." (get)"..ER._propSuggest(obj, key))
     return obj:_getProp(key, event)
   end
   

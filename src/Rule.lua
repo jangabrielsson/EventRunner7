@@ -532,6 +532,38 @@ local stdHOPS = {
 local HOPS = {}
 for _,op in ipairs(stdHOPS) do HOPS[op] = stdScan end
 
+-- ── Typo suggestions ──────────────────────────────────────────────────────
+local function levenshtein(a, b)
+  local dp = {}
+  for i = 0, #a do dp[i] = {[0] = i} end
+  for j = 0, #b do dp[0][j] = j end
+  for i = 1, #a do
+    for j = 1, #b do
+      local cost = a:sub(i,i) == b:sub(j,j) and 0 or 1
+      dp[i][j] = math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost)
+    end
+  end
+  return dp[#a][#b]
+end
+
+-- suggest(name, candidates): closest candidate within distance 2, else nil.
+local function suggest(name, candidates)
+  local best, bestD = nil, 3
+  for _, c in ipairs(candidates) do
+    local d = levenshtein(name, c)
+    if d < bestD then best, bestD = c, d end
+  end
+  return bestD <= 2 and best or nil
+end
+
+-- _propSuggest(obj, key): " — did you mean 'x'?" for a prop-object key typo.
+function ER._propSuggest(obj, key)
+  local props = {}
+  for p in pairs(obj.getProp or {}) do props[#props+1] = p end
+  local s = suggest(tostring(key), props)
+  return s and (" — did you mean '"..s.."'?") or ""
+end
+
 -- Head-purity whitelist: bare-name functions allowed to be CALLed in a rule
 -- condition. The trigger scanner evaluates fragments of the condition at
 -- registration time; a side-effecting function could run once there and
@@ -555,10 +587,33 @@ ER._headFuns = {
   date = true, day = true, month = true, wday = true, nextDST = true,
 }
 
+-- Known side-effecting builtins — special guidance when used in a head.
+ER._impureFuns = {
+  post = "posts events", cancel = "cancels timers", publish = "publishes events",
+  subscribe = "registers handlers", remote = "calls remote devices",
+  enable = "changes rule state", disable = "changes rule state",
+  setGlobal = "writes a global variable", deleteglobal = "deletes a global",
+  wait = "suspends the run", listglobals = "queries the API",
+  historyOn = "changes rule state", historyOff = "changes rule state",
+  watchOn = "changes rule state", watchOff = "changes rule state",
+  showHistory = "prints", info = "prints", sort = "sorts its argument in place",
+  adde = "modifies a table", addf = "modifies a table", remove = "modifies a table",
+}
+
 function HOPS.CALL(ast,trs)
   local f = ast[2]
   if f and type(f) == 'table' and f[1] == 'GET' and not ER._headFuns[f[2]] then
-    error("Head function '"..tostring(f[2]).."' is not allowed in a rule condition (side effects would run during trigger scanning). If it is side-effect free, whitelist it with ER._headFuns."..tostring(f[2]).." = true", 0)
+    local name = tostring(f[2])
+    local hint = ""
+    if ER._impureFuns[name] then
+      hint = " — "..name.."() "..ER._impureFuns[name].."; move it into the action"
+    else
+      local names = {}
+      for n in pairs(ER._headFuns) do names[#names+1] = n end
+      local s = suggest(name, names)
+      if s then hint = " — did you mean '"..s.."'?" end
+    end
+    error("Head function '"..name.."' is not allowed in a rule condition (side effects would run during trigger scanning)"..hint..". If it is side-effect free, whitelist it with ER._headFuns."..name.." = true", 0)
   end
   stdScan(ast,trs)
 end
@@ -579,7 +634,7 @@ function HOPS.GETPROP(ast,trs)
     local gp = ER.resolvePropObject(o,key)
     assert(gp, "GETPROP: cannot resolve object: "..tostring(o))
     if not gp:hasGetProp(key) then
-      error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp))
+      error("GETPROP: no such property "..tostring(key).."' for object "..tostring(gp)..ER._propSuggest(gp, key))
     end
     local trigger = gp:getTrigger(o,key)
     local id = trigger.property or trigger.name or trigger.type

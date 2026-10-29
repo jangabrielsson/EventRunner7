@@ -178,6 +178,19 @@ local function main(er)
     "setGlobal('y',1) & x == 5 => return 1",
     "Head function 'setGlobal'")
 
+  testRuleError("head function typo suggestion",
+    "fnt(x) == 5 => return 1",
+    "did you mean 'fmt'")
+
+  testRuleError("head function impure hint",
+    "post(ev) & x == 5 => return 1",
+    "move it into the action")
+
+  local sw = er.loadSimDevice("binarySwitch")
+  testRuleError("property typo suggestion",
+    string.format("%d:valu => return 1", sw.id),
+    "did you mean 'value'")
+
   testRuleError("first_in time_window",
     "46:value first_in 'a' => return 1",
     "'first_in' requires a time window")
