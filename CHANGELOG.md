@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.2.4] - 2026-10-30
+
+## Changes in v0.2.4
+
+- ✨ **Feature**: add release notes for v0.2.3 with forum post helper and styling
+- 🐛 **Fix**: move the rules-status UI handler into Rule.lua for QA Updater compatibility
+  - The QA Updater ships module files but not the user's main QA file, so the
+  - handler and the auto-refresh hook now live in Rule.lua (QuickApp:refreshRules
+  - + ER._statusHook via a self-action fibaro.call(plugin.mainDeviceId, ...),
+  - the same dispatch postRemote uses). Only the %%u rows stay in the main
+  - file — flua/HC3 read UI directives exclusively from the QA's own header,
+  - so they cannot be moved (verified empirically: module %%u rows are
+  - ignored). Existing installs keep their rows; the updater can now ship
+  - future status-UI changes.
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.3] - 2026-10-30
 
 ## Changes in v0.2.3
