@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.2.3] - 2026-10-30
+
+## Changes in v0.2.3
+
+- ✨ **Feature**: initialize SimQuickApp class for simulation functionality
+- 🐛 **Fix**: ruleError was a global nil in yield handlers (user-reported)
+  - The yieldHandlers closures (sleep/asyncFun/sinceGate resume paths)
+  - referenced ruleError before its local declaration, so Lua bound it as a
+  - global → 'attempt to call a nil value (global ruleError)' in timer
+  - handlers whenever a resumed continuation threw (e.g. wait(0.1);
+  - throw('boom')). Forward-declared the local before the table.
+  - Regression test: wait+throw reaches the error policy (disables, records
+  - lastError) instead of crashing the timer handler.
+- ✨ **Feature**: add SKILL.md for plua to flua migration checklist and compatibility matrix
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.2] - 2026-10-29
 
 ## Changes in v0.2.2
