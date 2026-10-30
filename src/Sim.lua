@@ -7,6 +7,7 @@ fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local debugFlags = fibaro.debugFlags
 
+SimQuickApp = {}
 class "SimQuickApp"
 function SimQuickApp:__init(id)
   self.id = id
