@@ -915,6 +915,9 @@ function ER.firstInWinGate(cont, ctx, condval, inWindow, stopVal)
 end
 
 -- yield handlers receive (continuationFn, ctx, cb, ...yieldArgs)
+local ruleError  -- forward-declared: the handlers below reference it, but it
+                 -- is defined later (after resumeRunner). Lua would otherwise
+                 -- treat the references as globals → nil at runtime.
 local yieldHandlers = {
   sleep = function(cf, ctx, cb, sec)
     local o = ctx.opts
@@ -1063,7 +1066,7 @@ end
 --   N (number)      → disable after N consecutive errored runs; any clean
 --                     completion (condition false, or the action finishes)
 --                     resets the counter
-local function ruleError(ctx, err)
+ruleError = function(ctx, err)
   ctx:log("silent", ctx.opts.errorPrefix, err)
   ctx.lastError = fmtErr(err, nil)   -- surfaced by info() and the UI status view
   if ER._statusHook then pcall(ER._statusHook) end  -- UI live update

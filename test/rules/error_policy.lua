@@ -54,7 +54,19 @@ local function main(er)
   local v, err = er.eval("1 +")
   assert_truthy(v == nil and type(err) == "string", "eval: returns nil, err on failure")
 
-  done()
+  -- Regression: errors in resumed continuations (after wait/since/async)
+  -- must reach ruleError — it was once referenced before its local
+  -- declaration, surfacing as "attempt to call a nil value (global
+  -- 'ruleError')" inside timer handlers.
+  local r6 = er.eval("d == 6 => wait(0.01); throw('late boom')")
+  er.triggerVars.d = 6
+  r6:run()
+  setTimeout(function()
+    assert_truthy(r6._disabled, "resume error: disabled after wait+error")
+    assert_truthy(r6.lastError and r6.lastError:find("boom") ~= nil,
+      "resume error: lastError recorded")
+    done()
+  end, 100)
 end
 
 function QuickApp:onInit() fibaro.EventRunner(main) end
