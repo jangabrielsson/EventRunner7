@@ -1460,6 +1460,19 @@ local function bootEventRunner(cb)
 
   ER.devices = ER.deviceManager()
 
+  -- Rule status UI: the button handler and the auto-refresh hook live here
+  -- (updater-shipped module). The %%u rows stay in the main file's header —
+  -- flua/HC3 only read UI directives from the QA's own file. The hook
+  -- reaches the QA instance via a self-action (ER already uses
+  -- plugin.mainDeviceId for postRemote).
+  function QuickApp:refreshRules()
+    self:updateView('status','text', ER.ruleStatusText())
+  end
+  ER._statusHook = function()
+    fibaro.call(plugin.mainDeviceId, 'refreshRules')
+  end
+  setTimeout(ER._statusHook, 1000)  -- first refresh after the rules load
+
   setmetatable(er,{
     __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
   })
