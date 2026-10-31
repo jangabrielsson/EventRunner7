@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.2.5] - 2026-10-31
+
+## Changes in v0.2.5
+
+- ✨ **Feature**: add release notes for v0.2.4 with forum post helper and styling
+- 🐛 **Fix**: failed rule registrations no longer leave zombies that crash the status view
+  - compRule now wraps the scan/setup phase: any registration failure (head
+  - purity, bad property, unknown op, ...) removes the half-built rule from
+  - rules/namedRules/groups before rethrowing. Previously the rule object
+  - was inserted early and never cleaned up, and ruleStatusText() called
+  - the not-yet-defined triggerLines on it — 'attempt to call a nil value
+  - (method triggerLines)' → 'QuickApp crashed' (user-reported).
+  - Also: ruleStatusText guards missing triggerLines defensively, and the
+  - boot status refresh is pcall'd so a UI error can't crash the timer.
+  - Test: a head-purity failure leaves no zombie in the status text.
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.4] - 2026-10-30
 
 ## Changes in v0.2.4
