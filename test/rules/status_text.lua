@@ -13,8 +13,14 @@ local function main(er)
   er.triggerVars.d = 2
   bad:run()  -- errors, disables (default policy), records lastError
 
+  -- Registration failures must not leave zombies in the registry
+  -- (regression: 'QuickApp crashed' when ruleStatusText called triggerLines
+  -- on a half-built rule that failed head purity).
+  er.eval("setGlobal('y',1) & d == 1 => return 1")  -- fails at scanHead
+
   local txt = fibaro.ER.ruleStatusText()
   assert_match(txt, "RULE1 ✅", "status: ok rule listed")
+  assert_truthy(not txt:find("setGlobal"), "status: failed registration leaves no zombie")
   assert_match(txt, "❌ disabled", "status: errored rule disabled")
   assert_match(txt, "boom", "status: last error shown")
   assert_match(txt, "⚡ d →", "status: trigger source span shown")

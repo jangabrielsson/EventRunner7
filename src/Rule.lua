@@ -509,7 +509,7 @@ function ER.ruleStatusText()
     if r.lastError then
       lines[#lines+1] = "   ❌ " .. tostring(r.lastError)
     end
-    for _, tl in ipairs(r:triggerLines()) do
+    for _, tl in ipairs((r.triggerLines and r:triggerLines()) or {}) do
       lines[#lines+1] = "   " .. tl
     end
   end
@@ -524,22 +524,36 @@ local function compRule(r, opts, src)
   rule.modifiers = r._modifiers or {}  -- raw modifier flags (single, debounce, etc.)
   attachRun(rule)
 
-  local trs = { triggers = {}, dailys = {}, between = {}, interval = nil, srcs = {} }
-  trs.src = src
-  trs.srcmap = r._srcmap  -- positions/spans for scanHead error annotations
-  scanHead(head, trs)
-  -- sanity check that scanHead found something triggerable
-  if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
-    rules[rule.id], namedRules[rule.name] = nil, nil -- remove rule from registry
-    error("Rule has no triggers: " .. src)
-  end 
-  rule.fun = ER.csp.compile(r, r._srcmap)  -- compile rule into CSP (with srcmap if available)
+  local ok, err = pcall(function()
+    local trs = { triggers = {}, dailys = {}, between = {}, interval = nil, srcs = {} }
+    trs.src = src
+    trs.srcmap = r._srcmap  -- positions/spans for scanHead error annotations
+    scanHead(head, trs)
+    -- sanity check that scanHead found something triggerable
+    if not(next(trs.triggers) or next(trs.dailys) or next(trs.between) or trs.interval) then
+      rules[rule.id], namedRules[rule.name] = nil, nil -- remove rule from registry
+      error("Rule has no triggers: " .. src, 0)
+    end
+    rule.fun = ER.csp.compile(r, r._srcmap)  -- compile rule into CSP (with srcmap if available)
 
-  setupTriggers(rule, trs, opts)
-  if not setupInterval(rule, trs, opts) then
-    setupDailys(rule, trs, opts)
+    setupTriggers(rule, trs, opts)
+    if not setupInterval(rule, trs, opts) then
+      setupDailys(rule, trs, opts)
+    end
+    defineRuleAPI(rule, trs, opts)
+  end)
+  if not ok then
+    -- Registration failed partway: drop the half-built rule from the
+    -- registries so it can't surface as a zombie in ruleStatusText()/
+    -- info()/recompile (no triggerLines method yet).
+    rules[rule.id], namedRules[rule.name] = nil, nil
+    if opts.group and groups[opts.group] then
+      for i, gr in ipairs(groups[opts.group]) do
+        if gr == rule then table.remove(groups[opts.group], i) break end
+      end
+    end
+    error(err, 0)
   end
-  defineRuleAPI(rule, trs, opts)
 
   if opts.defined then
     rule:log("normal", rule.opts.ruleDefPrefix, "registered:", rule.src // cfg.ruleLen)
@@ -1471,7 +1485,8 @@ local function bootEventRunner(cb)
   ER._statusHook = function()
     fibaro.call(plugin.mainDeviceId, 'refreshRules')
   end
-  setTimeout(ER._statusHook, 1000)  -- first refresh after the rules load
+  local function safeStatus() pcall(ER._statusHook) end
+  setTimeout(safeStatus, 1000)  -- first refresh after the rules load
 
   setmetatable(er,{
     __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
