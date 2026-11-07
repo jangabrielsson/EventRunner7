@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.2.6] - 2026-11-07
+
+## Changes in v0.2.6
+
+- ✨ **Feature**: add tokenizer and parser in Lisp module; implement test function in EventRunner7
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.5] - 2026-10-31
 
 ## Changes in v0.2.5
