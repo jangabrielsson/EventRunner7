@@ -1015,4 +1015,10 @@ local function module(ER)
   
 end
 
+local traceFun = QuickApp.trace
+QuickApp.onActionSilent = true
+function QuickApp:trace(a,...)
+  if (not quickApp.onActionSilent) or (a ~= "onAction: ") then traceFun(self,a,...) end
+end
+
 MODULE[#MODULE+1] = { name = "Utils", sys=true, code = module }

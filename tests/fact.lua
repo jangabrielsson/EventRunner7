@@ -22,7 +22,7 @@ local function main(er) ER = er
   end
   local t0 = os.clock()
   local b = fact(20)
-  print(0.012349 / (os.clock()-t0))
+  print((os.clock()-t0))
 end
 
 function QuickApp:onInit()
@@ -30,7 +30,7 @@ function QuickApp:onInit()
   -- profile.start()
   self:debug("EventRunner 7,","v"..fibaro.EventRunnerVersion)
   fibaro.EventRunner(main)
-  os.exit(0)  -- benchmarks print during boot; ER's midnight loop would otherwise keep the run alive
+  --os.exit(0)  -- benchmarks print during boot; ER's midnight loop would otherwise keep the run alive
   --setTimeout(function() 
   --  profile.stop()
     -- report for the top 10 functions, sorted by execution time

@@ -17,6 +17,8 @@ local function main(er)
   rule("@@00:00:05 => log[({'red','green','yellow'})[rnd(1,3)]]('tick!')",{check=false})
 end
 
+function QuickApp:test() print(6) end
+
 function QuickApp:onInit()
   local str = "EventRunner 7, v"..fibaro.EventRunnerVersion
   self:debug(string.format("<font color='green'>%s</font>",str))
