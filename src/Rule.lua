@@ -207,6 +207,8 @@ local function newRule(opts, src)
   rule.subs = {}                -- trigger subscriptions (for recompile)
   rule.dailys = {}              -- daily subevents (filled by setupDailys;
                                 -- interval-only rules keep it empty)
+  function rule:setupDaily() end -- no-op default; setupDailys overrides it
+                                -- when the rule has daily/between triggers
   rule.lastError = nil          -- last runtime error (for the UI status view)
   makeLogger(rule, tostring)    -- rule name prefixes log output
   return rule
