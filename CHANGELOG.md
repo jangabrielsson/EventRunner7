@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.2.7] - 2026-11-11
+
+## Changes in v0.2.7
+
+- ✨ **Feature**: add no-op setupDaily method to rules and implement regression test for midnight loop
+- 📚 **Docs**: add release notes for v0.2.6 with forum post helper
+- 📚 **Docs**: remove old LS annotations (moved to .luals/)
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.6] - 2026-11-07
 
 ## Changes in v0.2.6
