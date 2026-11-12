@@ -13,7 +13,8 @@ warnings are the migration map. Then walk this checklist.
 
 | plua | flua | notes |
 |---|---|---|
-| `--%%headers:FILE` | `--%%include:FILE` | paths relative to the file that declares them (nested includes anchor per level) |
+| `--%%headers:FILE` | `--%%include:FILE` | **accepted as an alias** — respell when convenient; paths relative to the file that declares them |
+| `--%%name=value` | `--%%name:value` | **accepted** — the pre-plua `=` form parses like `:` (respell when convenient) |
 | `-- %%save:NAME.fqa` | *(gone)* | use `flua export -o NAME.fqa` / `flua --tool pack -o` |
 | `-- %%proxy:true` | `--%%mode:proxy` | proxy needs online mode |
 | `-- %%port=N` | *(gone)* | no per-QA port in flua |
@@ -54,11 +55,14 @@ warnings are the migration map. Then walk this checklist.
 - **Path rules**: `--%%include`/`--%%file` anchor to the declaring file;
   `io.open`/`dofile` inside QA code stay cwd-relative (start flua from the
   project root).
-- **Virtual time**: `--instant` is unsafe for `os.time()`-relative delay
-  logic; `--step` is the deterministic fast mode (plua `speedTime`
-  semantics); `--run-for N` exits 1 when the wall cap cuts work short;
-  tag perpetual housekeeping loops `_FLUA.background(fn)` so they fire
-  while the run lives but never keep it alive.
+- **Virtual time**: `--instant` and `--step` are both deadline-ordered
+  fast-forward — each callback observes its own deadline in `os.time()`
+  (0.1.111 made instant deadline-ordered; the old "instant is unsafe for
+  os.time()-relative logic" caveat no longer applies). `--speed N` is the
+  continuous clock (virtual time also passes while code executes).
+  `--run-for N` exits 1 when the wall cap cuts work short; tag perpetual
+  housekeeping loops `_FLUA.background(fn)` so they fire while the run
+  lives but never keep it alive.
 
 ## Migration checklist
 

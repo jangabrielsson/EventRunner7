@@ -29,6 +29,11 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
+That clone is for developing flua itself (its own AGENTS.md governs work
+there). When you hit a flua bug while working in a **different** project,
+never patch the flua repo to fix it — file an issue on the flua repo
+instead (see the flua-troubleshooting skill).
+
 ## HC3 credentials (.env)
 
 flua reads HC3 credentials through an environment chain: the local `.env`
@@ -42,8 +47,10 @@ HC3_PASSWORD=your-password
 HC3_PIN=1111
 ```
 
-`HC3_URL` (or `HC3_HOST`) is required for online mode — which is the
-**default** (see Modes below). A missing `HC3_URL` is a loud startup error,
+`HC3_URL` (or `HC3_HOST`) is required for online mode, which is
+**opt-in**: the default is **offline** (the simulated HC3), and online
+mode only activates when the credentials are set and the run asks for
+it (see Modes below). A missing `HC3_URL` is a loud startup error,
 and wrong credentials abort immediately (the HC3 locks itself after 4
 failed attempts, so flua never retries a 401/403).
 
@@ -101,7 +108,7 @@ The repo ships `.vscode/launch.json` with five configurations:
 - **Flua: Debug Current File (UI+mobdebug)** — debugger and viewer together.
 
 **Lua Language Server**: `flua --tool setup` also writes a `.luarc.json`
-(Lua 5.5, HC3 globals) and the **`.luals/` type library** — LuaLS definitions
+(Lua 5.4, HC3 globals) and the **`.luals/` type library** — LuaLS definitions
 for `QuickApp`, `fibaro`, `api` and `json` — so scaffolded projects get
 autocomplete and parameter hints on QA code. The repo carries the same
 configuration for contributors.
@@ -162,6 +169,11 @@ A typo'd directive warns at runtime (`unknown --%% directive`) and
 - **Emulator marker**: plua code checks `if fibaro.plua then` — flua does
   NOT set `fibaro.plua` (it is nil). flua's marker is the global `_FLUA`:
   `if _FLUA then ... end` (always set by flua, absent on the HC3).
+- **flua-only APIs need that guard**: `os.getenv` (the HC3 has no
+  `os.getenv` at all — an unguarded call fails at boot), `_PY.*`,
+  `net.*Server` (HTTP/TCP/UDP/WebSocket servers), and the `_FLUA.*`
+  helpers do not exist on the HC3. A QA meant to run on both must call
+  them inside `if _FLUA then ... end`.
 - **`--%%conceal:x=<v>` → `--%%clobber:x=<v>`** — and flua takes the value
   RAW: plua evaluates it as Lua, flua bakes it verbatim. Write
   `--%%clobber:key=placeholder` without quotes — a quoted

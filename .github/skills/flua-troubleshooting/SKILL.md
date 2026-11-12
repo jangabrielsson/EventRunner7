@@ -1,6 +1,6 @@
 ---
 name: flua-troubleshooting
-description: Common flua runtime errors and how to fix them: "online mode requires HC3_URL", HC3 authentication lockout, proxy callbacks not reaching the emulator, busy ports, unknown --%% directive warnings, unknown device types (and the catalog), virtual-time and keep-alive surprises, debugger notes, bridge errors ("lost reference" and friends, with --%%debug:bridge payload dumps), and the machine-readable log surface (--log json, --syslog, /flua/systemLog, /debugMessages, flua-mcp). USE FOR: diagnosing flua startup errors, HC3 connection failures, proxy mode issues, Lua runtime errors, cross-platform remedies for macOS and Windows.
+description: Common flua runtime errors and how to fix them: "online mode requires HC3_URL", HC3 authentication lockout, proxy callbacks not reaching the emulator, busy ports, unknown --%% directive warnings, unknown device types (and the catalog), virtual-time and keep-alive surprises, debugger notes, bridge errors ("lost reference" and friends, with --%%debug:bridge payload dumps), and the machine-readable log surface (--log json, --syslog, /flua/systemLog, /debugMessages, flua-mcp). USE FOR: diagnosing flua startup errors, HC3 connection failures, proxy mode issues, Lua runtime errors, cross-platform remedies for macOS and Windows, and the never-patch-flua protocol (file an upstream issue instead).
 ---
 
 # flua Troubleshooting
@@ -22,7 +22,9 @@ chain (local `.env` > `~/.env` > shell) has no `HC3_URL`/`HC3_HOST`.
 **Fix:**
 - Add the credentials to your `.env` (see flua-setup), or
 - run offline explicitly: `--api local`, `--%%mode:offline` in the QA
-  header, or a `--%%mode:offline` default in a `.directives` file.
+  header, or a `--%%mode:offline` default in a `.flua-directives` file
+  (next to the main QA file — the file-based `-D` spelling; see
+  flua-setup).
 
 Offline is always the default; online is opt-in (`--api remote`, or
 `--%%mode:online|proxy` on the main QA).
@@ -153,7 +155,9 @@ logs events and calls in a short form — usually the fastest way to see
 what the emulator sees (ws adds byte-level websocket traffic). Then: `flua --check` (or `--check --json`) for
 static issues, the QA's own `self:debug(...)` lines, `--log json` for a
 structured log, and `/flua/systemLog` + `/debugMessages` for the engine's
-side of the story.
+side of the story. If the cause turns out to be a flua bug, don't patch
+the flua repo from a downstream project — see "When it's a flua bug"
+below.
 
 ## Bridge errors: "lost reference" and friends
 
@@ -183,6 +187,32 @@ it to the invariant flua violated:
    flua itself, follow the repo's conventions (pinning tests).
 
 **Hygiene after instrumenting an installed flua:** find the live copy with
-`pip show flua`, and reset it with `pip install --force-reinstall
-fibaro-flua==<version>` — site-packages edits outlive the session and
-poison later runs.
+`python -m pip show fibaro-flua`, and reset it with
+`python -m pip install --force-reinstall fibaro-flua==<version>` —
+site-packages edits outlive the session and poison later runs.
+
+## When it's a flua bug — never patch flua, file an issue
+
+Working in a **different** project that uses flua (a QA repo, a tool
+built on flua) and the root cause turns out to be in flua itself? Do
+**not** patch the flua checkout to fix it — not even one that happens to
+be on disk or installed with `pip install -e`. Site-packages and checkout
+edits are wiped or forked by the next upgrade, and the flua repo is the
+maintainer's: it changes through issues there, not from downstream
+agents.
+
+The protocol:
+
+1. **Work around it in the project you are on** — QA-side guards, a
+   wrapper, defensive handling — so the user is unblocked now.
+2. **Ask the user whether to file an issue** on the flua repo
+   (github.com/jangabrielsson/flua). Pick the template that fits:
+   `Bug report` for a reproducible defect, `Feature request` for a
+   proposed improvement, `Feedback / experience report` for "here is
+   what I tried, what worked, what did not" round-ups.
+3. **Then either** keep the workaround until a new flua release ships
+   the fix, **or** wait for that release before doing anything else —
+   the user decides.
+
+Only edit the flua repo itself when the user explicitly directs work
+**in** that repo — its own AGENTS.md governs there.

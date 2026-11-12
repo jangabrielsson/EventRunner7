@@ -158,6 +158,42 @@ api.put("/quickApp/42/files/main", {
 })
 ```
 
+### Creating a QuickApp — the apiVersion marker decides, not the endpoint
+
+The JSON `POST /api/quickApp` create preserves the package verbatim —
+custom uiCallbacks included — **when it carries
+`initialProperties.apiVersion: "1.3"`** (flua's pack always writes the
+marker; hand-built structures must add it themselves). Without the
+marker the controller treats the package as legacy and RE-DERIVES the UI
+callbacks with generated default names (`ui<b2>OnReleased`) on recent
+firmware (live-verified 5.22x). Symptom: buttons die with "Class does
+not have uib2OnReleased function defined - action ignored".
+
+**`POST /api/quickApp/import` preserves an .fqa package verbatim
+regardless of the marker** and remains an equivalent alternative — it is
+the path the HC3 web UI's Import button uses. Its wire format is
+`multipart/form-data`:
+
+- part `file` — the .fqa JSON, **with a `filename`** (a filename-less
+  part crashes the import handler with a bodyless HTTP 500);
+- part `roomId` — optional;
+- header `X-Fibaro-Version: 2` rides along like the browser's interceptor.
+
+flua's tools already do this: `--tool uploadFQA`, `--tool uploadQA` (new
+QA), `--tool installHelper`, and the proxy deploy all use the import
+endpoint against a real HC3 (the offline sim keeps the JSON create, which
+never re-derives), and flua-packed .fqas carry the apiVersion marker.
+Symptom elsewhere: a QA whose buttons call `uib2OnReleased` was created
+from a package without the marker through the JSON API-create — re-import
+it or add the marker.
+
+A QA can install another .fqa itself (QA-installs-QA): with an
+apiVersion-carrying package, a plain
+`api.post('/quickApp/', json.encode(fqa))` works; for any other package,
+hand-build the multipart body and send it via net.HTTPClient to the
+loopback `http://127.0.0.1:11111/api/quickApp/import` — see the
+quickapp-patterns skill for both ready-made recipes.
+
 ---
 
 ## Global Variables
