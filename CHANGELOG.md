@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.2.8] - 2026-11-12
+
+## Changes in v0.2.8
+
+- ✨ **Feature**: Enhance QuickApp documentation and add new features
+  - Updated SKILL.md for quickapp-test with details on simulated devices and interaction tests.
+  - Expanded troubleshooting documentation for HC3 Lua sandbox restrictions.
+  - Revised quickapp-types documentation to reflect changes in switch event handling.
+  - Introduced new SKILL.md for quickapp-ui detailing runtime UI updates and event contracts.
+  - Added updateview-demo.lua to demonstrate UI element interactions.
+  - Implemented removeChildDevice method in QuickApp class for child device management.
+  - Enhanced api.lua with endpoint registration capabilities.
+  - Introduced net.lua for asynchronous network operations.
+  - Updated .luarc.json to include new logging levels.
+  - Added VSCode snippets for QuickApp development.
+  - Generated release notes for version 0.2.7 highlighting new features and documentation updates.
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.7] - 2026-11-11
 
 ## Changes in v0.2.7
