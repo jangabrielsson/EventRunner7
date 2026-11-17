@@ -15,6 +15,9 @@ local function main(er)
   er.opts = { started = true, check = true, result = true, triggers=true }
 
   rule("@@00:00:05 => log[({'red','green','yellow'})[rnd(1,3)]]('tick!')",{check=false})
+  rule("global('Delta_T')")
+  rule("global('Delta_T')")
+  rule("@now+1 & $Delta_T == '' => log('a')")
 end
 
 function QuickApp:test() print(6) end
