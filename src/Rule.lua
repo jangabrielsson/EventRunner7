@@ -1172,6 +1172,7 @@ function ruleRunner(f, ctx, perInvokeOpts)
   end
 end
 
+local nillWithStart = setmetatable({start = function() end}, {__tostring = function() return "nil" end})
 -- eval(src) compiles and runs EventScript source.
 --   Rule form  ("cond => action"): registers the rule, returns the rule object.
 --   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
@@ -1189,7 +1190,7 @@ local function eval(src,opts)
     if not ok then
       if not opts.throw then
         printErr(opts.errorPrefix, fmtErr(err, src))
-        return nil, fmtErr(err, nil)  -- explicit failure status (hinted)
+        return nillWithStart, fmtErr(err, nil)  -- explicit failure status (hinted)
       end
       error(err, 0)
     end
@@ -1224,7 +1225,7 @@ local function eval(src,opts)
     end
   end
 
-  if errmsg then return nil, errmsg end
+  if errmsg then return nillWithStart, errmsg end
   return result and table.unpack(result, 1, result.n)
 end
 
@@ -1493,7 +1494,7 @@ local function bootEventRunner(cb)
   setmetatable(er,{
     __tostring = function() return fmt("EventRunner7 v%s",_VERSION) end,
   })
-  setTimeout(function()
+  local loader = function()
     if gen ~= generation then return end
     sourceTrigger:run()
 
@@ -1521,6 +1522,10 @@ local function bootEventRunner(cb)
 
     if not silent then print(color('green', fmt("=========== Load time: %.3fs ============", loadTime))) end
 
+  end
+  setTimeout(function()
+    local stat,res = pcall(loader)
+    if not stat then print(color('red', fmt("Error loading rules: %s\nRest of rules may not be loaded!", res))) end
   end, 500)
 end
 

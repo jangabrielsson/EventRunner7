@@ -1,5 +1,6 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
+--%%mode:online
 --%%include:EventRunner.inc
 --%%file:src/Setup.lua,stdfuns
 --%%u:{label='info', text='EventRunnner 7'}
