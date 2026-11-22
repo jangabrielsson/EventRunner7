@@ -52,6 +52,11 @@ function QuickApp:turnOff()
     self:debug("binary switch turned off")
     self:updateProperty("value", false)    
 end 
+function QuickApp:toggle()
+    self:debug("binary switch toggled")
+    self:updateProperty("value", not self.props.value)
+end
+
 end
 -- END: binarySwitch.lua
 
@@ -254,7 +259,16 @@ end
 
 -- BEGIN: hvacSystemAuto.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_hvacSystemAuto"(SimQuickApp)
+local QuickApp = Sim_hvacSystemAuto
+function QuickApp:__init(id)
+  SimQuickApp.__init(self, id)
+  self.tag = "Sim_hvacSystemAuto:"..id
+  self:updateProperty("supportedThermostatModes", {"Auto", "Off", "Heat", "Cool"})
+  self:updateProperty("thermostatMode", "Auto")
+  self:setCoolingThermostatSetpoint(23)
+  self:setHeatingThermostatSetpoint(20)
+end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -266,10 +280,6 @@ function QuickApp:setHeatingThermostatSetpoint(value)
 end
 function QuickApp:onInit()
     self:debug(self.name,self.id)
-    self:updateProperty("supportedThermostatModes", {"Auto", "Off", "Heat", "Cool"})
-    self:updateProperty("thermostatMode", "Auto")
-    self:setCoolingThermostatSetpoint(23)
-    self:setHeatingThermostatSetpoint(20)
 end
 
 end
@@ -277,7 +287,9 @@ end
 
 -- BEGIN: hvacSystemCool.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_hvacSystemCool"(SimQuickApp)
+local QuickApp = Sim_hvacSystemCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_hvacSystemCool:"..id end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -295,7 +307,9 @@ end
 
 -- BEGIN: hvacSystemHeat.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_hvacSystemHeat"(SimQuickApp)
+local QuickApp = Sim_hvacSystemHeat
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_hvacSystemHeat:"..id end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -313,7 +327,9 @@ end
 
 -- BEGIN: hvacSystemHeatCool.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_hvacSystemHeatCool"(SimQuickApp)
+local QuickApp = Sim_hvacSystemHeatCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_hvacSystemHeatCool:"..id end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -512,6 +528,32 @@ end
 end
 -- END: remoteController.lua
 
+-- BEGIN: rollerShutter.lua
+do
+class "Sim_rollerShutter"(SimQuickApp)
+local QuickApp = Sim_rollerShutter
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_rollerShutter:"..id end
+function QuickApp:open()
+    self:debug("roller shutter opened")
+    self:updateProperty("value", 99)
+end
+function QuickApp:close()
+    self:debug("roller shutter closed")
+    self:updateProperty("value", 0)    
+end
+function QuickApp:stop()
+    self:debug("roller shutter stopped ")
+end
+function QuickApp:setValue(value)
+    self:debug("roller shutter set to: " .. tostring(value))
+    self:updateProperty("value", value)    
+end
+function QuickApp:onInit()
+    self:debug(self.name,self.id)
+end
+end
+-- END: rollerShutter.lua
+
 -- BEGIN: smokeSensor.lua
 do
 class "Sim_smokeSensor"(SimQuickApp)
@@ -565,7 +607,9 @@ end
 
 -- BEGIN: thermostatCool.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatCool"(SimQuickApp)
+local QuickApp = Sim_thermostatCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatCool:"..id end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -587,7 +631,9 @@ end
 
 -- BEGIN: thermostatHeat.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatHeat"(SimQuickApp)
+local QuickApp = Sim_thermostatHeat
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatHeat:"..id end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -609,7 +655,9 @@ end
 
 -- BEGIN: thermostatHeatCool.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatHeatCool"(SimQuickApp)
+local QuickApp = Sim_thermostatHeatCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatHeatCool:"..id end
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
 end
@@ -635,7 +683,9 @@ end
 
 -- BEGIN: thermostatSetpoint.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpoint"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpoint
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpoint:"..id end
 function QuickApp:setHeatingThermostatSetpoint(value) 
     self:updateProperty("heatingThermostatSetpoint", { value= value, unit= "C" })
 end
@@ -656,7 +706,9 @@ end
 
 -- BEGIN: thermostatSetpointCool.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpointCool"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpointCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpointCool:"..id end
 function QuickApp:setCoolingThermostatSetpoint(value) 
     self:updateProperty("coolingThermostatSetpoint", { value= value, unit= "C" })
 end
@@ -673,7 +725,9 @@ end
 
 -- BEGIN: thermostatSetpointHeat.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpointHeat"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpointHeat
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpointHeat:"..id end
 function QuickApp:setHeatingThermostatSetpoint(value) 
     self:updateProperty("heatingThermostatSetpoint", { value= value, unit= "C" })
 end
@@ -690,7 +744,9 @@ end
 
 -- BEGIN: thermostatSetpointHeatCool.lua
 do
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpointHeatCool"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpointHeatCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpointHeatCool:"..id end
 function QuickApp:setHeatingThermostatSetpoint(value) 
     self:updateProperty("heatingThermostatSetpoint", { value= value, unit= "C" })
 end
@@ -748,21 +804,6 @@ end
 end
 -- END: weather.lua
 
--- BEGIN: windSensor.lua
-do
-class "Sim_windSensor"(SimQuickApp)
-local QuickApp = Sim_windSensor
-function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_windSensor:"..id end
-function QuickApp:onInit()
-    self:debug(self.name,self.id)
-end
-function QuickApp:updateWind(value)
-    self:debug("wind sensor update: " .. tostring(value))
-    self:updateProperty("value", value)
-end
-end
--- END: windSensor.lua
-
 -- BEGIN: windowCovering.lua
 do
 class "Sim_windowCovering"(SimQuickApp)
@@ -788,4 +829,19 @@ function QuickApp:breached(state)
 end
 end
 -- END: windowSensor.lua
+
+-- BEGIN: windSensor.lua
+do
+class "Sim_windSensor"(SimQuickApp)
+local QuickApp = Sim_windSensor
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_windSensor:"..id end
+function QuickApp:onInit()
+    self:debug(self.name,self.id)
+end
+function QuickApp:updateWind(value)
+    self:debug("wind sensor update: " .. tostring(value))
+    self:updateProperty("value", value)
+end
+end
+-- END: windSensor.lua
 

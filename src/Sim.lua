@@ -88,12 +88,20 @@ function ER.loadSimDevice(name,id)
       local f = io.open("tests/stdQAs/"..name..".lua", "r")
       if f then
         local code = f:read("*a")
-        load(code, "@"..name..".lua", "t", _G)()
         f:close()
+        local chunk, lerr = load(code, "@"..name..".lua", "t", _G)
+        if not chunk then
+          error("#Failed to load sim device '"..name.."': "..tostring(lerr))
+        end
+        chunk()
       end
     end
   end
-  local device = _G["Sim_"..name](id)
+  local cls = _G["Sim_"..name]
+  if not cls then
+    error("#No sim class 'Sim_"..name.."' defined by tests/stdQAs/"..name..".lua")
+  end
+  local device = cls(id)
   loadedDevices[id] = device
   simDevices[id] = device
   assert(device, "Failed to load device "..name)

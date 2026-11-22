@@ -273,7 +273,7 @@ Read-only properties that query the HC3 API for device information.
 |----------|:---:|:---:|----------|--------|-------------|
 | `:thermostatFanMode` | ✓ | ✓ | `device.thermostatFanMode` | `mapF` | Fan mode. Set calls `setThermostatFanMode()`. |
 | `:thermostatFanOff` | ✓ | — | `device.thermostatFanOff` | `mapF` | Whether the fan is off. |
-| `:thermostatMode` | ✓ | — | `device.thermostatMode` | `mapF` | Current thermostat operating mode. |
+| `:thermostatMode` | ✓ | ✓ | `device.thermostatMode` | `mapF` | Current thermostat operating mode. Set calls `setThermostatMode()`. |
 | `:thermostatModeFuture` | ✓ | — | `device.thermostatModeFuture` | `mapF` | Scheduled future thermostat mode. |
 
 ### Write-only Thermostat Commands

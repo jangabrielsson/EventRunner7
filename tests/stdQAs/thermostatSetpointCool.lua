@@ -3,7 +3,9 @@
 --%%description:"Thermostat setpoint cool template"
 --%%desktop:true
 
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpointCool"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpointCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpointCool:"..id end
 -- Thermostat setpoint cool should handle actions: setCoolingThermostatSetpoint
 -- Properties that should be updated:
 -- * coolingThermostatSetpoint - set point for cooling, supported units: "C" - Celsius, "F" - Fahrenheit

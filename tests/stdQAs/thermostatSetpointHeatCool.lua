@@ -10,7 +10,9 @@
 -- * temperature - current temperature, supported units: "C" - Celsius, "F" - Fahrenheit
 
 -- handle action for setting set point for heating
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpointHeatCool"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpointHeatCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpointHeatCool:"..id end
 
 function QuickApp:setHeatingThermostatSetpoint(value) 
     self:updateProperty("heatingThermostatSetpoint", { value= value, unit= "C" })

@@ -3,7 +3,9 @@
 --%%description:"Thermostat heat/cool template"
 --%%desktop:true
 
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatHeatCool"(SimQuickApp)
+local QuickApp = Sim_thermostatHeatCool
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatHeatCool:"..id end
 -- Thermostat heat/cool should handle actions: setThermostatMode, setHeatingThermostatSetpoint, setCoolingThermostatSetpoint
 -- Properties that should be updated:
 -- * supportedThermostatModes - array of modes supported by the thermostat eg. {"Off", "Heat", "Cool", "Auto"}

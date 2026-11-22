@@ -376,8 +376,11 @@ local function module(ER)
     },
     thermostatFanOff = 
     GETPROP("thermostatFanOff", table.mapF),
-    thermostatMode = 
-    GETPROP("thermostatMode", table.mapF),
+    thermostatMode = {
+      trigger = {type='device', property='thermostatMode'},
+      get = get, set = set, setCmd = 'setThermostatMode',
+      reduce = table.mapF,
+    },
     thermostatModeFuture = 
     GETPROP("thermostatModeFuture", table.mapF),
   }
@@ -461,16 +464,22 @@ local function module(ER)
     self.__str = tostring(self.id)
   end
   function NumberProp:_getProp(prop, event)
-    local gp = self:hasGetProp(prop)
+    local gp = propertyTable[prop]
     if not gp then 
       error("#Unknown property: "..tostring(self.id)..":"..tostring(prop))
+    end
+    if not gp.get then
+      error("#Write-only property: "..tostring(self.id)..":"..tostring(prop))
     end
     return gp.get(gp, self.id, event)
   end
   function NumberProp:_setProp(prop,value, event)
-    local sp = self:hasGetProp(prop)
+    local sp = propertyTable[prop]
     if not sp then
       error("#Unknown property: "..tostring(self.id)..":"..tostring(prop))
+    end
+    if not sp.set then
+      error("#Read-only property: "..tostring(self.id)..":"..tostring(prop))
     end
     return sp.set(sp, self.id, value, event)
   end
@@ -478,10 +487,10 @@ local function module(ER)
     return propertyTable[prop] and propertyTable[prop].reduce
   end
   function NumberProp:hasGetProp(prop) 
-    return propertyTable[prop] and propertyTable[prop]
+    return propertyTable[prop] and propertyTable[prop].get
   end
   function NumberProp:hasSetProp(prop)
-    return propertyTable[prop] and propertyTable[prop]
+    return propertyTable[prop] and propertyTable[prop].set
   end
   function NumberProp:isTrigger(prop) 
     return propertyTable[prop] and propertyTable[prop].trigger or nil

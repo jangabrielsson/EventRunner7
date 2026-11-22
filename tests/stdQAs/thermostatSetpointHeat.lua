@@ -2,7 +2,9 @@
 --%%type:com.fibaro.thermostatSetpointHeat
 --%%description:"Thermostat setpoint heat template"
 --%%desktop:true
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_thermostatSetpointHeat"(SimQuickApp)
+local QuickApp = Sim_thermostatSetpointHeat
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_thermostatSetpointHeat:"..id end
 
 -- Thermostat setpoint heat should handle actions: setHeatingThermostatSetpoint
 -- Properties that should be updated:

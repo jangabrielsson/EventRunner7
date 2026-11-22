@@ -10,7 +10,9 @@
 -- * heatingThermostatSetpoint - set point for heating, supported units: "C" - Celsius, "F" - Fahrenheit
 
 -- handle action for mode change 
-local QuickApp = fibaro.SimQuickApp or QuickApp
+class "Sim_hvacSystemHeat"(SimQuickApp)
+local QuickApp = Sim_hvacSystemHeat
+function QuickApp:__init(id) SimQuickApp.__init(self, id) self.tag="Sim_hvacSystemHeat:"..id end
 
 function QuickApp:setThermostatMode(mode)
     self:updateProperty("thermostatMode", mode)
