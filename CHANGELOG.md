@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.2.11] - 2026-11-22
+
+## Changes in v0.2.11
+
+- ✨ **Feature**: fix hvac
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.10] - 2026-11-22
 
 ## Changes in v0.2.10
