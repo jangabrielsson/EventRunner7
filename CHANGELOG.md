@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.2.9] - 2026-11-22
+
+## Changes in v0.2.9
+
+- ✨ **Feature**: fix
+- ✨ **Feature**: remove unused test function from QuickApp
+- ✨ **Feature**: remove redundant rules from main function in EventRunner7
+- ✨ **Feature**: Update device management documentation and enhance QuickApp SKILL files
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.8] - 2026-11-12
 
 ## Changes in v0.2.8

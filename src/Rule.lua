@@ -2,7 +2,7 @@ fibaro.ER = fibaro.ER or {}
 local ER = fibaro.ER
 local vm
 
-local _VERSION = "0.2.8"
+local _VERSION = "0.2.9"
 fibaro.EventRunnerVersion = _VERSION
 
 local fmt = string.format
@@ -1172,7 +1172,7 @@ function ruleRunner(f, ctx, perInvokeOpts)
   end
 end
 
-local nillWithStart = setmetatable({start = function() end}, {__tostring = function() return "nil" end})
+local nillWithStart = nil --setmetatable({start = function() end}, {__tostring = function() return "nil" end})
 -- eval(src) compiles and runs EventScript source.
 --   Rule form  ("cond => action"): registers the rule, returns the rule object.
 --   Sync expr  ("1+2"):            returns the value(s) and logs 📋.
