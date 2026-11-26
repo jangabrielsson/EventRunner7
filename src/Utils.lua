@@ -982,7 +982,7 @@ local function module(ER)
   end
   
   function fibaro.basicAuthorization(user,password) return "Basic "..base64encode(user..":"..password) end
-
+  
   function urlencode(str) -- very useful
     if str then
       str = str:gsub("\n", "\r\n")
@@ -992,6 +992,32 @@ local function module(ER)
       str = str:gsub(" ", "%%20")
     end
     return str
+  end
+  
+  local function protect(tab,err) 
+    err = err or "Attempt to access nil hometable key: "
+    local function traverse(t, path)
+      if type(t) == 'table' then
+        local t2 = {}
+        for k, v in pairs(t) do
+          t2[k] = traverse(v, path .. tostring(k) .. ".")
+        end
+        return setmetatable({}, {
+          __index = function(_, key)
+            if t2[key] == nil then
+              error(err .. path .. tostring(key))
+            end
+            return t2[key]
+          end,
+          __newindex = function(_, key, value)
+            error("Attempt to modify read-only table")
+          end
+        })
+      else
+        return t
+      end
+    end
+    return traverse(tab, "")
   end
 
   -------------------------------------------------
@@ -1012,6 +1038,7 @@ local function module(ER)
   ER.deviceManager = deviceManager
   ER.horizontal = horizontal
   ER.color = color
+  ER.protectTable = protect
   
 end
 

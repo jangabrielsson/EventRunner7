@@ -2,6 +2,8 @@
 test/results/
 .codewhale
 
+dev/
+
 # Python cache (skill scripts)
 __pycache__/
 *.pyc
