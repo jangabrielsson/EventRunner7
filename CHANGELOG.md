@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.2.12] - 2026-11-26
+
+## Changes in v0.2.12
+
+- ✨ **Feature**: protect table
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.11] - 2026-11-22
 
 ## Changes in v0.2.11
