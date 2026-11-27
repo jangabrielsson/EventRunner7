@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.2.13] - 2026-11-27
+
+## Changes in v0.2.13
+
+- ✨ **Feature**: er.homeTable
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.12] - 2026-11-26
 
 ## Changes in v0.2.12
