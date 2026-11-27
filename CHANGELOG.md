@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.2.14] - 2026-11-27
+
+## Changes in v0.2.14
+
+- ✨ **Feature**: feat(protectTable): friendly errors with table name
+  - protectTable's raw 'Attempt to access nil key' errors surfaced with
+  - Lua file:line noise and no guidance. hintErr now translates them to
+  - actionable messages, CSP tags them so the noise is stripped, and
+  - protectTable/homeTable accept an optional table name included in
+  - the message.
+- ✨ **Feature**: fix
+
+
+*Generated automatically from git commits*
+
 ## [v0.2.13] - 2026-11-27
 
 ## Changes in v0.2.13
