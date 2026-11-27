@@ -994,7 +994,7 @@ local function module(ER)
     return str
   end
   
-  local function protect(tab) 
+  local function protect(tab, name) 
   local function traverse(t, path)
     if type(t) == 'table' then
       local t2 = {}
@@ -1004,12 +1004,14 @@ local function module(ER)
       return setmetatable({}, {
         __index = function(_, key)
           if t2[key] == nil then
-            error("Attempt to access nil key: " .. path .. tostring(key))
+            error(fmt("Attempt to access nil key: %s%s%s",
+              path, tostring(key), name and (" (table '" .. name .. "')") or ""))
           end
           return t2[key]
         end,
-        __newindex = function()
-          error("Attempt to modify read-only table")
+        __newindex = function(_, key)
+          error(fmt("Attempt to modify read-only table%s: %s",
+            name and (" '" .. name .. "'") or "", path .. tostring(key)))
         end,
         __pairs = function()
           return pairs(t2)
@@ -1027,7 +1029,7 @@ end
     local ht = fibaro.getGlobalVariable(name)
     local stat,res = pcall(json.decode,ht)
     if not stat then error("hometable variable " .. tostring(name) .. " is not valid JSON") end
-    return protect(res)
+    return protect(res, name)
   end
 
   -------------------------------------------------

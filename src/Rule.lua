@@ -74,6 +74,26 @@ local function hintErr(err)
     return err:gsub("^#?Undefined variable: '[^']+'",
       fmt("Variable '%s' is not defined — misspelled, or forgot to define it? (er.triggerVars.%s, er.defglobals.%s, or a rule assignment)", name, name, name))
   end
+  -- er.protectTable: accessing a key that is not in the protected table.
+  -- The message may carry a Lua "file:line:" prefix from the error() call
+  -- inside the __index metamethod — the rewrite drops it.
+  local key, tbl = err:match("Attempt to access nil key: (.+) %(table '([^']+)'%)$")
+  if key then
+    return fmt("Table '%s' has no key '%s' — misspelled key, or the value was never set", tbl, key)
+  end
+  local key = err:match("Attempt to access nil key: (.+)$")
+  if key then
+    return fmt("Key '%s' does not exist in the table — misspelled key, or the value was never set", key)
+  end
+  -- er.protectTable: assigning to a key in a protected (read-only) table.
+  local wtbl, wkey = err:match("Attempt to modify read%-only table '([^']+)': (.+)$")
+  if wkey then
+    return fmt("Table '%s' is read-only — can't assign to '%s' (er.protectTable)", wtbl, wkey)
+  end
+  local wkey = err:match("Attempt to modify read%-only table: (.+)$")
+  if wkey then
+    return fmt("Table is read-only — can't assign to '%s' (er.protectTable)", wkey)
+  end
   local hints = {
     {"attempt to index a nil value", "a value is nil where a table/device was expected — check the variable or device ID here"},
     {"attempt to call a nil value", "a function is nil where a call was made — is it defined? (er.defglobals, er.async)"},

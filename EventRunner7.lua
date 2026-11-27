@@ -1,6 +1,6 @@
 --%%name:EventRunner7
 --%%type:com.fibaro.deviceController
---%%mode:online
+--%%mode:offline
 --%%include:EventRunner.inc
 --%%file:src/Setup.lua,stdfuns
 --%%u:{label='info', text='EventRunnner 7'}
@@ -16,6 +16,11 @@ local function main(er)
   er.opts = { started = true, check = true, result = true, triggers=true }
 
   rule("@@00:00:05 => log[({'red','green','yellow'})[rnd(1,3)]]('tick!')",{check=false})
+
+  HT = { kitchen = {lamp = 99 }}
+  HT = er.protectTable(HT,"HT") -- throws error when accessing undefined key
+  for k,v in pairs(HT) do var[k] = v end
+  rule("@now+1 => log('Kitchen sensor ID: %s', kitchen.sensor)")
 end
 
 function QuickApp:onInit()

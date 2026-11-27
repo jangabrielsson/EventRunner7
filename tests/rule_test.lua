@@ -134,6 +134,51 @@ local function main(er)
     end,
     15)
 
+  -- ── protectTable error messages ──────────────────────────────────────
+  er.triggerVars.kitchen = er.protectTable({ lamp = 99 })
+  local pr = er.eval("tvar == 5 => return kitchen.sensor")
+  pr.verbosity = "silent"
+  er.triggerVars.tvar = 5
+  pr:run()
+  er.triggerVars.tvar = 0
+  local perr = tostring(pr.lastError)
+  check("protectTable: friendly nil-key error",
+    perr:match("Key 'sensor' does not exist") or "",
+    "Key 'sensor' does not exist")
+  check("protectTable: no internal file:line noise",
+    perr:find("Utils.lua:") == nil, true)
+  check("protectTable: source annotation kept",
+    perr:find(" at line 1, col") ~= nil, true)
+
+  -- named table: nil-key and read-only write messages
+  er.triggerVars.kt = er.protectTable({ lamp = 99 }, "HT")
+  local pr2 = er.eval("tvar == 5 => return kt.sensor")
+  pr2.verbosity = "silent"
+  er.triggerVars.tvar = 5
+  pr2:run()
+  er.triggerVars.tvar = 0
+  check("protectTable: named nil-key error",
+    tostring(pr2.lastError):match("Table 'HT' has no key 'sensor'") or "",
+    "Table 'HT' has no key 'sensor'")
+
+  local pr3 = er.eval("tvar == 5 => kt.lamp = 7")
+  pr3.verbosity = "silent"
+  er.triggerVars.tvar = 5
+  pr3:run()
+  er.triggerVars.tvar = 0
+  check("protectTable: named read-only write error",
+    tostring(pr3.lastError):match("Table 'HT' is read%-only — can't assign to 'lamp'") or "",
+    "Table 'HT' is read-only — can't assign to 'lamp'")
+
+  local pr4 = er.eval("tvar == 5 => kitchen.lamp = 7")
+  pr4.verbosity = "silent"
+  er.triggerVars.tvar = 5
+  pr4:run()
+  er.triggerVars.tvar = 0
+  check("protectTable: unnamed read-only write error",
+    tostring(pr4.lastError):match("Table is read%-only — can't assign to 'lamp'") or "",
+    "Table is read-only — can't assign to 'lamp'")
+
   -- ── rule object shape ─────────────────────────────────────────────────
   local r = er.eval("tvar == 5 => return 1")
   r.verbosity = "silent"

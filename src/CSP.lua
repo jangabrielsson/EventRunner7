@@ -618,6 +618,10 @@ local function module(ER)
     local taggableErrors = {
       --"attempt to perform arithmetic on a",
       "attempt to",
+      -- er.protectTable errors (capital A — plain find is case-sensitive, so
+      -- the lowercase "attempt to" above doesn't catch them)
+      "Attempt to access nil key",
+      "Attempt to modify read%-only table",
     }
     
     eval = function(expr, opts)   -- NOTE: forward-declared above for LAMBDA
