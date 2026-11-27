@@ -994,30 +994,40 @@ local function module(ER)
     return str
   end
   
-  local function protect(tab,err) 
-    err = err or "Attempt to access nil hometable key: "
-    local function traverse(t, path)
-      if type(t) == 'table' then
-        local t2 = {}
-        for k, v in pairs(t) do
-          t2[k] = traverse(v, path .. tostring(k) .. ".")
-        end
-        return setmetatable({}, {
-          __index = function(_, key)
-            if t2[key] == nil then
-              error(err .. path .. tostring(key))
-            end
-            return t2[key]
-          end,
-          __newindex = function(_, key, value)
-            error("Attempt to modify read-only table")
-          end
-        })
-      else
-        return t
+  local function protect(tab) 
+  local function traverse(t, path)
+    if type(t) == 'table' then
+      local t2 = {}
+      for k, v in pairs(t) do
+        t2[k] = traverse(v, path .. tostring(k) .. ".")
       end
+      return setmetatable({}, {
+        __index = function(_, key)
+          if t2[key] == nil then
+            error("Attempt to access nil key: " .. path .. tostring(key))
+          end
+          return t2[key]
+        end,
+        __newindex = function()
+          error("Attempt to modify read-only table")
+        end,
+        __pairs = function()
+          return pairs(t2)
+        end
+      })
+    else
+      return t
     end
-    return traverse(tab, "")
+  end
+  return traverse(tab, "")
+end
+
+  local function homeTable(name)
+    assert(name, "homeTable requires a name")
+    local ht = fibaro.getGlobalVariable(name)
+    local stat,res = pcall(json.decode,ht)
+    if not stat then error("hometable variable " .. tostring(name) .. " is not valid JSON") end
+    return protect(res)
   end
 
   -------------------------------------------------
@@ -1039,6 +1049,7 @@ local function module(ER)
   ER.horizontal = horizontal
   ER.color = color
   ER.protectTable = protect
+  ER.homeTable = homeTable
   
 end
 

@@ -1464,6 +1464,8 @@ local function bootEventRunner(cb)
   er.createSimGlobal = ER.defineSimGlobalVariable
   er.loadDevice = ER.loadDevice
   er.base64encode = ER.base64encode
+  er.protectTable = ER.protectTable
+  er.homeTable = ER.homeTable
   ER.isRule = isRule
   ER.getRule = getRule
   ER.getGroup = getRuleGoup
